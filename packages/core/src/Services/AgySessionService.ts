@@ -97,6 +97,9 @@ export class AgySessionService {
       this.applyStatus({ kind: "unavailable", reason: "agy asked to log in without a login URL" });
       return;
     }
+    if (this.status.kind === "login_required" && this.status.loginUrl === loginUrl) {
+      return;
+    }
     this.applyStatus({ kind: "login_required", loginUrl });
   }
 

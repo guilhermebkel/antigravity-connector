@@ -19,6 +19,7 @@ import { AgySpawnUtil } from "@antigravity-connector/agy/Utils/AgySpawnUtil.ts";
 import { AgyStreamReaderService } from "@antigravity-connector/agy/Services/AgyStreamReaderService.ts";
 import { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
 import { AgyStoppedError } from "@antigravity-connector/agy/Errors/AgyStoppedError.ts";
+import { AgyAbortedError } from "@antigravity-connector/agy/Errors/AgyAbortedError.ts";
 
 type AgyStreamRun = {
   buffer: AsyncEventBufferService<AgyStreamOutputEvent>;
@@ -52,11 +53,11 @@ export class AgyCliAdapter implements AgyRunnerPort {
     }
   }
 
-  async run(request: AgyRunRequest): Promise<AgyRunResult> {
+  async run(request: AgyRunRequest, signal?: AbortSignal): Promise<AgyRunResult> {
     this.assertRunning();
     const workingDirectory = await mkdtemp(join(this.tempRoot, AgyCliAdapter.RUN_DIRECTORY_PREFIX));
     try {
-      return await this.runInDirectory(request, workingDirectory);
+      return await this.runInDirectory(request, workingDirectory, signal);
     } finally {
       await rm(workingDirectory, { recursive: true, force: true });
     }
@@ -72,9 +73,13 @@ export class AgyCliAdapter implements AgyRunnerPort {
     }
   }
 
-  private async runInDirectory(request: AgyRunRequest, workingDirectory: string): Promise<AgyRunResult> {
+  private async runInDirectory(
+    request: AgyRunRequest,
+    workingDirectory: string,
+    signal: AbortSignal | undefined,
+  ): Promise<AgyRunResult> {
     const args = AgyArgumentUtil.build(request);
-    const outcome = await this.runProcess(args, workingDirectory, request.profile.timeoutMs);
+    const outcome = await this.runProcess(args, workingDirectory, request.profile.timeoutMs, signal);
     const envelope = AgyOutcomeUtil.readEnvelope(outcome, request.profile.timeoutMs, this.buildSecrets());
     const outputFiles = await this.readOutputFiles(workingDirectory, request.profile.expectedOutputFileNames);
     return { envelope, outputFiles };
@@ -210,13 +215,23 @@ export class AgyCliAdapter implements AgyRunnerPort {
     }
   }
 
-  private runProcess(args: readonly string[], workingDirectory: string, timeoutMs: number): Promise<AgyProcessOutcome> {
+  private runProcess(
+    args: readonly string[],
+    workingDirectory: string,
+    timeoutMs: number,
+    signal: AbortSignal | undefined,
+  ): Promise<AgyProcessOutcome> {
     return new Promise((resolve, reject) => {
       const childEnv = AgyEnvUtil.build(this.parentEnv);
       const child = this.startTracked(args, workingDirectory, childEnv);
       let stdout = "";
       let stderr = "";
       let isTimedOut = false;
+      const onAbort = (): void => {
+        AgySpawnUtil.stopProcessGroup(child.pid);
+        reject(new AgyAbortedError());
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
       child.stdout?.setEncoding("utf8");
       child.stderr?.setEncoding("utf8");
       child.stdout?.on("data", (chunk: string) => {
@@ -231,10 +246,12 @@ export class AgyCliAdapter implements AgyRunnerPort {
       }, timeoutMs);
       child.on("error", (error: Error) => {
         clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
         reject(error);
       });
       child.on("close", (exitCode: number | null) => {
         clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
         resolve({ exitCode, stdout, stderr, isTimedOut });
       });
     });

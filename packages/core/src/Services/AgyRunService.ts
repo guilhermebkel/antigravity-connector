@@ -68,13 +68,12 @@ export class AgyRunService {
     this.secrets = options.secrets;
   }
 
-  async run(kind: RunKind, input: RunInput): Promise<AgyRunResult> {
+  async run(kind: RunKind, input: RunInput, signal?: AbortSignal): Promise<AgyRunResult> {
     const request = this.prepare(kind, input);
-    await this.session.ensureConnected();
     this.limits.consume(kind);
     const startedAtMs = this.clock();
     try {
-      const result = await this.queue.run(() => this.runner.run(request));
+      const result = await this.queue.run(() => this.runChecked(request, signal), signal);
       this.logCall(kind, input, startedAtMs, { result: "success", usage: result.envelope.usage });
       return result;
     } catch (error: unknown) {
@@ -86,7 +85,6 @@ export class AgyRunService {
 
   async* stream(kind: RunKind, input: RunInput, signal?: AbortSignal): AsyncGenerator<AgyStreamOutputEvent> {
     const request = this.prepare(kind, input);
-    await this.session.ensureConnected();
     this.limits.consume(kind);
     const startedAtMs = this.clock();
     const buffer = new AsyncEventBufferService<AgyStreamOutputEvent>();
@@ -113,11 +111,17 @@ export class AgyRunService {
     }
   }
 
+  private async runChecked(request: AgyRunRequest, signal: AbortSignal | undefined): Promise<AgyRunResult> {
+    await this.session.ensureConnected();
+    return this.runner.run(request, signal);
+  }
+
   private async runStream(
     request: AgyRunRequest,
     buffer: AsyncEventBufferService<AgyStreamOutputEvent>,
     signal: AbortSignal,
   ): Promise<void> {
+    await this.session.ensureConnected();
     for await (const event of this.runner.stream(request, signal)) {
       buffer.push(event);
     }

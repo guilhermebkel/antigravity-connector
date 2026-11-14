@@ -13,12 +13,16 @@
     "cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --transform --tsconfig tsconfig.json \"src/**/*.ts\""
   },
   "devDependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.92",
     "@antigravity-connector/tooling": "workspace:*",
+    "ai": "^7.0.173",
     "tsdown": "^0.23.7",
     "tsx": "^4.23.15"
   },
   "dependencies": {
+    "@antigravity-connector/api": "workspace:*",
     "@antigravity-connector/core": "workspace:*",
+    "@antigravity-connector/mcp": "workspace:*",
     "@antigravity-connector/protocol": "workspace:*",
     "fastify": "^5.12.8"
   }

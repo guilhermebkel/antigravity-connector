@@ -47,7 +47,7 @@ export type AgyFinishedEvent = {
 export type AgyStreamOutputEvent = AgyStartedEvent | AgyTextEvent | AgyActivityEvent | AgyFinishedEvent;
 
 export interface AgyRunnerPort {
-  run(request: AgyRunRequest): Promise<AgyRunResult>;
+  run(request: AgyRunRequest, signal?: AbortSignal): Promise<AgyRunResult>;
   stream(request: AgyRunRequest, signal?: AbortSignal): AsyncIterable<AgyStreamOutputEvent>;
 }
 

@@ -13,5 +13,10 @@
   },
   "devDependencies": {
     "@antigravity-connector/tooling": "workspace:*"
+  },
+  "dependencies": {
+    "@antigravity-connector/core": "workspace:*",
+    "@antigravity-connector/protocol": "workspace:*",
+    "fastify": "^5.12.8"
   }
 }

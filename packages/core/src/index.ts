@@ -19,3 +19,14 @@ export { RuntimeSetup } from "@antigravity-connector/core/Setup/RuntimeSetup.ts"
 export type { RuntimeSetupOptions } from "@antigravity-connector/core/Setup/RuntimeSetup.ts";
 export type { CoreRuntime } from "@antigravity-connector/core/Protocols/CoreRuntimeProtocol.ts";
 export type { AgySessionKind } from "@antigravity-connector/core/Protocols/AgySessionStatusProtocol.ts";
+export type { AgyRunResult } from "@antigravity-connector/agy";
+// Why: the api and mcp tests share this double; the server never calls it.
+export { StubRuntimeUtil } from "@antigravity-connector/core/Testing/StubRuntimeUtil.ts";
+export type {
+  StubCheckResult,
+  StubRunOptions,
+  StubRunRequest,
+  StubRunResult,
+  StubRuntime,
+  StubSessionKind,
+} from "@antigravity-connector/core/Testing/StubRuntimeUtil.ts";

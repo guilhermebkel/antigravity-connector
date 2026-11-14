@@ -1,5 +1,6 @@
 export { AgyCliAdapter } from "@antigravity-connector/agy/Adapters/AgyCliAdapter.ts";
 export { AgySessionCheckAdapter } from "@antigravity-connector/agy/Adapters/AgySessionCheckAdapter.ts";
+export { AgyAbortedError } from "@antigravity-connector/agy/Errors/AgyAbortedError.ts";
 export { AgyFailedError } from "@antigravity-connector/agy/Errors/AgyFailedError.ts";
 export { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
 export { AgySessionRequiredError } from "@antigravity-connector/agy/Errors/AgySessionRequiredError.ts";

@@ -67,3 +67,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Why: CI cannot log in to Google, so the smoke test runs the image with the fake agy from the repository.
+      - run: ./scripts/image-smoke.sh

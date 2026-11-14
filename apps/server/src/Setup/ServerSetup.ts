@@ -8,6 +8,8 @@ import {
   type EnvNameToValue,
   type LogSink,
 } from "@antigravity-connector/core";
+import { ApiSetup } from "@antigravity-connector/api";
+import { McpSetup } from "@antigravity-connector/mcp";
 import type { RoutePlugin } from "@antigravity-connector/server/Protocols/RoutePluginProtocol.ts";
 import { AppSetup } from "@antigravity-connector/server/Setup/AppSetup.ts";
 import { NetworkBindUtil } from "@antigravity-connector/server/Utils/NetworkBindUtil.ts";
@@ -42,7 +44,7 @@ export class ServerSetup {
         process.stdout.write(`${line}\n`);
       },
       clock: Date.now,
-      createRoutePlugins: () => [],
+      createRoutePlugins: (runtime) => ServerSetup.buildDoors(runtime, env, Date.now),
     });
     for (const signal of ServerSetup.SHUTDOWN_SIGNALS) {
       process.once(signal, () => {
@@ -51,6 +53,22 @@ export class ServerSetup {
         });
       });
     }
+  }
+
+  static buildDoors(runtime: CoreRuntime, env: Env, clock: () => number): readonly RoutePlugin[] {
+    return [
+      (app) => {
+        ApiSetup.register(app, { runService: runtime.runService, clock });
+      },
+      (app) => {
+        McpSetup.register(app, {
+          clock,
+          runService: runtime.runService,
+          sessionTtlMs: env.MCP_SESSION_TTL_MS,
+          maxSessions: env.MCP_MAX_SESSIONS,
+        });
+      },
+    ];
   }
 
   static async build(options: ServerSetupOptions): Promise<RunningServer> {
