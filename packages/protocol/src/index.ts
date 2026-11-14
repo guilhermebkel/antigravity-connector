@@ -24,3 +24,4 @@ export type { ModelList } from "@antigravity-connector/protocol/Protocols/OpenAi
 export { ChatCompletionRequestSchema } from "@antigravity-connector/protocol/Schemas/ChatCompletionRequestSchema.ts";
 export { ModelListSchema } from "@antigravity-connector/protocol/Schemas/ModelListSchema.ts";
 export { OpenAiUsageUtil } from "@antigravity-connector/protocol/Utils/OpenAiUsageUtil.ts";
+export type { ChatCompletionChunk } from "@antigravity-connector/protocol/Protocols/OpenAiChatProtocol.ts";

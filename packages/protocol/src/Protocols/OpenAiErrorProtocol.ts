@@ -7,7 +7,9 @@ export type OpenAiErrorCode
     | "daily_limit_reached"
     | "agy_session_required"
     | "agy_failed"
-    | "agy_timeout";
+    | "agy_timeout"
+    | "image_not_produced"
+    | "image_invalid";
 
 export type OpenAiErrorType = "invalid_request_error" | "authentication_error" | "rate_limit_error" | "server_error";
 

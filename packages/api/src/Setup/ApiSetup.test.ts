@@ -239,7 +239,7 @@ describe("ApiSetup", () => {
     expect(readErrorBody(invalid).error.param).toBe("reasoning_effort");
   });
 
-  it("S6: response_format other than text, image parts and streaming return 400 naming the parameter", async () => {
+  it("S6: response_format other than text and image parts return 400 naming the parameter", async () => {
     app = await buildApp(StubRuntimeUtil.build());
     const format = await app.inject({
       method: "POST",
@@ -259,13 +259,6 @@ describe("ApiSetup", () => {
     });
     expect(image.statusCode).toBe(400);
     expect(readErrorBody(image).error.param).toBe("messages");
-    const stream = await app.inject({
-      method: "POST",
-      url: CHAT_PATH,
-      headers: API_KEY_HEADER,
-      payload: buildChatBody({ stream: true }),
-    });
-    expect(stream.statusCode).toBe(400);
   });
 
   it("S7: agy timeouts and failures map to 504 and 502 with the OpenAI error shape", async () => {

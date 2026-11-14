@@ -1,4 +1,6 @@
-import type { McpToolContext, McpToolPort } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
+import type { AgyRunService } from "@antigravity-connector/core";
+import { RunIncompleteError } from "@antigravity-connector/core";
+import type { McpToolContext, McpToolPort, McpToolRun } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
 import type { WebSearchInput, WebSearchOutput } from "@antigravity-connector/mcp/Protocols/WebSearchProtocol.ts";
 import { WebSearchInputSchema, WebSearchOutputSchema } from "@antigravity-connector/mcp/Schemas/WebSearchSchema.ts";
 import { SourceUtil } from "@antigravity-connector/mcp/Utils/SourceUtil.ts";
@@ -26,21 +28,42 @@ export class WebSearchTool implements McpToolPort<WebSearchInput, WebSearchOutpu
 
   readonly annotations = { readOnlyHint: true, openWorldHint: true };
 
-  async run(input: WebSearchInput, context: McpToolContext): Promise<WebSearchOutput> {
+  async run(input: WebSearchInput, context: McpToolContext): Promise<McpToolRun<WebSearchOutput>> {
     const model = input.model ?? WebSearchTool.DEFAULT_MODEL;
-    const result = await context.runService.run(
+    const envelope = await WebSearchTool.readEnvelope(context.runService, input, model, context);
+    const answer = envelope.response;
+    return {
+      output: {
+        answer,
+        model,
+        sources: SourceUtil.extract(answer),
+        durationMs: Math.round((envelope.duration_seconds ?? 0) * WebSearchTool.MS_PER_SECOND),
+        totalTokens: envelope.usage.total_tokens,
+      },
+      extraContent: [],
+    };
+  }
+
+  static async readEnvelope(
+    runService: AgyRunService,
+    input: WebSearchInput,
+    model: string,
+    context: McpToolContext,
+  ): Promise<{
+    response: string; duration_seconds?: number; usage: { total_tokens: number };
+  }> {
+    const events = runService.stream(
       "search",
       { model, door: "mcp", messages: [{ role: "user", content: input.query }] },
       context.signal,
+      context.observer,
     );
-    const answer = result.envelope.response;
-    return {
-      answer,
-      model,
-      sources: SourceUtil.extract(answer),
-      durationMs: Math.round((result.envelope.duration_seconds ?? 0) * WebSearchTool.MS_PER_SECOND),
-      totalTokens: result.envelope.usage.total_tokens,
-    };
+    for await (const event of events) {
+      if (event.kind === "finished") {
+        return event.envelope;
+      }
+    }
+    throw new RunIncompleteError();
   }
 
   summarize(output: WebSearchOutput): string {

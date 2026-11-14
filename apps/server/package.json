@@ -15,6 +15,7 @@
   "devDependencies": {
     "@ai-sdk/openai-compatible": "^3.0.92",
     "@antigravity-connector/tooling": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "ai": "^7.0.173",
     "tsdown": "^0.23.7",
     "tsx": "^4.23.15"

@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { AgyRunService } from "@antigravity-connector/core";
+import type { McpServices } from "@antigravity-connector/mcp/Protocols/McpServicesProtocol.ts";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { McpServerSetup } from "@antigravity-connector/mcp/Setup/McpServerSetup.ts";
 import type { McpSessionService } from "@antigravity-connector/mcp/Services/McpSessionService.ts";
 
 export type McpRouteOptions = {
-  runService: AgyRunService;
+  services: McpServices;
   sessions: McpSessionService;
 };
 
@@ -90,7 +90,7 @@ export class McpRoute {
       );
       return;
     }
-    const server = McpServerSetup.build(options.runService);
+    const server = McpServerSetup.build(options.services);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sessionId) => {

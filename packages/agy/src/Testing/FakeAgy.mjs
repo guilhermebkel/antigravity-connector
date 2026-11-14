@@ -14,12 +14,35 @@ const FAIL_MIDWAY_LINE_COUNT = 2;
 const SLOW_STREAM_LINE_COUNT = 3;
 const NO_OUTPUT = "";
 const CHAT_STREAM_FIXTURE = "chatStream.ndjson";
+const STREAM_INIT_AND_USER_LINE_COUNT = 2;
+const FAIL_AFTER_DELTAS_COUNT = 2;
+const ANSWER_PIECE_PATTERN = /\S+\s*/g;
+const IMAGE_OUTPUT_FILE_NAME = "output.png";
+const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
+const OVERSIZE_IMAGE_BYTES = 8388609;
 
 const readFixture = (fileName) => readFileSync(new URL(fileName, FIXTURES_DIRECTORY), "utf8");
 const readChatEnvelope = () => JSON.parse(readFixture("chatEnvelope.json"));
 const readStreamLines = (fileName) => readFixture(fileName).split("\n").filter((line) => line !== "");
 const keepAlive = () => undefined;
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const buildAnswerStreamLines = () => {
+  const envelope = readChatEnvelope();
+  const lines = readStreamLines(CHAT_STREAM_FIXTURE).slice(0, STREAM_INIT_AND_USER_LINE_COUNT);
+  const pieces = envelope.response.match(ANSWER_PIECE_PATTERN) ?? [];
+  const deltaLines = pieces.map((piece) => JSON.stringify({
+    event: "step_update",
+    step_update: { conversation_id: envelope.conversation_id, step_index: 1, state: "ACTIVE", step_type: "agent_response", text_delta: piece },
+  }));
+  return [...lines, ...deltaLines, JSON.stringify({ event: "result", result: envelope })];
+};
+
+const writeOutputImage = (bytes) => {
+  const outputPath = join(process.cwd(), IMAGE_OUTPUT_FILE_NAME);
+  writeFileSync(outputPath, bytes);
+};
 
 const buildSuccessResult = () => ({ stdout: readFixture("chatEnvelope.json"), stderr: NO_OUTPUT, exitCode: 0 });
 
@@ -81,6 +104,14 @@ const streamHandlers = {
     process.stdout.write(readFixture("noSession.txt"));
     return { stderr: NO_OUTPUT, exitCode: 1 };
   },
+  "stream-answer": async () => {
+    await writeLines(buildAnswerStreamLines());
+    return { stderr: NO_OUTPUT, exitCode: 0 };
+  },
+  "stream-answer-fail": async () => {
+    await writeLines(buildAnswerStreamLines().slice(0, STREAM_INIT_AND_USER_LINE_COUNT + FAIL_AFTER_DELTAS_COUNT));
+    return { stderr: "boom: the stream broke\n", exitCode: 1 };
+  },
   "stream-slow": async () => {
     await writeLines(readStreamLines(CHAT_STREAM_FIXTURE).slice(0, SLOW_STREAM_LINE_COUNT));
     setInterval(keepAlive, KEEP_ALIVE_MS);
@@ -101,6 +132,20 @@ const handlers = {
   "slow": () => {
     setInterval(keepAlive, KEEP_ALIVE_MS);
     return { stdout: "", stderr: `fake-agy-pid=${process.pid}\n`, exitCode: 0, keepRunning: true };
+  },
+  "image-png": () => {
+    writeOutputImage(Buffer.from(PNG_BASE64, "base64"));
+    return buildSuccessResult();
+  },
+  "image-none": () => buildSuccessResult(),
+  "image-not-png": () => {
+    writeOutputImage("not a png");
+    return buildSuccessResult();
+  },
+  "image-oversize": () => {
+    const padding = Buffer.alloc(OVERSIZE_IMAGE_BYTES - PNG_SIGNATURE.length);
+    writeOutputImage(Buffer.concat([PNG_SIGNATURE, padding]));
+    return buildSuccessResult();
   },
   "write-file": () => {
     const outputPath = join(process.cwd(), OUTPUT_FILE_NAME);

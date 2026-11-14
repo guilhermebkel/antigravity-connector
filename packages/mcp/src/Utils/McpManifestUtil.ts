@@ -1,4 +1,3 @@
-import type { AgyRunService } from "@antigravity-connector/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   CallToolRequestSchema,
@@ -6,32 +5,59 @@ import {
   McpError,
   type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
+import type { RunObserver } from "@antigravity-connector/core";
 import type { McpToolContext, McpToolPort } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
+import type { McpServices } from "@antigravity-connector/mcp/Protocols/McpServicesProtocol.ts";
+import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
 import { WebSearchTool } from "@antigravity-connector/mcp/Tools/WebSearchTool.ts";
+import { McpProgressService } from "@antigravity-connector/mcp/Services/McpProgressService.ts";
 import { McpErrorUtil } from "@antigravity-connector/mcp/Utils/McpErrorUtil.ts";
 import { McpResultUtil } from "@antigravity-connector/mcp/Utils/McpResultUtil.ts";
 
+type ToolRunner = (args: unknown, context: McpToolContext) => Promise<CallToolResult>;
+
+type ProgressSession = {
+  observer: RunObserver;
+  close: () => void;
+};
+
+const buildNoopObserver = (): RunObserver => () => undefined;
+
+const buildNoopClose = (): (() => void) => () => undefined;
+
 export class McpManifestUtil {
-  static registerAll(server: McpServer, runService: AgyRunService): void {
+  static registerAll(server: McpServer, services: McpServices): void {
     const webSearch = new WebSearchTool();
-    McpManifestUtil.registerTool(server, webSearch, runService);
+    const generateImage = new GenerateImageTool();
+    McpManifestUtil.registerTool(server, webSearch, services);
+    McpManifestUtil.registerTool(server, generateImage, services);
+    const toolNameToRunner = new Map<string, ToolRunner>([
+      [webSearch.name, (args, context) => McpManifestUtil.callWith(webSearch, args, context)],
+      [generateImage.name, (args, context) => McpManifestUtil.callWith(generateImage, args, context)],
+    ]);
     server.server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
-      if (request.params.name !== webSearch.name) {
+      const runner = toolNameToRunner.get(request.params.name);
+      if (runner === undefined) {
         throw new McpError(ErrorCode.InvalidParams, `Tool ${request.params.name} not found`);
       }
-      const parsed = webSearch.inputSchema.safeParse(request.params.arguments);
-      if (!parsed.success) {
-        const message = McpManifestUtil.describeIssues(webSearch.name, parsed.error.issues);
-        throw new McpError(ErrorCode.InvalidParams, message);
+      const progress = McpManifestUtil.openProgress(extra);
+      try {
+        return await runner(request.params.arguments, {
+          runService: services.runService,
+          imageService: services.imageService,
+          signal: extra.signal,
+          observer: progress.observer,
+        });
+      } finally {
+        progress.close();
       }
-      return McpManifestUtil.invoke(webSearch, parsed.data, { runService, signal: extra.signal });
     });
   }
 
   static registerTool<I, O extends Record<string, unknown>>(
     server: McpServer,
     tool: McpToolPort<I, O>,
-    runService: AgyRunService,
+    services: McpServices,
   ): void {
     server.registerTool(
       tool.name,
@@ -42,8 +68,26 @@ export class McpManifestUtil {
         outputSchema: tool.outputSchema,
         annotations: tool.annotations,
       },
-      async (input, extra) => McpManifestUtil.invoke(tool, input, { runService, signal: extra.signal }),
+      async (input, extra) => McpManifestUtil.invoke(tool, input, {
+        runService: services.runService,
+        imageService: services.imageService,
+        signal: extra.signal,
+        observer: buildNoopObserver(),
+      }),
     );
+  }
+
+  static async callWith<I, O extends Record<string, unknown>>(
+    tool: McpToolPort<I, O>,
+    args: unknown,
+    context: McpToolContext,
+  ): Promise<CallToolResult> {
+    const parsed = tool.inputSchema.safeParse(args);
+    if (!parsed.success) {
+      const message = McpManifestUtil.describeIssues(tool.name, parsed.error.issues);
+      throw new McpError(ErrorCode.InvalidParams, message);
+    }
+    return McpManifestUtil.invoke(tool, parsed.data, context);
   }
 
   static async invoke<I, O extends Record<string, unknown>>(
@@ -52,15 +96,48 @@ export class McpManifestUtil {
     context: McpToolContext,
   ): Promise<CallToolResult> {
     try {
-      const output = await tool.run(input, context);
-      return McpResultUtil.buildSuccess(output, tool.summarize(output));
+      const run = await tool.run(input, context);
+      return McpResultUtil.buildSuccess(run.output, tool.summarize(run.output), run.extraContent);
     } catch (error: unknown) {
       return McpResultUtil.buildFailure(McpErrorUtil.describe(error));
     }
   }
 
+  static openProgress(extra: { _meta?: { progressToken?: string | number } } & {
+    sendNotification: (notification: {
+      method: "notifications/progress";
+      params: {
+        progressToken: string | number; progress: number; message: string;
+      };
+    }) => Promise<void>;
+  }): ProgressSession {
+    const progressToken = extra._meta?.progressToken;
+    if (progressToken === undefined) {
+      return { observer: buildNoopObserver(), close: buildNoopClose() };
+    }
+    const service = new McpProgressService({
+      clock: Date.now,
+      send: (progress, message) => {
+        extra.sendNotification({
+          method: "notifications/progress",
+          params: { progressToken, progress, message },
+        }).catch(buildNoopClose());
+      },
+    });
+    service.start();
+    return { observer: (event) => {
+      service.observe(event);
+    }, close: () => {
+      service.close();
+    } };
+  }
+
   static describeIssues(toolName: string, issues: readonly { message: string }[]): string {
     const details = issues.map((issue) => issue.message).join("; ");
     return `Invalid arguments for tool ${toolName}: ${details}`;
+  }
+
+  static describeError(error: unknown): string {
+    return McpErrorUtil.describe(error);
   }
 }

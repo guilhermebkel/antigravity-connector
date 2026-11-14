@@ -4,9 +4,6 @@ import { ChatParamUtil } from "@antigravity-connector/api/Utils/ChatParamUtil.ts
 
 export class ChatRequestService {
   static check(request: ChatCompletionRequest): void {
-    if (request.stream === true) {
-      throw new ApiRequestError("invalid_request_error", "stream", "Streaming is not available on this server yet.");
-    }
     if (ChatParamUtil.hasToolRequest(request)) {
       throw new ApiRequestError(
         "tools_not_supported",

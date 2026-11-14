@@ -7,12 +7,15 @@ import { ChatCompletionService } from "@antigravity-connector/api/Services/ChatC
 export type ApiSetupOptions = {
   runService: AgyRunService;
   clock: () => number;
+  keepAliveMs?: number;
 };
 
 export class ApiSetup {
+  static readonly KEEP_ALIVE_MS = 15000;
+
   static register(app: FastifyInstance, options: ApiSetupOptions): void {
     const service = new ChatCompletionService({ runService: options.runService, clock: options.clock });
     ModelsRoute.register(app, options.clock);
-    ChatCompletionRoute.register(app, service);
+    ChatCompletionRoute.register(app, service, { keepAliveMs: options.keepAliveMs ?? ApiSetup.KEEP_ALIVE_MS });
   }
 }

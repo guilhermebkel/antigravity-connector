@@ -3,7 +3,7 @@
 A personal, localhost-only Docker server that exposes a Google AI Pro subscription through two doors in one process:
 
 - an OpenAI-compatible API under `/v1` (`POST /v1/chat/completions`, `GET /v1/models`);
-- an MCP server (Streamable HTTP) under `/mcp`, with the `web_search` tool.
+- an MCP server (Streamable HTTP) under `/mcp`, with the `web_search` and `generate_image` tools.
 
 Every call runs the official Antigravity CLI (`agy`) as a subprocess. The server never reads, copies or forwards the CLI's login token, and never calls Google directly. There is no web page: the login link is printed in the container logs, and the code is entered with `docker exec`.
 
@@ -61,6 +61,10 @@ With the Vercel AI SDK (`@ai-sdk/openai-compatible`):
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
+The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`.
+
+When the client sends a progress token, the server reports progress while a call waits in the queue and runs. A client that cancels a call stops the agy process.
+
 ## Configuration
 
 | Variable | Default | What it does |
@@ -81,7 +85,8 @@ The `web_search` tool returns a short answer with links. A search takes about 20
 
 - One agy call runs at a time. Calls from the API and from MCP share one queue.
 - Calls are slow: a chat answer takes seconds, a search takes tens of seconds.
-- Not available yet: streaming (`stream: true` returns 400), tool calling (`tools` returns 400, because agy runs its own tools), `response_format` other than text, image input, and the `research`, `browse` and `generate_image` tools.
+- Streaming works with `stream: true` (Server-Sent Events, OpenAI chunk format). Set `stream_options.include_usage` to get the usage in the last chunk.
+- Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), `response_format` other than text, image input, the `research` and `browse` tools, and `POST /v1/images/generations`.
 - Sampling parameters (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`) are accepted and ignored. The response header `x-antigravity-connector-ignored-params` lists the ones you sent.
 - The agy binary is pinned to version 1.5.9 in the image. It cannot update itself, because it is installed read-only for the server user.
 

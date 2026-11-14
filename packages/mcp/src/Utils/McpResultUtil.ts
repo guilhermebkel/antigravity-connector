@@ -1,9 +1,9 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 
 export class McpResultUtil {
-  static buildSuccess(output: Record<string, unknown>, summary: string): CallToolResult {
+  static buildSuccess(output: Record<string, unknown>, summary: string, extraContent: ContentBlock[]): CallToolResult {
     return {
-      content: [{ type: "text", text: `${summary}\n${JSON.stringify(output)}` }],
+      content: [{ type: "text", text: `${summary}\n${JSON.stringify(output)}` }, ...extraContent],
       structuredContent: output,
     };
   }

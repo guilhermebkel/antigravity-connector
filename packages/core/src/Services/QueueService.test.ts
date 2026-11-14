@@ -120,3 +120,22 @@ describe("QueueService.run", () => {
     expect(queue.getDepth()).toBe(0);
   });
 });
+
+describe("QueueService hooks", () => {
+  it("reports the position of a waiting call and the moment each call starts", async () => {
+    const queue = new QueueService({ maxWaitMs: 60000 });
+    const events: string[] = [];
+    let release: () => void = () => undefined;
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const first = queue.run(() => hold, undefined, { onStarted: () => events.push("first started") });
+    const second = queue.run(() => Promise.resolve(), undefined, {
+      onWaiting: (position) => events.push(`second waiting at ${position}`),
+      onStarted: () => events.push("second started"),
+    });
+    release();
+    await Promise.all([first, second]);
+    expect(events).toStrictEqual(["first started", "second waiting at 1", "second started"]);
+  });
+});

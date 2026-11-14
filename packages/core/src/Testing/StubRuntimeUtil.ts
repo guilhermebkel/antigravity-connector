@@ -46,11 +46,29 @@ export type StubCheckResult = StubConnectedCheck | StubLoginRequiredCheck;
 
 export type StubRunOptions = {
   answer?: string;
+  failAfterDeltas?: number;
   respond?: (request: StubRunRequest) => Promise<StubRunResult>;
   sessionKind?: StubSessionKind;
   limits?: RunKindToLimit;
   maxWaitMs?: number;
 };
+
+export type StubStartedEvent = {
+  kind: "started";
+  conversationId: string;
+};
+
+export type StubTextEvent = {
+  kind: "text";
+  delta: string;
+};
+
+export type StubFinishedEvent = {
+  kind: "finished";
+  envelope: StubRunResult["envelope"];
+};
+
+export type StubStreamEvent = StubStartedEvent | StubTextEvent | StubFinishedEvent;
 
 export type StubRuntime = {
   runService: AgyRunService;
@@ -61,6 +79,8 @@ export class StubRuntimeUtil {
   static readonly DEFAULT_ANSWER = "Node.js 26 is the current LTS. See https://nodejs.org/en/about/previous-releases.";
 
   static readonly DEFAULT_LIMIT = 200;
+
+  static readonly PIECE_PATTERN = /\S+\s*/g;
 
   static readonly MAX_WAIT_MS = 60000;
 
@@ -99,14 +119,16 @@ export class StubRuntimeUtil {
     const requests: StubRunRequest[] = [];
     const answer = options.answer ?? StubRuntimeUtil.DEFAULT_ANSWER;
     const respond = options.respond ?? (() => Promise.resolve(StubRuntimeUtil.buildResult(answer)));
+    const answerOf = async (request: StubRunRequest): Promise<StubRunResult> => {
+      requests.push({ prompt: request.prompt, modelSlug: request.modelSlug });
+      return respond({ prompt: request.prompt, modelSlug: request.modelSlug });
+    };
     const runner = {
-      run: async (request: StubRunRequest): Promise<StubRunResult> => {
-        requests.push({ prompt: request.prompt, modelSlug: request.modelSlug });
-        return respond({ prompt: request.prompt, modelSlug: request.modelSlug });
-      },
-      stream: (): AsyncIterable<never> => ({
-        [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true, value: undefined }) }),
-      }),
+      run: (request: StubRunRequest): Promise<StubRunResult> => answerOf(request),
+      stream: (request: StubRunRequest): AsyncIterable<StubStreamEvent> => StubRuntimeUtil.streamOf(
+        answerOf(request),
+        options.failAfterDeltas,
+      ),
     };
     const sessionKind = options.sessionKind ?? "connected";
     const checkPort = { check: () => Promise.resolve(StubRuntimeUtil.SESSION_KIND_TO_CHECK[sessionKind]) };
@@ -131,6 +153,22 @@ export class StubRuntimeUtil {
       secrets: [],
     });
     return { runService, requests };
+  }
+
+  static async* streamOf(
+    answer: Promise<StubRunResult>,
+    failAfterDeltas: number | undefined,
+  ): AsyncGenerator<StubStreamEvent> {
+    const result = await answer;
+    const pieces = result.envelope.response.match(StubRuntimeUtil.PIECE_PATTERN) ?? [];
+    yield { kind: "started", conversationId: result.envelope.conversation_id };
+    for (const [index, piece] of pieces.entries()) {
+      if (index === failAfterDeltas) {
+        throw Object.assign(new Error("agy failed"), { code: "agy_failed" });
+      }
+      yield { kind: "text", delta: piece };
+    }
+    yield { kind: "finished", envelope: result.envelope };
   }
 
   static buildLimits(overrides: RunKindToLimit): Record<RunKind, number> {
