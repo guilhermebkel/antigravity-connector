@@ -41,8 +41,8 @@ export default tseslint.config(
         // Why: keys of external formats (agent JSON, CLI flags, snake_case signal ids) keep their spelling.
         { selector: ["objectLiteralProperty", "objectLiteralMethod", "typeProperty"], modifiers: ["requiresQuotes"], format: null },
         { selector: ["objectLiteralProperty", "objectLiteralMethod", "typeProperty"], format: null, filter: { regex: "^[a-z][a-z0-9]*(_[a-z0-9]+)+$", match: true } },
-        // Why: `retry` (client request body), `ok` (tool failure result) and `stream` (OpenAI chat request flag) are wire-format names the client already reads.
-        { selector: "typeProperty", types: ["boolean"], format: null, filter: { regex: "^(ok|retry|multiple|required|isRequired|stream)$", match: true } },
+        // Why: `retry` (client request body), `ok` (tool failure result), `stream` (OpenAI chat request flag), `truncated` (research result) and `screenshot` (browse input) are wire-format names the client already reads.
+        { selector: "typeProperty", types: ["boolean"], format: null, filter: { regex: "^(ok|retry|multiple|required|isRequired|stream|truncated|screenshot)$", match: true } },
         // Why: environment variable names keep the operating system's UPPER_CASE spelling.
         { selector: ["objectLiteralProperty", "typeProperty"], format: null, filter: { regex: "^[A-Z][A-Z0-9_]+$", match: true } },
         { selector: "classProperty", modifiers: ["static", "readonly"], format: ["UPPER_CASE", "camelCase"] },

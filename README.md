@@ -54,6 +54,13 @@ With the Vercel AI SDK (`@ai-sdk/openai-compatible`):
     });
     const { text } = await generateText({ model: provider("gemini-3.8-flash"), prompt: "Say hello in one word." });
 
+More endpoints and options:
+
+- `POST /v1/images/generations` returns one PNG as `data[0].b64_json`. `n` other than 1 and `response_format` other than `b64_json` return 400.
+- `response_format` with `{"type":"json_schema","json_schema":{"name":"x","schema":{...}}}` returns the JSON as the message content. `json_object` returns any JSON object. A streamed structured answer is sent once, at the end.
+- An `image_url` part with a base64 `data:` URL (PNG, JPEG or WebP, up to 4 MiB each, four per request) is saved for the run. Remote URLs are refused, and nothing is fetched.
+- `conversation_id` from a previous response continues that conversation: send the new message only. The id is kept for 24 hours, in memory; after a restart, or once it expires, send the full history without it.
+
 ## Connecting Claude Code to `/mcp`
 
     claude mcp add --transport http antigravity http://127.0.0.1:8787/mcp \
@@ -62,6 +69,10 @@ With the Vercel AI SDK (`@ai-sdk/openai-compatible`):
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
 The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`.
+
+The `research` tool writes a Markdown report with a source link for each claim. A call takes several minutes (up to 10), spends tens of thousands of tokens, and counts against `DAILY_LIMIT_RESEARCH`. The report is capped at 20000 characters, and `truncated` says when it was cut.
+
+The `browse` tool opens a public page in headless Chrome, reads it or does a simple task, and can return a screenshot. It has no logins and no saved cookies. Loopback and private addresses, and URLs with a user name or password, are refused. A call counts against `DAILY_LIMIT_BROWSE`. Pages may contain instructions; the tool treats them as data.
 
 When the client sends a progress token, the server reports progress while a call waits in the queue and runs. A client that cancels a call stops the agy process.
 
@@ -78,6 +89,7 @@ When the client sends a progress token, the server reports progress while a call
 | `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue is refused. |
 | `DAILY_LIMIT_CHAT` / `_SEARCH` / `_IMAGE` / `_RESEARCH` / `_BROWSE` | `200` / `50` / `20` / `5` / `20` | Calls per UTC day, per kind. `0` refuses that kind. |
 | `HTTP_MAX_REQUESTS_PER_MINUTE` | `120` | Requests per minute, counted separately for failed and valid authentications. |
+| `DATA_DIR` | `data` (`/data` in the image) | Where the SQLite call log (`calls.sqlite`) is kept. It holds metadata only: no prompts, responses, queries, URLs or images. Rows older than 90 days are deleted at startup. |
 | `MCP_MAX_SESSIONS` | `8` | MCP sessions open at once. |
 | `MCP_SESSION_TTL_MS` | `1800000` | An MCP session idle for longer expires. |
 
@@ -86,7 +98,8 @@ When the client sends a progress token, the server reports progress while a call
 - One agy call runs at a time. Calls from the API and from MCP share one queue.
 - Calls are slow: a chat answer takes seconds, a search takes tens of seconds.
 - Streaming works with `stream: true` (Server-Sent Events, OpenAI chunk format). Set `stream_options.include_usage` to get the usage in the last chunk.
-- Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), `response_format` other than text, image input, the `research` and `browse` tools, and `POST /v1/images/generations`.
+- Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), PDF and other file input, audio and video, and a browser profile with your own logins.
+- `browse` runs Chrome through agy's `/browser` command. The temporary directory of each run is removed after it; agy chooses where its Chrome profile lives, and no flag sets that, so the profile is not confined to the run directory yet.
 - Sampling parameters (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`) are accepted and ignored. The response header `x-antigravity-connector-ignored-params` lists the ones you sent.
 - The agy binary is pinned to version 1.5.9 in the image. It cannot update itself, because it is installed read-only for the server user.
 

@@ -10,6 +10,7 @@ import { QueueService } from "@antigravity-connector/core/Services/QueueService.
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 import { DailyLimitError } from "@antigravity-connector/core/Errors/DailyLimitError.ts";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
+import { RecordingCallLog } from "@antigravity-connector/core/Testing/RecordingCallLog.ts";
 
 const PRIVATE_MARKER = "private-marker-7731";
 const LOGIN_URL = "https://accounts.google.com/o/oauth2/EXAMPLE";
@@ -94,6 +95,7 @@ const buildHarness = (
     clock: () => clock.now,
     logSink: (line) => lines.push(line),
     secrets: [],
+    callLog: new RecordingCallLog(),
   });
   return {
     service,

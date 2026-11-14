@@ -3,10 +3,16 @@ import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunServic
 import { AgySessionService } from "@antigravity-connector/core/Services/AgySessionService.ts";
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
+import { RecordingCallLog } from "@antigravity-connector/core/Testing/RecordingCallLog.ts";
+import type { AgyRunRequest } from "@antigravity-connector/agy";
 
 export type StubRunRequest = {
   prompt: string;
   modelSlug: string;
+  conversationId?: string;
+  jsonSchema?: string;
+  attachmentNames?: readonly string[];
+  expectedOutputFileNames?: readonly string[];
 };
 
 export type StubUsage = {
@@ -73,6 +79,7 @@ export type StubStreamEvent = StubStartedEvent | StubTextEvent | StubFinishedEve
 export type StubRuntime = {
   runService: AgyRunService;
   requests: StubRunRequest[];
+  callLog: RecordingCallLog;
 };
 
 export class StubRuntimeUtil {
@@ -117,15 +124,17 @@ export class StubRuntimeUtil {
 
   static build(options: StubRunOptions = {}): StubRuntime {
     const requests: StubRunRequest[] = [];
+    const callLog = new RecordingCallLog();
     const answer = options.answer ?? StubRuntimeUtil.DEFAULT_ANSWER;
     const respond = options.respond ?? (() => Promise.resolve(StubRuntimeUtil.buildResult(answer)));
-    const answerOf = async (request: StubRunRequest): Promise<StubRunResult> => {
-      requests.push({ prompt: request.prompt, modelSlug: request.modelSlug });
-      return respond({ prompt: request.prompt, modelSlug: request.modelSlug });
+    const answerOf = async (request: AgyRunRequest): Promise<StubRunResult> => {
+      const record = StubRuntimeUtil.buildRecord(request);
+      requests.push(record);
+      return respond(record);
     };
     const runner = {
-      run: (request: StubRunRequest): Promise<StubRunResult> => answerOf(request),
-      stream: (request: StubRunRequest): AsyncIterable<StubStreamEvent> => StubRuntimeUtil.streamOf(
+      run: (request: AgyRunRequest): Promise<StubRunResult> => answerOf(request),
+      stream: (request: AgyRunRequest): AsyncIterable<StubStreamEvent> => StubRuntimeUtil.streamOf(
         answerOf(request),
         options.failAfterDeltas,
       ),
@@ -142,6 +151,7 @@ export class StubRuntimeUtil {
     const runService = new AgyRunService({
       runner,
       session,
+      callLog,
       queue: new QueueService({ maxWaitMs: options.maxWaitMs ?? StubRuntimeUtil.MAX_WAIT_MS }),
       limits: new DailyLimitService({
         runKindToLimit: StubRuntimeUtil.buildLimits(options.limits ?? {}),
@@ -152,7 +162,18 @@ export class StubRuntimeUtil {
       logSink: () => undefined,
       secrets: [],
     });
-    return { runService, requests };
+    return { runService, requests, callLog };
+  }
+
+  static buildRecord(request: AgyRunRequest): StubRunRequest {
+    return {
+      prompt: request.prompt,
+      modelSlug: request.modelSlug,
+      conversationId: request.conversationId,
+      jsonSchema: request.jsonSchema,
+      attachmentNames: (request.attachments ?? []).map((attachment) => attachment.fileName),
+      expectedOutputFileNames: request.profile.expectedOutputFileNames,
+    };
   }
 
   static async* streamOf(

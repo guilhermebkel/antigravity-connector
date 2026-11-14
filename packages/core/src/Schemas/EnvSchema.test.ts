@@ -23,6 +23,7 @@ describe("EnvSchema", () => {
       HTTP_MAX_REQUESTS_PER_MINUTE: 120,
       MCP_MAX_SESSIONS: 8,
       MCP_SESSION_TTL_MS: 1800000,
+      DATA_DIR: "data",
     });
   });
 

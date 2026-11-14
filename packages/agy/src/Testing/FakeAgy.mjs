@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ARGUMENTS_OFFSET = 2;
@@ -18,6 +18,11 @@ const STREAM_INIT_AND_USER_LINE_COUNT = 2;
 const FAIL_AFTER_DELTAS_COUNT = 2;
 const ANSWER_PIECE_PATTERN = /\S+\s*/g;
 const IMAGE_OUTPUT_FILE_NAME = "output.png";
+const HEAD_BYTE_COUNT = 8;
+const SCREENSHOT_FILE_NAME = "screenshot.png";
+const LONG_REPORT_FILLER_CHARACTERS = 19990;
+const LONG_REPORT = `Intro https://example.com/one\n\n${"x".repeat(LONG_REPORT_FILLER_CHARACTERS)}\n\ntail https://example.org/two`;
+const STRUCTURED_ANSWER = { answer: "ok" };
 const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
 const OVERSIZE_IMAGE_BYTES = 8388609;
@@ -28,8 +33,8 @@ const readStreamLines = (fileName) => readFixture(fileName).split("\n").filter((
 const keepAlive = () => undefined;
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-const buildAnswerStreamLines = () => {
-  const envelope = readChatEnvelope();
+const buildAnswerStreamLines = (overrides = {}) => {
+  const envelope = { ...readChatEnvelope(), ...overrides };
   const lines = readStreamLines(CHAT_STREAM_FIXTURE).slice(0, STREAM_INIT_AND_USER_LINE_COUNT);
   const pieces = envelope.response.match(ANSWER_PIECE_PATTERN) ?? [];
   const deltaLines = pieces.map((piece) => JSON.stringify({
@@ -37,6 +42,24 @@ const buildAnswerStreamLines = () => {
     step_update: { conversation_id: envelope.conversation_id, step_index: 1, state: "ACTIVE", step_type: "agent_response", text_delta: piece },
   }));
   return [...lines, ...deltaLines, JSON.stringify({ event: "result", result: envelope })];
+};
+
+const readOptionValue = (name) => {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+};
+
+const describeFile = (name) => {
+  const filePath = join(process.cwd(), name);
+  const bytes = readFileSync(filePath);
+  return { name, size: statSync(filePath).size, head: bytes.subarray(0, HEAD_BYTE_COUNT).toString("hex") };
+};
+
+const describeWorkingDirectory = () => {
+  const files = readdirSync(process.cwd()).sort().map(describeFile);
+  const schemaPath = readOptionValue("--json-schema");
+  const schema = schemaPath === undefined ? undefined : readFileSync(schemaPath, "utf8");
+  return { files, schema, conversation: readOptionValue("--conversation") ?? null };
 };
 
 const writeOutputImage = (bytes) => {
@@ -108,6 +131,18 @@ const streamHandlers = {
     await writeLines(buildAnswerStreamLines());
     return { stderr: NO_OUTPUT, exitCode: 0 };
   },
+  "stream-files": async () => {
+    await writeLines(buildAnswerStreamLines({ response: JSON.stringify(describeWorkingDirectory()) }));
+    return { stderr: NO_OUTPUT, exitCode: 0 };
+  },
+  "stream-research-long": async () => {
+    await writeLines(buildAnswerStreamLines({ response: LONG_REPORT }));
+    return { stderr: NO_OUTPUT, exitCode: 0 };
+  },
+  "stream-structured": async () => {
+    await writeLines(buildAnswerStreamLines({ response: "", structured_output: STRUCTURED_ANSWER }));
+    return { stderr: NO_OUTPUT, exitCode: 0 };
+  },
   "stream-answer-fail": async () => {
     await writeLines(buildAnswerStreamLines().slice(0, STREAM_INIT_AND_USER_LINE_COUNT + FAIL_AFTER_DELTAS_COUNT));
     return { stderr: "boom: the stream broke\n", exitCode: 1 };
@@ -146,6 +181,13 @@ const handlers = {
     const padding = Buffer.alloc(OVERSIZE_IMAGE_BYTES - PNG_SIGNATURE.length);
     writeOutputImage(Buffer.concat([PNG_SIGNATURE, padding]));
     return buildSuccessResult();
+  },
+  "browse-screenshot": () => {
+    const screenshotPath = join(process.cwd(), SCREENSHOT_FILE_NAME);
+    const screenshotBytes = Buffer.from(PNG_BASE64, "base64");
+    writeFileSync(screenshotPath, screenshotBytes);
+    const envelope = { ...readChatEnvelope(), response: "The page title is Example Domain." };
+    return { ...buildSuccessResult(), stdout: JSON.stringify(envelope) };
   },
   "write-file": () => {
     const outputPath = join(process.cwd(), OUTPUT_FILE_NAME);

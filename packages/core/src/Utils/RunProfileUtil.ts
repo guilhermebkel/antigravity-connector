@@ -23,7 +23,12 @@ export class RunProfileUtil {
       expectedOutputFileNames: [],
     },
     image: { isPlanMode: false, shouldSkipPermissions: false, timeoutMultiplier: 1, expectedOutputFileNames: ["output.png"] },
-    browse: { isPlanMode: false, shouldSkipPermissions: false, timeoutMultiplier: 1, expectedOutputFileNames: [] },
+    browse: {
+      isPlanMode: false,
+      shouldSkipPermissions: false,
+      timeoutMultiplier: 1,
+      expectedOutputFileNames: ["screenshot.png"],
+    },
   };
 
   static build(kind: RunKind, baseTimeoutMs: number): AgyRunProfile {

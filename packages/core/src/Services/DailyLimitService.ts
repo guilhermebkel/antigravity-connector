@@ -37,6 +37,12 @@ export class DailyLimitService {
     this.runKindToCount[runKind] = count + 1;
   }
 
+  seed(runKindToCount: Partial<Record<RunKind, number>>): void {
+    const day = this.clock().toISOString().slice(0, DailyLimitService.ISO_DAY_LENGTH);
+    this.currentDay = day;
+    this.runKindToCount = { ...runKindToCount };
+  }
+
   static resolveNextMidnightUtc(now: Date): string {
     const nextDay = now.getUTCDate() + 1;
     const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), nextDay);

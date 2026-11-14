@@ -12,7 +12,7 @@ export { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotF
 export { QueueTimeoutError } from "@antigravity-connector/core/Errors/QueueTimeoutError.ts";
 export type { Env, EnvNameToValue } from "@antigravity-connector/core/Protocols/EnvProtocol.ts";
 export type { LogContext, LogEntry, LogFieldToValue, LogLevel, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
-export type { RunDoor, RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
+export type { RunAttachment, RunDoor, RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 export type { AgySessionStatus } from "@antigravity-connector/core/Protocols/AgySessionStatusProtocol.ts";
 export { RuntimeSetup } from "@antigravity-connector/core/Setup/RuntimeSetup.ts";
 export type { RuntimeSetupOptions } from "@antigravity-connector/core/Setup/RuntimeSetup.ts";
@@ -37,3 +37,6 @@ export { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageN
 export { RunIncompleteError } from "@antigravity-connector/core/Errors/RunIncompleteError.ts";
 export type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
 export type { AgyStreamOutputEvent } from "@antigravity-connector/agy";
+export { CallLogService } from "@antigravity-connector/core/Services/CallLogService.ts";
+export { DataDirError } from "@antigravity-connector/core/Errors/DataDirError.ts";
+export type { CallLogPort, CallRecord, CallStatus } from "@antigravity-connector/core/Protocols/CallLogProtocol.ts";

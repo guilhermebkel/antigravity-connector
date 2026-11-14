@@ -3,6 +3,7 @@ import type { AgyStreamOutputEvent } from "@antigravity-connector/core";
 import { OpenAiUsageUtil } from "@antigravity-connector/protocol";
 import type { ChatStreamOpening } from "@antigravity-connector/api/Protocols/ChatStreamOpeningProtocol.ts";
 import { ChatChunkUtil, type ChunkContext, type ChunkDelta } from "@antigravity-connector/api/Utils/ChatChunkUtil.ts";
+import { ChatResponseUtil } from "@antigravity-connector/api/Utils/ChatResponseUtil.ts";
 
 export class ChatStreamService {
   static readonly STOP_REASON = "stop";
@@ -14,6 +15,16 @@ export class ChatStreamService {
       return undefined;
     }
     return event.delta;
+  }
+
+  static readContent(event: AgyStreamOutputEvent, hasSchema: boolean): string | undefined {
+    if (!hasSchema) {
+      return ChatStreamService.readText(event);
+    }
+    if (event.kind !== "finished") {
+      return undefined;
+    }
+    return ChatResponseUtil.readStructuredText(event.envelope.structured_output);
   }
 
   static readUsage(event: AgyStreamOutputEvent): AgyUsage | undefined {
@@ -32,7 +43,7 @@ export class ChatStreamService {
     let hasSentRole = false;
     let usage: AgyUsage | undefined = undefined;
     for await (const event of opening.events) {
-      const text = ChatStreamService.readText(event);
+      const text = ChatStreamService.readContent(event, opening.hasSchema);
       if (text !== undefined) {
         const delta: ChunkDelta = hasSentRole ? { content: text } : { role: "assistant", content: text };
         hasSentRole = true;

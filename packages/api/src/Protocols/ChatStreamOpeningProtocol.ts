@@ -7,4 +7,5 @@ export type ChatStreamOpening = {
   createdAtMs: number;
   model: string;
   shouldIncludeUsage: boolean;
+  hasSchema: boolean;
 };

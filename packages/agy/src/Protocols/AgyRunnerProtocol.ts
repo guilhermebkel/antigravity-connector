@@ -7,12 +7,18 @@ export type AgyRunProfile = {
   expectedOutputFileNames: readonly string[];
 };
 
+export type AgyAttachment = {
+  fileName: string;
+  bytes: Uint8Array;
+};
+
 export type AgyRunRequest = {
   prompt: string;
   modelSlug: string;
   profile: AgyRunProfile;
   conversationId?: string;
   jsonSchema?: string;
+  attachments?: readonly AgyAttachment[];
 };
 
 export type AgyOutputFormat = "json" | "stream-json";

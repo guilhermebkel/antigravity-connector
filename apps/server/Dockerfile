@@ -24,11 +24,16 @@ RUN curl -fsSL -o /tmp/agy.tar.gz "${AGY_URL}" \
  && rm -f /tmp/agy.tar.gz /tmp/antigravity
 
 FROM node:22-bookworm-slim AS runtime
+# Why: the browse tool drives Google Chrome; agy looks for google-chrome on PATH.
+ARG CHROME_URL=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && curl -fsSL -o /tmp/chrome.deb "${CHROME_URL}" \
+ && apt-get install -y --no-install-recommends /tmp/chrome.deb \
+ && rm -f /tmp/chrome.deb \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --create-home --shell /usr/sbin/nologin agy \
- && mkdir -p /home/agy/.gemini && chown agy:agy /home/agy/.gemini
+ && mkdir -p /home/agy/.gemini /data && chown agy:agy /home/agy/.gemini /data
 COPY --from=agy /usr/local/bin/agy /usr/local/bin/agy
 WORKDIR /app
 COPY --from=build /deploy/node_modules ./node_modules
@@ -38,7 +43,8 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     ALLOW_NON_LOOPBACK_BIND=true \
     PORT=8787 \
-    AGY_BIN=agy
+    AGY_BIN=agy \
+    DATA_DIR=/data
 EXPOSE 8787
 USER agy
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

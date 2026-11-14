@@ -44,6 +44,7 @@ const startHarness = async (options: HarnessOptions = {}): Promise<Harness> => {
     runService: stub.runService,
     sessionTtlMs: options.sessionTtlMs ?? DAY_MS,
     maxSessions: options.maxSessions ?? 8,
+    researchDailyLimit: 5,
   });
   const address = await app.listen({ host: "127.0.0.1", port: 0 });
   return { app, address, clock, requests: stub.requests };

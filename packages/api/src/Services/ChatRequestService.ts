@@ -1,6 +1,8 @@
 import type { ChatCompletionRequest, OpenAiMessage } from "@antigravity-connector/protocol";
 import { ApiRequestError } from "@antigravity-connector/api/Errors/ApiRequestError.ts";
 import { ChatParamUtil } from "@antigravity-connector/api/Utils/ChatParamUtil.ts";
+import { ChatSchemaUtil } from "@antigravity-connector/api/Utils/ChatSchemaUtil.ts";
+import { ChatAttachmentUtil } from "@antigravity-connector/api/Utils/ChatAttachmentUtil.ts";
 
 export class ChatRequestService {
   static check(request: ChatCompletionRequest): void {
@@ -17,22 +19,11 @@ export class ChatRequestService {
   }
 
   static checkResponseFormat(request: ChatCompletionRequest): void {
-    const type = request.response_format?.type;
-    if (type !== undefined && type !== "text") {
-      throw new ApiRequestError(
-        "invalid_request_error",
-        "response_format",
-        `response_format type ${type} is not supported yet; use text.`,
-      );
-    }
+    ChatSchemaUtil.readResponseSchema(request);
   }
 
   static checkMessages(messages: readonly OpenAiMessage[]): void {
-    const hasImage = messages.some((message) => typeof message.content !== "string"
-      && message.content.some((part) => part.type === "image_url"));
-    if (hasImage) {
-      throw new ApiRequestError("invalid_request_error", "messages", "image_url content parts are not supported yet.");
-    }
+    ChatAttachmentUtil.readAttachments(messages);
   }
 
   static checkEffort(request: ChatCompletionRequest): void {

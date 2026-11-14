@@ -8,6 +8,7 @@ import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunServic
 import { AgySessionService } from "@antigravity-connector/core/Services/AgySessionService.ts";
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
+import { CallLogService } from "@antigravity-connector/core/Services/CallLogService.ts";
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 import { ModelCatalogueUtil } from "@antigravity-connector/protocol";
 
@@ -40,10 +41,14 @@ export class RuntimeSetup {
       secrets: [env.API_KEY],
     });
     const queue = new QueueService({ maxWaitMs: env.QUEUE_MAX_WAIT_MS });
+    const callLog = new CallLogService({ dataDirectory: env.DATA_DIR });
+    const limits = RuntimeSetup.buildLimits(env, options.clock);
+    RuntimeSetup.seedLimits(callLog, limits, new Date(options.clock()));
     const runService = new AgyRunService({
       queue,
+      limits,
+      callLog,
       runner: adapter,
-      limits: RuntimeSetup.buildLimits(env, options.clock),
       session: sessionService,
       baseTimeoutMs: env.AGY_TIMEOUT_MS,
       clock: options.clock,
@@ -71,6 +76,13 @@ export class RuntimeSetup {
       throw new ModelNotFoundError(RuntimeSetup.SESSION_CHECK_MODEL_ID);
     }
     return new AgySessionCheckAdapter({ modelSlug, runner: adapter, timeoutMs: env.AGY_TIMEOUT_MS });
+  }
+
+  static seedLimits(callLog: CallLogService, limits: DailyLimitService, now: Date): void {
+    const retentionCutoffMs = now.getTime() - CallLogService.RETENTION_DAYS * CallLogService.MS_PER_DAY;
+    callLog.removeBefore(new Date(retentionCutoffMs).toISOString());
+    const startOfDayIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+    limits.seed(callLog.countKindsSince(startOfDayIso));
   }
 
   static buildLimits(env: Env, clock: () => number): DailyLimitService {
