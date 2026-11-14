@@ -7,12 +7,21 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # A non-root user, so the CLI keeps its login under a home directory that a volume can mount.
-RUN useradd --create-home --shell /bin/bash agy
+RUN useradd --create-home --shell /bin/bash agy \
+ && mkdir -p /home/agy/.gemini && chown agy:agy /home/agy/.gemini
+# The named volume copies this directory's owner on first mount, so agy can write its login.
 USER agy
 WORKDIR /home/agy
 
-# Installer from the issue #2 brief. Not verified by a build in this PR: run `docker build` once to confirm.
-RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
+# Fail the build when the installer fails (a bare pipe would hide a curl error).
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Installer from the issue #2 brief.
+RUN curl -fsSL https://antigravity.google/cli/install.sh | bash \
+ && test -x /home/agy/.local/bin/agy
+
+# `docker exec` does not read ~/.bashrc, so put agy on the PATH for every process.
+ENV PATH="/home/agy/.local/bin:${PATH}"
 
 # Keep the container alive so the owner can `docker exec -it <container> agy` for the login.
 CMD ["sleep", "infinity"]

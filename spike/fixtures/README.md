@@ -9,6 +9,8 @@ Output of `agy` 1.5.9 captured in the spike environment (issue #2, S10). Every `
 | `search-envelope.json` | `agy -p ... --output-format json`, web search | captured |
 | `chat-stream.ndjson` | `agy -p ... --mode plan --output-format stream-json`, chat with no tool use | captured |
 | `search-stream.ndjson` | `agy -p ... --output-format stream-json`, web search (6 `search_web` tool steps) | captured |
-| `image-envelope.json` | image generation | not captured |
-| `error-envelope.json` | error envelope | not captured (the no-session error is in `docs/spike-results.md`, S2) |
+| `image-stream.ndjson` | `agy -p ... --output-format stream-json`, image request (the built-in generator failed; the model fell back to a script) | captured |
+| `browse-stream.ndjson` | `agy -p ... --output-format stream-json`, browse request (no browser tool was called) | captured |
+| `container-chat-after-recreate.json` | `agy -p "ping"` inside the container after a container recreate (S3) | captured |
+| `error-envelope.json` | error envelope | not captured as a separate file (the no-session error is in `docs/spike-results.md`, S2) |
 | `no-session.txt` | raw text printed with no session | not captured as a raw file (see S2) |
