@@ -1,0 +1,54 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { API_KEY, startServer, stopAllServers } from "./ServerProcess.mjs";
+
+const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+
+describe("the built server, MCP door", () => {
+  let server;
+  let client;
+
+  beforeAll(async () => {
+    server = await startServer();
+    client = new Client({ name: "e2e", version: "0.0.0" });
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${server.baseUrl}/mcp`), {
+      requestInit: { headers: { authorization: `Bearer ${API_KEY}` } },
+    }));
+  });
+
+  afterAll(async () => {
+    await client.close();
+    await stopAllServers();
+  });
+
+  it("initialize returns the instructions and tools/list offers both tools with schemas", async () => {
+    expect(client.getInstructions()).toContain("subscription");
+    const { tools } = await client.listTools();
+    const names = tools.map((tool) => tool.name).sort();
+    expect(names).toStrictEqual(["generate_image", "web_search"]);
+    for (const tool of tools) {
+      expect(typeof tool.inputSchema).toBe("object");
+      expect(typeof tool.outputSchema).toBe("object");
+    }
+  });
+
+  it("web_search returns the answer and the sources as structured content", async () => {
+    const result = await client.callTool({ name: "web_search", arguments: { query: "[[fake-agy:stream-answer]] latest Node LTS" } });
+    expect(result.isError).not.toBe(true);
+    const structured = result.structuredContent;
+    expect(typeof structured.answer).toBe("string");
+    expect(Array.isArray(structured.sources)).toBe(true);
+  });
+
+  it("generate_image returns a PNG image block", async () => {
+    const result = await client.callTool({
+      name: "generate_image",
+      arguments: { prompt: "[[fake-agy:image-png]] a red circle" },
+    });
+    expect(result.isError).not.toBe(true);
+    const block = result.content.find((item) => item.type === "image");
+    const bytes = Buffer.from(block?.data ?? "", "base64");
+    expect([...bytes.subarray(0, PNG_SIGNATURE.length)]).toStrictEqual(PNG_SIGNATURE);
+  });
+});

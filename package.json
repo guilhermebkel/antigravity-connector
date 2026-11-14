@@ -21,12 +21,17 @@
     "ensure-deps": "node scripts/ensure-deps.mjs",
     "lint-staged": "lint-staged",
     "check:changed": "node scripts/check-changed.mjs",
-    "check": "pnpm ensure-deps && pnpm typecheck && pnpm lint && pnpm quality && pnpm test && pnpm build"
+    "check": "pnpm ensure-deps && pnpm typecheck && pnpm lint && pnpm quality && pnpm test && pnpm build && pnpm test:e2e && pnpm smoke",
+    "test:e2e": "vitest run --config vitest.e2e.config.mjs",
+    "smoke": "node scripts/mcp-smoke.mjs"
   },
   "devDependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.92",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/node": "^22",
     "@vitest/eslint-plugin": "^1.6.28",
+    "ai": "^7.0.173",
     "dpdm": "^4.3.0",
     "eslint": "^10.13.0",
     "eslint-plugin-sonarjs": "^4.2.2",

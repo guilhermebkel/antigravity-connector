@@ -39,9 +39,10 @@ export class RuntimeSetup {
       logSink: options.logSink,
       secrets: [env.API_KEY],
     });
+    const queue = new QueueService({ maxWaitMs: env.QUEUE_MAX_WAIT_MS });
     const runService = new AgyRunService({
+      queue,
       runner: adapter,
-      queue: new QueueService({ maxWaitMs: env.QUEUE_MAX_WAIT_MS }),
       limits: RuntimeSetup.buildLimits(env, options.clock),
       session: sessionService,
       baseTimeoutMs: env.AGY_TIMEOUT_MS,
@@ -54,6 +55,9 @@ export class RuntimeSetup {
       sessionService,
       stopRunningCalls: () => {
         adapter.stopAll();
+      },
+      checkSession: async () => {
+        await queue.run(() => sessionService.check());
       },
     };
   }
