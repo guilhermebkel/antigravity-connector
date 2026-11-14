@@ -538,15 +538,19 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
 <span class="p">$</span> curl https://connector.your-domain.com/health</pre></div>
     </div>
     <div class="sec__head sec__head--wide" data-reveal>
-      <h2>On your VPS, <span>behind HTTPS.</span></h2>
+      <h2>On your VPS, <span>docker only.</span></h2>
     </div>
     <div class="term" data-reveal>
-      <div class="term__bar"><span>your VPS: no clone, the image from ghcr.io</span></div>
-      <div class="term__body"><pre><span class="c"># point connector.your-domain.com (an A record) at the VPS; open ports 80 and 443</span>
-<span class="p">$</span> mkdir -p ~/connector && cd ~/connector
-<span class="p">$</span> cat &gt; docker-compose.yml &lt;&lt;'YAML'    <span class="c"># the image and the Caddy config, see the README</span>
-<span class="p">$</span> cat &gt; .env &lt;&lt;ENV                    <span class="c"># API_KEY=$(openssl rand -hex 32), DOMAIN=connector.your-domain.com</span>
-<span class="p">$</span> docker compose pull &amp;&amp; docker compose up -d
+      <div class="term__bar"><span>your VPS: two docker run commands, the image from ghcr.io</span></div>
+      <div class="term__body"><pre><span class="p">$</span> docker network create connector
+<span class="p">$</span> docker run -d --name antigravity-connector --network connector --restart unless-stopped \
+    -e API_KEY='your-random-api-key-at-least-24-chars' \
+    -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
+    ghcr.io/guilhermebkel/antigravity-connector:latest
+<span class="p">$</span> docker run -d --name antigravity-connector-caddy --network connector --restart unless-stopped \
+    -p 80:80 -p 443:443 -e DOMAIN=connector.your-domain.com \
+    -v caddy-data:/data -v caddy-config:/config \
+    caddy:2 sh -c 'printf "%s {\n  reverse_proxy antigravity-connector:8787\n}\n" "$DOMAIN" &gt; /etc/caddy/Caddyfile &amp;&amp; exec caddy run --config /etc/caddy/Caddyfile'
 <span class="p">$</span> docker exec -it antigravity-connector agy    <span class="c"># log in once, with the AI Pro account</span>
 <span class="p">$</span> curl https://connector.your-domain.com/health</pre></div>
     </div>
