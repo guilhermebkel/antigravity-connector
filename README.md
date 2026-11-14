@@ -277,7 +277,7 @@ Found a way around any of this? Open an issue without secrets in it.
 <details>
 <summary><b>Can I expose it to the internet or share it with other people?</b></summary>
 
-No. It is a single-user server, reachable over HTTPS with an API key, and the subscription is yours. The bind guard refuses another address unless `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets; the install publishes the port on `127.0.0.1` only, and nginx is the public entry.
+No. It is a single-user server, reachable over HTTPS with an API key, and the subscription is yours. The bind guard refuses another address unless `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets; the install and an HTTPS proxy is the public entry.
 
 </details>
 
