@@ -171,7 +171,7 @@ The first start has no session, so the server logs a login block with a URL and 
 1. Read the link: `docker logs antigravity-connector`.
 2. Open the URL in a browser, sign in, and copy the code it shows.
 3. Run `docker exec -it antigravity-connector agy` and paste the code.
-4. Check: `docker exec antigravity-connector curl -s http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`, and `https://connector.your-domain.com/health` answers the same through Caddy.
+4. Check: `docker exec antigravity-connector curl -s http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`, and `https://connector.your-domain.com/health` answers the same through nginx.
 
 The login is kept in the named volume `agy-gemini`. `docker compose down` keeps it; `docker compose down -v` removes it, and you must log in again.
 

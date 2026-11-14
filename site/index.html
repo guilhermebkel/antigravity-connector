@@ -468,7 +468,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <li class="step" data-reveal>
         <span class="step__n">01</span>
         <h3>The request arrives</h3>
-        <p>Every route except <code class="mono">/health</code> needs the Bearer token. In Docker the app listens inside the compose network only; nginx serves HTTPS on 443 in front of it.</p>
+        <p>Every route except <code class="mono">/health</code> needs the Bearer token. In Docker the app publishes its port on 127.0.0.1 only; nginx serves HTTPS on 443 in front of it.</p>
         <span class="chip">API_KEY</span>
       </li>
       <li class="step" data-reveal>
