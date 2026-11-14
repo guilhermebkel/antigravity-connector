@@ -1,0 +1,15 @@
+# Throwaway spike compose file (issue #2). Not the production compose file (issue #19).
+# The named volume keeps the CLI login under the container user's ~/.gemini across restarts and recreates (see S3).
+services:
+  agy-spike:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: antigravity-connector-agy-spike
+    container_name: agy-spike
+    volumes:
+      - agy-gemini:/home/agy/.gemini
+    # No ports: the spike needs no server and nothing published on the host.
+
+volumes:
+  agy-gemini:
