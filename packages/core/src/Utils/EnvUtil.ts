@@ -14,7 +14,11 @@ export class EnvUtil {
     return result.data;
   }
 
+  static readProcessEnv(): EnvNameToValue {
+    return process.env;
+  }
+
   static loadFromProcess(): Env {
-    return EnvUtil.load(process.env);
+    return EnvUtil.load(EnvUtil.readProcessEnv());
   }
 }

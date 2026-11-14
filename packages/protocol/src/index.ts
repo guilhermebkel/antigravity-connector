@@ -18,3 +18,4 @@ export type {
 } from "@antigravity-connector/protocol/Protocols/AgyStreamEventProtocol.ts";
 export { ModelCatalogueUtil } from "@antigravity-connector/protocol/Utils/ModelCatalogueUtil.ts";
 export type { ImageGenerationRequest } from "@antigravity-connector/protocol/Protocols/OpenAiImageProtocol.ts";
+export type { OpenAiError, OpenAiErrorType } from "@antigravity-connector/protocol/Protocols/OpenAiErrorProtocol.ts";

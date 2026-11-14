@@ -15,3 +15,7 @@ export type { Env, EnvNameToValue } from "@antigravity-connector/core/Protocols/
 export type { LogContext, LogEntry, LogFieldToValue, LogLevel, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
 export type { RunDoor, RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 export type { AgySessionStatus } from "@antigravity-connector/core/Protocols/AgySessionStatusProtocol.ts";
+export { RuntimeSetup } from "@antigravity-connector/core/Setup/RuntimeSetup.ts";
+export type { RuntimeSetupOptions } from "@antigravity-connector/core/Setup/RuntimeSetup.ts";
+export type { CoreRuntime } from "@antigravity-connector/core/Protocols/CoreRuntimeProtocol.ts";
+export type { AgySessionKind } from "@antigravity-connector/core/Protocols/AgySessionStatusProtocol.ts";
