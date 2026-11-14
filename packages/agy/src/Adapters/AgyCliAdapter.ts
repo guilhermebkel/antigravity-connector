@@ -18,6 +18,7 @@ import { AgyOutcomeUtil } from "@antigravity-connector/agy/Utils/AgyOutcomeUtil.
 import { AgySpawnUtil } from "@antigravity-connector/agy/Utils/AgySpawnUtil.ts";
 import { AgyStreamReaderService } from "@antigravity-connector/agy/Services/AgyStreamReaderService.ts";
 import { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
+import { AgyStoppedError } from "@antigravity-connector/agy/Errors/AgyStoppedError.ts";
 
 type AgyStreamRun = {
   buffer: AsyncEventBufferService<AgyStreamOutputEvent>;
@@ -34,13 +35,25 @@ export class AgyCliAdapter implements AgyRunnerPort {
 
   private readonly parentEnv: AgyEnvNameToValue;
 
+  private readonly liveChildren = new Set<ChildProcess>();
+
+  private isStopped = false;
+
   constructor(options: AgyCliAdapterOptions) {
     this.binaryPath = options.binaryPath;
     this.tempRoot = options.tempRoot;
     this.parentEnv = options.parentEnv;
   }
 
+  stopAll(): void {
+    this.isStopped = true;
+    for (const child of this.liveChildren) {
+      AgySpawnUtil.stopProcessGroup(child.pid);
+    }
+  }
+
   async run(request: AgyRunRequest): Promise<AgyRunResult> {
+    this.assertRunning();
     const workingDirectory = await mkdtemp(join(this.tempRoot, AgyCliAdapter.RUN_DIRECTORY_PREFIX));
     try {
       return await this.runInDirectory(request, workingDirectory);
@@ -50,6 +63,7 @@ export class AgyCliAdapter implements AgyRunnerPort {
   }
 
   async* stream(request: AgyRunRequest, signal?: AbortSignal): AsyncGenerator<AgyStreamOutputEvent> {
+    this.assertRunning();
     const workingDirectory = await mkdtemp(join(this.tempRoot, AgyCliAdapter.RUN_DIRECTORY_PREFIX));
     try {
       yield* this.streamInDirectory(request, workingDirectory, signal);
@@ -87,7 +101,7 @@ export class AgyCliAdapter implements AgyRunnerPort {
   ): AgyStreamRun {
     const args = AgyArgumentUtil.build(request, "stream-json");
     const childEnv = AgyEnvUtil.build(this.parentEnv);
-    const child = AgySpawnUtil.startDetached(this.binaryPath, args, workingDirectory, childEnv);
+    const child = this.startTracked(args, workingDirectory, childEnv);
     const buffer = new AsyncEventBufferService<AgyStreamOutputEvent>();
     const reader = new AgyStreamReaderService(buffer, {
       timeoutMs: request.profile.timeoutMs,
@@ -152,6 +166,27 @@ export class AgyCliAdapter implements AgyRunnerPort {
     });
   }
 
+  private assertRunning(): void {
+    if (this.isStopped) {
+      throw new AgyStoppedError();
+    }
+  }
+
+  private startTracked(
+    args: readonly string[],
+    workingDirectory: string,
+    childEnvNameToValue: Readonly<Record<string, string>>,
+  ): ChildProcess {
+    const child = AgySpawnUtil.startDetached(this.binaryPath, args, workingDirectory, childEnvNameToValue);
+    this.liveChildren.add(child);
+    const removeChild = (): void => {
+      this.liveChildren.delete(child);
+    };
+    child.once("close", removeChild);
+    child.once("error", removeChild);
+    return child;
+  }
+
   private buildSecrets(): string[] {
     const apiKey = this.parentEnv.API_KEY;
     return apiKey === undefined ? [] : [apiKey];
@@ -178,7 +213,7 @@ export class AgyCliAdapter implements AgyRunnerPort {
   private runProcess(args: readonly string[], workingDirectory: string, timeoutMs: number): Promise<AgyProcessOutcome> {
     return new Promise((resolve, reject) => {
       const childEnv = AgyEnvUtil.build(this.parentEnv);
-      const child = AgySpawnUtil.startDetached(this.binaryPath, args, workingDirectory, childEnv);
+      const child = this.startTracked(args, workingDirectory, childEnv);
       let stdout = "";
       let stderr = "";
       let isTimedOut = false;

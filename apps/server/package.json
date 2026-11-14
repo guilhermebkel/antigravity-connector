@@ -4,14 +4,22 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
     "./*": "./src/*"
   },
   "scripts": {
+    "dev": "API_KEY=local-dev-only-key-0123456789 AGY_BIN=\"$PWD/../../packages/agy/src/Testing/FakeAgy.mjs\" tsx src/main.ts",
+    "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --transform --tsconfig tsconfig.json \"src/**/*.ts\""
   },
   "devDependencies": {
-    "@antigravity-connector/tooling": "workspace:*"
+    "@antigravity-connector/tooling": "workspace:*",
+    "tsdown": "^0.23.7",
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "@antigravity-connector/core": "workspace:*",
+    "@antigravity-connector/protocol": "workspace:*",
+    "fastify": "^5.12.8"
   }
 }
