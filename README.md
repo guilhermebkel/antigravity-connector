@@ -209,7 +209,7 @@ When the client sends a progress token, the server reports progress while a call
 | `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
 | `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the Caddy proxy in compose can reach the app; only Caddy publishes ports. |
-| `DOMAIN` (compose, Caddy) | none (required) | The host name Caddy gets an HTTPS certificate for. It must point to the VPS. |
+| `DOMAIN` (the Caddy container) | none (required on the VPS) | The host name Caddy gets an HTTPS certificate for. It must point to the VPS. |
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
