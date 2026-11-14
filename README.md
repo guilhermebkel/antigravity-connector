@@ -103,7 +103,7 @@ docker exec antigravity-connector curl -s http://127.0.0.1:8787/health
 
 Like the better-caprover-mcp install: one `docker run` command, no clone and no files. The image is `ghcr.io/guilhermebkel/antigravity-connector`, public on GitHub Container Registry.
 
-The VPS already runs nginx with Let's Encrypt (certbot), which serves HTTPS for your domain, as it does for your other apps. The container publishes its port on `127.0.0.1` only, so nginx reaches it and the internet does not.
+The container publishes its port on `127.0.0.1` only, so the internet reaches it only through the HTTPS proxy your server already uses for your other apps.
 
 1. Point a host name at the VPS (an A record, such as `connector.your-domain.com`).
 
@@ -124,36 +124,13 @@ The VPS already runs nginx with Let's Encrypt (certbot), which serves HTTPS for 
    docker exec -it antigravity-connector agy
    ```
 
-4. Add the site to nginx and get the certificate. This block is the whole proxy; the streaming and the long `research` calls need the two timeout and buffering lines:
-
-   ```nginx
-   server {
-       server_name connector.your-domain.com;
-
-       location / {
-           proxy_pass http://127.0.0.1:8787;
-           proxy_http_version 1.1;
-           proxy_buffering off;
-           proxy_read_timeout 900s;
-           proxy_set_header Host $host;
-           proxy_set_header X-Forwarded-Proto $scheme;
-       }
-   }
-   ```
-
-   ```bash
-   sudo ln -s /etc/nginx/sites-available/connector /etc/nginx/sites-enabled/
-   sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d connector.your-domain.com
-   ```
-
-5. Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}`:
+4. Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}`:
 
    ```bash
    curl https://connector.your-domain.com/health
    ```
 
-6. Connect Claude Code on your computer:
+5. Connect Claude Code on your computer:
 
    ```bash
    claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \

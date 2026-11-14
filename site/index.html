@@ -380,7 +380,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
         <button class="btn btn-primary" data-copy-install type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy install command</span></button>
         <a class="btn btn-secondary" href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener"><svg class="ic"><use href="#i-star"/></svg>Star on GitHub</a>
       </div>
-      <p class="hero__meta"><span><b>MIT</b></span><span>Node.js 22</span><span>Docker Compose</span><span>HTTPS via nginx</span></p>
+      <p class="hero__meta"><span><b>MIT</b></span><span>Node.js 22</span><span>Docker Compose</span><span>HTTPS on your domain</span></p>
     </div>
 
     <div class="rig" aria-label="Illustration of requests entering through two doors into one queue" data-reveal>
@@ -468,7 +468,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <li class="step" data-reveal>
         <span class="step__n">01</span>
         <h3>The request arrives</h3>
-        <p>Every route except <code class="mono">/health</code> needs the Bearer token. In Docker the app publishes its port on 127.0.0.1 only; nginx serves HTTPS on 443 in front of it.</p>
+        <p>Every route except <code class="mono">/health</code> needs the Bearer token. In Docker the app publishes its port on 127.0.0.1 only; an HTTPS proxy on 443 sits in front of it.</p>
         <span class="chip">API_KEY</span>
       </li>
       <li class="step" data-reveal>
@@ -541,15 +541,13 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <h2>On your VPS, <span>one docker command.</span></h2>
     </div>
     <div class="term" data-reveal>
-      <div class="term__bar"><span>your VPS: nginx and certbot already there, the port stays on 127.0.0.1</span></div>
+      <div class="term__bar"><span>your VPS: the port stays on 127.0.0.1</span></div>
       <div class="term__body"><pre><span class="p">$</span> docker run -d --name antigravity-connector --restart unless-stopped \
     -p 127.0.0.1:8787:8787 \
     -e API_KEY='your-random-api-key-at-least-24-chars' \
     -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
     ghcr.io/guilhermebkel/antigravity-connector:latest
 <span class="p">$</span> docker exec -it antigravity-connector agy    <span class="c"># log in once, with the AI Pro account</span>
-<span class="c"># nginx: proxy_pass http://127.0.0.1:8787; proxy_buffering off; proxy_read_timeout 900s</span>
-<span class="p">$</span> sudo certbot --nginx -d connector.your-domain.com
 <span class="p">$</span> curl https://connector.your-domain.com/health</pre></div>
     </div>
     <div class="notes">
