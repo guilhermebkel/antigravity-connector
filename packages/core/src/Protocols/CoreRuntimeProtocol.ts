@@ -5,4 +5,5 @@ export type CoreRuntime = {
   runService: AgyRunService;
   sessionService: AgySessionService;
   stopRunningCalls: () => void;
+  checkSession: () => Promise<void>;
 };

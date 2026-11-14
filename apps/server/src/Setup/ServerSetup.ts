@@ -100,7 +100,7 @@ export class ServerSetup {
       },
       { now: new Date(options.clock()), secrets: [options.env.API_KEY], sink: options.logSink },
     );
-    void server.runtime.sessionService.check();
+    void server.runtime.checkSession();
     return server;
   }
 
