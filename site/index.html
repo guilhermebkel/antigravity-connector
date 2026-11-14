@@ -541,12 +541,12 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <h2>On your VPS, <span>behind HTTPS.</span></h2>
     </div>
     <div class="term" data-reveal>
-      <div class="term__bar"><span>your VPS</span></div>
+      <div class="term__bar"><span>your VPS: no clone, the image from ghcr.io</span></div>
       <div class="term__body"><pre><span class="c"># point connector.your-domain.com (an A record) at the VPS; open ports 80 and 443</span>
-<span class="p">$</span> git clone https://github.com/guilhermebkel/antigravity-connector.git && cd antigravity-connector
-<span class="p">$</span> cp .env.example .env
-<span class="p">$</span> sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/; s/^DOMAIN=.*/DOMAIN=connector.your-domain.com/" .env
-<span class="p">$</span> docker compose up -d --build
+<span class="p">$</span> mkdir -p ~/connector && cd ~/connector
+<span class="p">$</span> cat &gt; docker-compose.yml &lt;&lt;'YAML'    <span class="c"># the image and the Caddy config, see the README</span>
+<span class="p">$</span> cat &gt; .env &lt;&lt;ENV                    <span class="c"># API_KEY=$(openssl rand -hex 32), DOMAIN=connector.your-domain.com</span>
+<span class="p">$</span> docker compose pull &amp;&amp; docker compose up -d
 <span class="p">$</span> docker exec -it antigravity-connector agy    <span class="c"># log in once, with the AI Pro account</span>
 <span class="p">$</span> curl https://connector.your-domain.com/health</pre></div>
     </div>

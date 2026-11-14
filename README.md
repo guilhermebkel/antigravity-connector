@@ -101,36 +101,81 @@ docker exec antigravity-connector curl -s http://127.0.0.1:8787/health
 
 ## Install on a VPS with Docker
 
-The server runs on a VPS you control, behind HTTPS. Caddy gets a certificate for your domain and forwards requests to the app. The app's own port is not published; only Caddy's 80 and 443 are.
+You do not need to clone the repository: the server image is published on GitHub Container Registry (`ghcr.io/guilhermebkel/antigravity-connector`, public, for `linux/amd64`). The stack is two containers: the server, and a Caddy proxy that gets an HTTPS certificate for your domain. Only Caddy publishes ports (80 and 443); the server's port is not published.
 
 1. Point a host name at the VPS: an A record such as `connector.your-domain.com` to the VPS's public IP. Open ports 80 and 443 in the VPS firewall (not 8787).
 
-2. On the VPS (Ubuntu or Debian), install Docker with the Compose plugin, and check it:
+2. On the VPS (Ubuntu or Debian), install Docker with the Compose plugin, version 2.23 or newer (the compose file uses inline configs), and check it:
 
        docker --version && docker compose version
 
-3. Clone the repository and create the settings. Generate the API key on the VPS and keep it secret:
+3. Create the folder with the compose file. Caddy's configuration is inside the file:
 
-       git clone https://github.com/guilhermebkel/antigravity-connector.git
-       cd antigravity-connector
-       cp .env.example .env
-       sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/" .env
-       sed -i "s/^DOMAIN=.*/DOMAIN=connector.your-domain.com/" .env
+       mkdir -p ~/connector && cd ~/connector
+       cat > docker-compose.yml <<'YAML'
+       services:
+         antigravity-connector:
+           image: ghcr.io/guilhermebkel/antigravity-connector:latest
+           env_file: .env
+           expose:
+             - "8787"
+           volumes:
+             - agy-gemini:/home/agy/.gemini
+             - agy-data:/data
+           restart: unless-stopped
 
-4. Build and start the containers:
+         caddy:
+           image: caddy:2
+           environment:
+             DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+           ports:
+             - "80:80"
+             - "443:443"
+           configs:
+             - source: caddyfile
+               target: /etc/caddy/Caddyfile
+           volumes:
+             - caddy-data:/data
+             - caddy-config:/config
+           depends_on:
+             - antigravity-connector
+           restart: unless-stopped
 
-       docker compose up -d --build
+       configs:
+         caddyfile:
+           content: |
+             {$DOMAIN} {
+               encode zstd gzip
+               reverse_proxy antigravity-connector:8787
+             }
+
+       volumes:
+         agy-gemini:
+         agy-data:
+         caddy-data:
+         caddy-config:
+       YAML
+
+4. Create the settings. The API key is generated on the VPS and kept there; change the domain to yours:
+
+       cat > .env <<ENV
+       API_KEY=$(openssl rand -hex 32)
+       DOMAIN=connector.your-domain.com
+       ENV
+
+5. Start the containers and log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)):
+
+       docker compose pull && docker compose up -d
        docker logs antigravity-connector        # shows the login block the first time
-
-5. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)):
-
        docker exec -it antigravity-connector agy
 
 6. Check the HTTPS endpoint from your computer. It answers `{"status":"ok","agy":"connected"}` once Caddy has the certificate:
 
        curl https://connector.your-domain.com/health
 
-The API is at `https://connector.your-domain.com/v1` and MCP at `https://connector.your-domain.com/mcp`. Both expect `Authorization: Bearer <API_KEY>`. The key is the only access control: anyone who has it can spend your daily limits. Keep it long and random, and rotate it by changing `API_KEY` in `.env` and running `docker compose up -d`.
+The API is at `https://connector.your-domain.com/v1` and MCP at `https://connector.your-domain.com/mcp`. Both expect `Authorization: Bearer <API_KEY>`. The key is the only access control: anyone who has it can spend your daily limits. Keep it long and random. To rotate it, edit `API_KEY` in `.env` and run `docker compose up -d`.
+
+Updates: `docker compose pull && docker compose up -d` gets the newest release. The login and the call log stay in their volumes.
 
 The login belongs to the VPS: everyone who has the key spends the same subscription and the same daily limits.
 
