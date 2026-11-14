@@ -1,0 +1,17 @@
+{
+  "name": "@antigravity-connector/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --transform --tsconfig tsconfig.json \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@antigravity-connector/tooling": "workspace:*"
+  }
+}
