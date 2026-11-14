@@ -56,7 +56,7 @@ Both doors share one global queue with concurrency 1, plus a daily limit per kin
 
 **Local by default**
 
-Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces inside the compose network, and only Caddy is reachable from outside. Every route but `/health` needs the bearer `API_KEY`.
+Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces so the published port works, and the install publishes it on `127.0.0.1` only, behind nginx. Every route but `/health` needs the bearer `API_KEY`.
 
 </td>
 <td valign="top">
@@ -300,7 +300,7 @@ Found a way around any of this? Open an issue without secrets in it.
 <details>
 <summary><b>Can I expose it to the internet or share it with other people?</b></summary>
 
-No. It is a single-user server, reachable over HTTPS with an API key, and the subscription is yours. The bind guard refuses another address unless `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets; the app's port is not published, and Caddy is the only public entry.
+No. It is a single-user server, reachable over HTTPS with an API key, and the subscription is yours. The bind guard refuses another address unless `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets; the install publishes the port on `127.0.0.1` only, and nginx is the public entry.
 
 </details>
 
