@@ -1,4 +1,4 @@
-import type { AgyEnvelope } from "@antigravity-connector/protocol";
+import type { AgyEnvelope, AgyStepType } from "@antigravity-connector/protocol";
 
 export type AgyRunProfile = {
   isPlanMode: boolean;
@@ -15,6 +15,8 @@ export type AgyRunRequest = {
   jsonSchema?: string;
 };
 
+export type AgyOutputFormat = "json" | "stream-json";
+
 export type AgyOutputFileNameToBytes = Readonly<Record<string, Uint8Array>>;
 
 export type AgyRunResult = {
@@ -22,7 +24,32 @@ export type AgyRunResult = {
   outputFiles: AgyOutputFileNameToBytes;
 };
 
-export interface AgyRunnerPort { run(request: AgyRunRequest): Promise<AgyRunResult> }
+export type AgyStartedEvent = {
+  kind: "started";
+  conversationId: string;
+};
+
+export type AgyTextEvent = {
+  kind: "text";
+  delta: string;
+};
+
+export type AgyActivityEvent = {
+  kind: "activity";
+  stepType: AgyStepType;
+};
+
+export type AgyFinishedEvent = {
+  kind: "finished";
+  envelope: AgyEnvelope;
+};
+
+export type AgyStreamOutputEvent = AgyStartedEvent | AgyTextEvent | AgyActivityEvent | AgyFinishedEvent;
+
+export interface AgyRunnerPort {
+  run(request: AgyRunRequest): Promise<AgyRunResult>;
+  stream(request: AgyRunRequest, signal?: AbortSignal): AsyncIterable<AgyStreamOutputEvent>;
+}
 
 export type AgyProcessOutcome = {
   exitCode: number | null;

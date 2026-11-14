@@ -11,21 +11,33 @@ export class AgyOutcomeUtil {
 
   static readonly LOGIN_URL_PATTERN = /https:\/\/accounts\.google\.com\/o\/oauth2\/\S+/;
 
-  static readEnvelope(outcome: AgyProcessOutcome, timeoutMs: number, secrets: readonly string[]): AgyEnvelope {
+  static findProcessFailure(
+    outcome: AgyProcessOutcome,
+    timeoutMs: number,
+    secrets: readonly string[],
+  ): Error | undefined {
     const excerpt = RedactUtil.buildExcerpt(outcome.stderr, secrets);
     if (outcome.isTimedOut) {
-      throw new AgyTimeoutError(timeoutMs, excerpt);
+      return new AgyTimeoutError(timeoutMs, excerpt);
     }
     const combinedOutput = `${outcome.stdout}\n${outcome.stderr}`;
     if (combinedOutput.includes(AgyOutcomeUtil.SESSION_REQUIRED_TEXT)) {
-      throw new AgySessionRequiredError(AgyOutcomeUtil.extractLoginUrl(combinedOutput));
+      return new AgySessionRequiredError(AgyOutcomeUtil.extractLoginUrl(combinedOutput));
     }
     if (outcome.exitCode !== 0) {
-      throw new AgyFailedError(outcome.exitCode, excerpt);
+      return new AgyFailedError(outcome.exitCode, excerpt);
+    }
+    return undefined;
+  }
+
+  static readEnvelope(outcome: AgyProcessOutcome, timeoutMs: number, secrets: readonly string[]): AgyEnvelope {
+    const processFailure = AgyOutcomeUtil.findProcessFailure(outcome, timeoutMs, secrets);
+    if (processFailure !== undefined) {
+      throw processFailure;
     }
     const envelope = AgyOutcomeUtil.parseEnvelope(outcome.stdout);
     if (envelope.status !== "SUCCESS") {
-      throw new AgyFailedError(outcome.exitCode, excerpt);
+      throw new AgyFailedError(outcome.exitCode, RedactUtil.buildExcerpt(outcome.stderr, secrets));
     }
     return envelope;
   }
