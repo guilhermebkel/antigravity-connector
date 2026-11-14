@@ -21,7 +21,8 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **Daily limit** | The number of runs of one kind allowed per UTC day. A call over the limit fails before the queue. |
 | **Fake agy** | A small script that behaves like `agy` for tests and for `pnpm dev`: it prints canned envelopes and stream events, so no test ever calls the real binary. |
 | **Fixture** | A real output recorded from `agy` (an envelope, a stream) and stored for tests. Recorded fixtures are preferred over written ones. |
-| **Loopback bind** | The default of listening on `127.0.0.1` only. A non-loopback `HOST` needs `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets. |
+| **Loopback bind** | The default of listening on `127.0.0.1` only. A non-loopback `HOST` needs `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets so the Caddy proxy can reach the app. |
+| **Caddy proxy** | The container that terminates HTTPS for `DOMAIN` and forwards to the app. The only service that publishes ports (80 and 443). |
 | **API key** | The bearer secret (`API_KEY`) that every route except `/health` requires. |
 | **Public model id** | The model name a client sends, such as `gemini-4-argon` or `gemini-3.8-flash`. Each maps to one `agy` slug per reasoning effort; an unknown id or effort has no slug and is refused. |
 | **Reasoning effort** | The `low`, `medium` or `high` level a client asks for. It selects the `agy` slug of the public model id. |

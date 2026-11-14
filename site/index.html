@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>antigravity-connector: your Google AI Pro behind an OpenAI API and an MCP server</title>
-<meta name="description" content="A personal, localhost-only Docker server that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process.">
+<meta name="description" content="A personal Docker server, on your own VPS behind HTTPS, that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process.">
 <meta name="theme-color" content="#0D0E11">
 <link rel="canonical" href="https://antigravity-connector.guilherr.me/">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -18,7 +18,7 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:title" content="antigravity-connector: one subscription, two doors">
-<meta property="og:description" content="OpenAI-compatible API and MCP server for your Google AI Pro subscription. Localhost-only, one Docker process.">
+<meta property="og:description" content="OpenAI-compatible API and MCP server for your Google AI Pro subscription. One Docker process on your VPS, behind HTTPS.">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -320,7 +320,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
    "name": "antigravity-connector",
    "softwareVersion": "0.0.0",
    "dateModified": "2026-11-14",
-   "description": "A personal, localhost-only Docker server that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process.",
+   "description": "A personal Docker server, on your own VPS behind HTTPS, that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process.",
    "applicationCategory": "DeveloperApplication",
    "operatingSystem": "Any with Docker",
    "url": "https://antigravity-connector.guilherr.me/",
@@ -375,12 +375,12 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
   <div class="container hero__grid">
     <div>
       <h1><span data-words>One subscription.</span><span>Two doors.</span></h1>
-      <p class="hero__sub">A personal, localhost-only Docker server that exposes your Google AI Pro plan as an OpenAI-compatible API at <code>/v1</code> and an MCP server at <code>/mcp</code>, in one process.</p>
+      <p class="hero__sub">A personal Docker server on your own VPS, behind HTTPS, that exposes your Google AI Pro plan as an OpenAI-compatible API at <code>/v1</code> and an MCP server at <code>/mcp</code>, in one process.</p>
       <div class="hero__actions" id="hero-cta">
         <button class="btn btn-primary" data-copy-install type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy install command</span></button>
         <a class="btn btn-secondary" href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener"><svg class="ic"><use href="#i-star"/></svg>Star on GitHub</a>
       </div>
-      <p class="hero__meta"><span><b>MIT</b></span><span>Node.js 22</span><span>Docker Compose</span><span>127.0.0.1:8787</span></p>
+      <p class="hero__meta"><span><b>MIT</b></span><span>Node.js 22</span><span>Docker Compose</span><span>HTTPS via Caddy</span></p>
     </div>
 
     <div class="rig" aria-label="Illustration of requests entering through two doors into one queue" data-reveal>
@@ -432,7 +432,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
           <li><span>Streaming with <code>stream: true</code>, SSE chunks in OpenAI format</span><span>SSE</span></li>
           <li><span>Token usage in the last chunk with <code>include_usage</code></span><span>usage</span></li>
         </ul>
-        <div class="code"><pre><span class="k">curl</span> http://127.0.0.1:8787/v1/chat/completions \
+        <div class="code"><pre><span class="k">curl</span> https://connector.your-domain.com/v1/chat/completions \
   -H <span class="s">"Authorization: Bearer $API_KEY"</span> \
   -H <span class="s">"Content-Type: application/json"</span> \
   -d <span class="s">'{"model":"gemini-3.8-flash",
@@ -451,7 +451,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
         </ul>
         <div class="code"><pre><span class="c"># add it to Claude Code</span>
 <span class="k">claude mcp add</span> --transport http antigravity \
-  http://127.0.0.1:8787/mcp \
+  https://connector.your-domain.com/mcp \
   --header <span class="s">"Authorization: Bearer &lt;API_KEY&gt;"</span></pre></div>
       </article>
     </div>
@@ -468,7 +468,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <li class="step" data-reveal>
         <span class="step__n">01</span>
         <h3>The request arrives</h3>
-        <p>Every route except <code class="mono">/health</code> needs the Bearer token. By default the server listens on <code class="mono">127.0.0.1</code> only.</p>
+        <p>Every route except <code class="mono">/health</code> needs the Bearer token. In Docker the app listens inside the compose network only; Caddy is the one public entry, on 443.</p>
         <span class="chip">API_KEY</span>
       </li>
       <li class="step" data-reveal>
@@ -535,22 +535,20 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <div class="term__body"><pre><span class="p">$</span> cp .env.example .env                 <span class="c"># set API_KEY, at least 24 characters</span>
 <span class="p">$</span> docker compose up -d --build
 <span class="p">$</span> docker logs antigravity-connector    <span class="c"># prints the login block, if needed</span>
-<span class="p">$</span> curl http://127.0.0.1:8787/health</pre></div>
+<span class="p">$</span> curl https://connector.your-domain.com/health</pre></div>
     </div>
     <div class="sec__head sec__head--wide" data-reveal>
-      <h2>On a server, <span>through an SSH tunnel.</span></h2>
+      <h2>On your VPS, <span>behind HTTPS.</span></h2>
     </div>
     <div class="term" data-reveal>
-      <div class="term__bar"><span>your server, then your computer</span></div>
-      <div class="term__body"><pre><span class="c"># on the server (Ubuntu or Debian, Docker with the Compose plugin)</span>
+      <div class="term__bar"><span>your VPS</span></div>
+      <div class="term__body"><pre><span class="c"># point connector.your-domain.com (an A record) at the VPS; open ports 80 and 443</span>
 <span class="p">$</span> git clone https://github.com/guilhermebkel/antigravity-connector.git && cd antigravity-connector
-<span class="p">$</span> cp .env.example .env && sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/" .env
+<span class="p">$</span> cp .env.example .env
+<span class="p">$</span> sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/; s/^DOMAIN=.*/DOMAIN=connector.your-domain.com/" .env
 <span class="p">$</span> docker compose up -d --build
 <span class="p">$</span> docker exec -it antigravity-connector agy    <span class="c"># log in once, with the AI Pro account</span>
-<span class="p">$</span> curl http://127.0.0.1:8787/health
-
-<span class="c"># on your computer: keep this running, and point the client at 127.0.0.1:8787</span>
-<span class="p">$</span> ssh -N -L 8787:127.0.0.1:8787 your-user@your-server</pre></div>
+<span class="p">$</span> curl https://connector.your-domain.com/health</pre></div>
     </div>
     <div class="notes">
       <div data-reveal>
@@ -600,7 +598,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
 <!-- CLOSING -->
 <section class="closing">
   <div class="container">
-    <h2 data-reveal>Start on <span>localhost.</span></h2>
+    <h2 data-reveal>Start on <span>your VPS.</span></h2>
     <div class="hero__actions" data-reveal data-delay="80">
       <button class="btn btn-primary" data-copy-install type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy install command</span></button>
       <a class="btn btn-secondary" href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener"><svg class="ic"><use href="#i-star"/></svg>Star on GitHub</a>

@@ -38,7 +38,7 @@ COPY --from=agy /usr/local/bin/agy /usr/local/bin/agy
 WORKDIR /app
 COPY --from=build /deploy/node_modules ./node_modules
 COPY --from=build /repo/apps/server/dist/main.mjs ./main.mjs
-# Why: the bind guard refuses 0.0.0.0 unless ALLOW_NON_LOOPBACK_BIND is set; the container must listen on all interfaces so Docker can forward the port, and compose publishes it on 127.0.0.1 only.
+# Why: the bind guard refuses 0.0.0.0 unless ALLOW_NON_LOOPBACK_BIND is set; the container must listen on all interfaces so the Caddy proxy in compose can reach it. Only Caddy publishes ports.
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     ALLOW_NON_LOOPBACK_BIND=true \

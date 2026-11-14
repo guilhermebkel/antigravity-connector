@@ -6,9 +6,9 @@
 </h1>
 
 <p align="center">
-  <strong>Use your Google AI Pro subscription as an OpenAI-compatible API and as MCP tools, from one Docker container on your own machine.</strong>
+  <strong>Use your Google AI Pro subscription as an OpenAI-compatible API and as MCP tools, from one Docker container on your own VPS, reached over HTTPS.</strong>
   <br />
-  <em>A personal, localhost-only server. Every call runs the official Antigravity CLI (<code>agy</code>); the app never touches your login token. Not affiliated with Google.</em>
+  <em>A personal server on a VPS, behind HTTPS. Every call runs the official Antigravity CLI (<code>agy</code>); the app never touches your login token. Not affiliated with Google.</em>
 </p>
 
 <p align="center">
@@ -56,7 +56,7 @@ Both doors share one global queue with concurrency 1, plus a daily limit per kin
 
 **Local by default**
 
-Listens on `127.0.0.1` and refuses to start on any other address unless you allow it. Every route but `/health` needs the bearer `API_KEY`.
+Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces inside the compose network, and only Caddy is reachable from outside. Every route but `/health` needs the bearer `API_KEY`.
 
 </td>
 <td valign="top">
@@ -83,7 +83,7 @@ Video, Google Flow, Deep Research from the Gemini app, workflows, swarms, MCP ov
 
 ## Risk note
 
-Running a subscription through a local tool is not something Google documents for the CLI. Its terms, its limits and the CLI itself can change at any time, and a call can fail or be refused. Use it for yourself, on your own machine, at a low volume. Keep the API key secret: anyone who has it can spend your daily limits.
+Running a subscription through a server you expose to the internet is not something Google documents for the CLI. Its terms, its limits and the CLI itself can change at any time, and a call can fail or be refused. Use it for yourself, on your own machine, at a low volume. Keep the API key secret: anyone who has it can spend your daily limits.
 
 ## Requirements
 
@@ -96,41 +96,43 @@ Running a subscription through a local tool is not something Google documents fo
 cp .env.example .env                 # then set API_KEY to a random value of at least 24 characters
 docker compose up -d --build
 docker logs antigravity-connector    # shows the login block if agy is not logged in yet
-curl http://127.0.0.1:8787/health
+docker exec antigravity-connector curl -s http://127.0.0.1:8787/health
 ```
 
-## Install on a server with Docker
+## Install on a VPS with Docker
 
-The server only listens on `127.0.0.1`, so on a remote machine you reach it through an SSH tunnel. Do not publish port 8787 to the internet.
+The server runs on a VPS you control, behind HTTPS. Caddy gets a certificate for your domain and forwards requests to the app. The app's own port is not published; only Caddy's 80 and 443 are.
 
-1. On the server (a VPS or a home machine, Ubuntu or Debian), install Docker with the Compose plugin, and check it:
+1. Point a host name at the VPS: an A record such as `connector.your-domain.com` to the VPS's public IP. Open ports 80 and 443 in the VPS firewall (not 8787).
+
+2. On the VPS (Ubuntu or Debian), install Docker with the Compose plugin, and check it:
 
        docker --version && docker compose version
 
-2. Clone the repository and create the settings file. Generate the API key on the server and keep it secret:
+3. Clone the repository and create the settings. Generate the API key on the VPS and keep it secret:
 
        git clone https://github.com/guilhermebkel/antigravity-connector.git
        cd antigravity-connector
        cp .env.example .env
        sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/" .env
+       sed -i "s/^DOMAIN=.*/DOMAIN=connector.your-domain.com/" .env
 
-3. Build and start the container:
+4. Build and start the containers:
 
        docker compose up -d --build
        docker logs antigravity-connector        # shows the login block the first time
 
-4. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)), then check the health route on the server:
+5. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)):
 
        docker exec -it antigravity-connector agy
-       curl http://127.0.0.1:8787/health        # {"status":"ok","agy":"connected"}
 
-5. From your own computer, open the tunnel and point your client at the local end:
+6. Check the HTTPS endpoint from your computer. It answers `{"status":"ok","agy":"connected"}` once Caddy has the certificate:
 
-       ssh -N -L 8787:127.0.0.1:8787 your-user@your-server
+       curl https://connector.your-domain.com/health
 
-   With the tunnel up, the API is at `http://127.0.0.1:8787/v1` and MCP at `http://127.0.0.1:8787/mcp`, both with `Authorization: Bearer <API_KEY>`. The key is in the server's `.env`.
+The API is at `https://connector.your-domain.com/v1` and MCP at `https://connector.your-domain.com/mcp`. Both expect `Authorization: Bearer <API_KEY>`. The key is the only access control: anyone who has it can spend your daily limits. Keep it long and random, and rotate it by changing `API_KEY` in `.env` and running `docker compose up -d`.
 
-The login belongs to the server: everyone who uses the tunnel spends the same subscription and the same daily limits.
+The login belongs to the VPS: everyone who has the key spends the same subscription and the same daily limits.
 
 ## Logging in
 
@@ -139,7 +141,7 @@ The first start has no session, so the server logs a login block with a URL and 
 1. Read the link: `docker logs antigravity-connector`.
 2. Open the URL in a browser, sign in, and copy the code it shows.
 3. Run `docker exec -it antigravity-connector agy` and paste the code.
-4. Check: `curl http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`.
+4. Check: `docker exec antigravity-connector curl -s http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`, and `https://connector.your-domain.com/health` answers the same through Caddy.
 
 The login is kept in the named volume `agy-gemini`. `docker compose down` keeps it; `docker compose down -v` removes it, and you must log in again.
 
@@ -148,7 +150,7 @@ The login is kept in the named volume `agy-gemini`. `docker compose down` keeps 
 With `curl`:
 
 ```bash
-curl http://127.0.0.1:8787/v1/chat/completions \
+curl https://connector.your-domain.com/v1/chat/completions \
   -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \
   -d '{"model":"gemini-3.8-flash","reasoning_effort":"low","messages":[{"role":"user","content":"Say hello in one word."}]}'
 ```
@@ -161,7 +163,7 @@ import { generateText } from "ai";
 
 const provider = createOpenAICompatible({
   name: "antigravity",
-  baseURL: "http://127.0.0.1:8787/v1",
+  baseURL: "https://connector.your-domain.com/v1",
   apiKey: process.env.API_KEY,
 });
 const { text } = await generateText({ model: provider("gemini-3.8-flash"), prompt: "Say hello in one word." });
@@ -177,7 +179,7 @@ More endpoints and options:
 ## Connecting Claude Code to `/mcp`
 
 ```bash
-claude mcp add --transport http antigravity http://127.0.0.1:8787/mcp \
+claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
   --header "Authorization: Bearer <API_KEY>"
 ```
 
@@ -197,7 +199,8 @@ When the client sends a progress token, the server reports progress while a call
 | --- | --- | --- |
 | `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
-| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. Only for Docker, with the port published on `127.0.0.1`. |
+| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the Caddy proxy in compose can reach the app; only Caddy publishes ports. |
+| `DOMAIN` (compose, Caddy) | none (required) | The host name Caddy gets an HTTPS certificate for. It must point to the VPS. |
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
@@ -261,14 +264,14 @@ Found a way around any of this? Open an issue without secrets in it.
 ## How it compares
 
 - **Using the token directly (a proxy that calls Google's internal API)** is what got accounts banned. Here the token never leaves the CLI.
-- **A generic OpenAI proxy** gives every client the whole subscription with no queue and no limits. Here there is one queue, a daily limit per kind of run and a loopback-only bind.
+- **A generic OpenAI proxy** gives every client the whole subscription with no queue and no limits. Here there is one queue, a daily limit per kind of run, an API key and HTTPS in front.
 
 ## FAQ
 
 <details>
 <summary><b>Can I expose it to the internet or share it with other people?</b></summary>
 
-No. It is a single-user, localhost-only server, and the subscription is yours. Binding another address needs `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets, and the compose file publishes the port on `127.0.0.1` only.
+No. It is a single-user server, reachable over HTTPS with an API key, and the subscription is yours. The bind guard refuses another address unless `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets; the app's port is not published, and Caddy is the only public entry.
 
 </details>
 

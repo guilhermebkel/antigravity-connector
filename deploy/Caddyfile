@@ -1,0 +1,6 @@
+# Caddy terminates TLS for DOMAIN (certificate from Let's Encrypt, renewed automatically) and forwards to the app.
+# The app is reached only inside the compose network: its port is not published on the host.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy antigravity-connector:8787
+}
