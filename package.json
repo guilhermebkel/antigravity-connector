@@ -1,0 +1,44 @@
+{
+  "name": "antigravity-connector",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "node scripts/lint.mjs",
+    "lint:fix": "node scripts/lint.mjs --fix",
+    "lint:oxlint": "oxlint --type-aware",
+    "lint:eslint": "eslint --cache --cache-strategy content",
+    "quality": "knip && jscpd && turbo run cycles",
+    "test": "vitest run",
+    "test:changed": "node scripts/test-changed.mjs",
+    "ensure-deps": "node scripts/ensure-deps.mjs",
+    "lint-staged": "lint-staged",
+    "check:changed": "node scripts/check-changed.mjs",
+    "check": "pnpm ensure-deps && pnpm typecheck && pnpm lint && pnpm quality && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/node": "^22",
+    "@vitest/eslint-plugin": "^1.6.28",
+    "dpdm": "^4.3.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "globals": "^17.13.0",
+    "jscpd": "^5.4.2",
+    "knip": "^6.43.0",
+    "lint-staged": "^17.6.0",
+    "oxlint": "^1.90.0",
+    "oxlint-tsgolint": "^7.0.2005",
+    "turbo": "^2.11.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

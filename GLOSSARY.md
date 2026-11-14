@@ -1,0 +1,21 @@
+# Glossary
+
+The words this project uses, one meaning each. Use them in issue titles, test names, code and docs.
+
+| Term | Meaning |
+| --- | --- |
+| **Door** | One of the two ways a client reaches the server: the OpenAI-compatible API (`/v1`) or the MCP endpoint (`/mcp`). `/health` is not a door. Both doors live in one process and share one queue. |
+| **agy** | The official Antigravity CLI binary. The server runs it as a subprocess for every call. It is the only thing that holds the Google login. |
+| **agy session** | The login state of the `agy` binary inside the container. It is *connected* only after a real `agy` check succeeds, never by configuration. |
+| **Run** | One execution of the `agy` binary for one call, with a timeout, in a fresh empty temporary directory that is removed afterwards. |
+| **Run kind** | What a run is for: `chat`, `search`, `research`, `image` or `browse`. Each kind has its own daily limit. |
+| **Run profile** | The fixed set of flags, working directory rules and prompt shape that `core` asks `agy` to use for one run kind. |
+| **Envelope** | The single JSON object `agy` prints with `--output-format json`: `conversation_id`, `status`, `response`, `usage` and, with a JSON schema, `structured_output`. |
+| **Stream event** | One line of NDJSON that `agy` prints with `--output-format stream-json`: `init`, `step_update` (carrying `text_delta`) or `result`. |
+| **Tool** | One MCP tool a client can call on `/mcp` (`web_search`, `generate_image`, later `research` and `browse`). Not an `agy` tool. |
+| **Queue** | The global queue with concurrency 1 that serializes every run from both doors. A call that waits longer than the maximum fails with a clear error. |
+| **Daily limit** | The number of runs of one kind allowed per UTC day. A call over the limit fails before the queue. |
+| **Fake agy** | A small script that behaves like `agy` for tests and for `pnpm dev`: it prints canned envelopes and stream events, so no test ever calls the real binary. |
+| **Fixture** | A real output recorded from `agy` (an envelope, a stream) and stored for tests. Recorded fixtures are preferred over written ones. |
+| **Loopback bind** | The default of listening on `127.0.0.1` only. A non-loopback `HOST` needs `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets. |
+| **API key** | The bearer secret (`API_KEY`) that every route except `/health` requires. |

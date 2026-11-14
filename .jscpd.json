@@ -1,0 +1,24 @@
+{
+  "path": [
+    "apps",
+    "packages",
+    "scripts"
+  ],
+  "format": [
+    "typescript",
+    "tsx",
+    "javascript"
+  ],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.test.mjs",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "minTokens": 50,
+  "threshold": 1,
+  "reporters": [
+    "console"
+  ]
+}
