@@ -239,16 +239,24 @@ describe("ApiSetup", () => {
     expect(readErrorBody(invalid).error.param).toBe("reasoning_effort");
   });
 
-  it("S6: response_format other than text and image parts return 400 naming the parameter", async () => {
+  it("S6: a json_object response format passes validation, and an answer without structured output is a 502; a json_schema without an object schema returns 400 naming response_format; a remote image returns 400 naming messages", async () => {
     app = await buildApp(StubRuntimeUtil.build());
-    const format = await app.inject({
+    const jsonObject = await app.inject({
       method: "POST",
       url: CHAT_PATH,
       headers: API_KEY_HEADER,
       payload: buildChatBody({ response_format: { type: "json_object" } }),
     });
-    expect(format.statusCode).toBe(400);
-    expect(readErrorBody(format).error.param).toBe("response_format");
+    expect(jsonObject.statusCode).toBe(502);
+    expect(readErrorBody(jsonObject).error.code).toBe("agy_failed");
+    const schema = await app.inject({
+      method: "POST",
+      url: CHAT_PATH,
+      headers: API_KEY_HEADER,
+      payload: buildChatBody({ response_format: { type: "json_schema", json_schema: { name: "x", schema: "nope" } } }),
+    });
+    expect(schema.statusCode).toBe(400);
+    expect(readErrorBody(schema).error.param).toBe("response_format");
     const image = await app.inject({
       method: "POST",
       url: CHAT_PATH,

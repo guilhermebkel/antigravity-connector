@@ -12,11 +12,18 @@ export class RunPromptUtil {
     browse: "",
   };
 
-  static build(kind: RunKind, messages: readonly OpenAiMessage[]): string {
+  static build(kind: RunKind, messages: readonly OpenAiMessage[], attachmentNames: readonly string[] = []): string {
     if (kind === "browse") {
       return `${RunPromptUtil.BROWSE_COMMAND} ${PromptUtil.build(messages)}`;
     }
-    const instruction: OpenAiMessage = { role: "system", content: RunPromptUtil.RUN_KIND_TO_INSTRUCTION[kind] };
-    return PromptUtil.build([instruction, ...messages]);
+    const instructions: OpenAiMessage[] = [{ role: "system", content: RunPromptUtil.RUN_KIND_TO_INSTRUCTION[kind] }];
+    if (attachmentNames.length > 0) {
+      instructions.push({ role: "system", content: RunPromptUtil.buildAttachmentInstruction(attachmentNames) });
+    }
+    return PromptUtil.build([...instructions, ...messages]);
+  }
+
+  static buildAttachmentInstruction(attachmentNames: readonly string[]): string {
+    return `The user attached these files, saved in the current directory: ${attachmentNames.join(", ")}. Read each one with the read_file tool before you answer.`;
   }
 }

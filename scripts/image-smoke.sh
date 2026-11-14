@@ -67,6 +67,10 @@ echo "AC1 ok: /health returns 200"
 docker exec "${CONTAINER}" sh -c 'test ! -e /app/.env && test ! -e /home/agy/.gemini/antigravity-cli/antigravity-oauth-token' \
   || fail "AC4: the image contains a .env file or a token file"
 echo "AC4 ok: non-root user, no .env and no token file"
+# AC6 of #23: Chrome runs for the runtime user, and the call log directory is writable by it (#28).
+docker exec "${CONTAINER}" google-chrome --version >/dev/null || fail "AC6: google-chrome does not run as the runtime user"
+docker exec "${CONTAINER}" sh -c 'test -w /data' || fail "AC6: DATA_DIR /data is not writable by the runtime user"
+echo "AC6 ok: google-chrome runs and /data is writable by the runtime user"
 cleanup
 WORK="$(mktemp -d)"
 trap cleanup EXIT

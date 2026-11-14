@@ -40,6 +40,6 @@ describe("PromptUtil.build", () => {
       },
     ]);
 
-    expect(prompt).toBe("User: describe this\n[image not included in this call]\nin one line");
+    expect(prompt).toBe("User: describe this\n[image attached as a file]\nin one line");
   });
 });

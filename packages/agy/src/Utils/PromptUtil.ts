@@ -10,7 +10,7 @@ export class PromptUtil {
 
   static readonly INSTRUCTION_ROLES: ReadonlySet<OpenAiRole> = new Set<OpenAiRole>(["system", "developer"]);
 
-  static readonly IMAGE_PLACEHOLDER = "[image not included in this call]";
+  static readonly IMAGE_PLACEHOLDER = "[image attached as a file]";
 
   static readonly SEPARATOR = "\n\n";
 

@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { env as inheritedEnv } from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +11,7 @@ export const FAKE_AGY_PATH = fileURLToPath(new URL("../../packages/agy/src/Testi
 export const DEFAULT_ENTRY = fileURLToPath(new URL("../../apps/server/dist/main.mjs", import.meta.url));
 export const API_KEY = "e2e-api-key-0123456789abcdef";
 const LOOPBACK_HOST = "127.0.0.1";
+const DATA_DIRECTORY_PREFIX = join(tmpdir(), "acon-e2e-data-");
 const HEALTH_POLL_MS = 100;
 const HEALTH_TIMEOUT_MS = 15000;
 const STOP_TIMEOUT_MS = 5000;
@@ -75,6 +78,7 @@ export const startServer = async ({ entry = DEFAULT_ENTRY, env = {} } = {}) => {
       HOST: LOOPBACK_HOST,
       PORT: String(port),
       AGY_BIN: FAKE_AGY_PATH,
+      DATA_DIR: mkdtempSync(DATA_DIRECTORY_PREFIX),
       ...env,
     },
     stdio: ["ignore", "pipe", "pipe"],

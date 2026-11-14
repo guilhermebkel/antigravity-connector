@@ -14,6 +14,7 @@ const DEFAULT_DAILY_LIMIT_BROWSE = 20;
 const DEFAULT_HTTP_MAX_REQUESTS_PER_MINUTE = 120;
 const DEFAULT_MCP_MAX_SESSIONS = 8;
 const DEFAULT_MCP_SESSION_TTL_MS = 1800000;
+const DEFAULT_DATA_DIR = "data";
 
 export const EnvSchema: z.ZodType<Env> = z.object({
   API_KEY: z.string().min(MIN_API_KEY_LENGTH),
@@ -31,4 +32,5 @@ export const EnvSchema: z.ZodType<Env> = z.object({
   HTTP_MAX_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(DEFAULT_HTTP_MAX_REQUESTS_PER_MINUTE),
   MCP_MAX_SESSIONS: z.coerce.number().int().positive().default(DEFAULT_MCP_MAX_SESSIONS),
   MCP_SESSION_TTL_MS: z.coerce.number().int().positive().default(DEFAULT_MCP_SESSION_TTL_MS),
+  DATA_DIR: z.string().min(1).default(DEFAULT_DATA_DIR),
 });
