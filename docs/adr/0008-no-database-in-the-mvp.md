@@ -1,6 +1,6 @@
 # 0008. No database in the MVP
 
-Status: accepted (2026-11-14)
+Status: superseded by [0010](0010-sqlite-call-log-and-daily-counters.md) (2026-11-14)
 
 ## Context
 

@@ -6,5 +6,5 @@
       "@antigravity-connector/server/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "tsdown.config.ts"]
 }

@@ -1,0 +1,22 @@
+{
+  "model": "gemini-4-argon",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are concise."
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Count to three."
+        }
+      ]
+    }
+  ],
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}

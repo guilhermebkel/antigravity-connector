@@ -7,4 +7,5 @@ coverage/
 *.tsbuildinfo
 .eslintcache
 .vitest/
+data/
 lint-fixtures-*/

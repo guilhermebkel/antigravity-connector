@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="#status"><img src="https://img.shields.io/badge/Status-under_construction-f4e40c" alt="Status: under construction" /></a>
+  <a href="#status"><img src="https://img.shields.io/badge/Status-working-2ea44f" alt="Status: working" /></a>
   <a href="https://github.com/guilhermebkel/antigravity-connector/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/guilhermebkel/antigravity-connector/ci.yml?branch=master&label=CI" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="License: MIT" /></a>
   <img src="https://img.shields.io/badge/Telemetry-none-2ea44f" alt="No telemetry" />
@@ -25,7 +25,7 @@
 
 ## Status
 
-This repository is built issue by issue. The execution order is in the roadmap issue [#29](https://github.com/guilhermebkel/antigravity-connector/issues/29) and the project brief is [#1](https://github.com/guilhermebkel/antigravity-connector/issues/1). **There is nothing to run yet.** The monorepo, the harness, the lint rules and the docs are in place; the server, the doors and the Docker image come next. The sections below describe what the finished server does, with the names already fixed.
+The server is built: the OpenAI-compatible API, the MCP endpoint with `web_search`, `generate_image`, `research` and `browse`, the Docker image, the end-to-end tests and the call log. What is still missing is in [Limits](#limits-and-what-is-not-supported-yet). The execution order is in [#29](https://github.com/guilhermebkel/antigravity-connector/issues/29) and the project brief is [#1](https://github.com/guilhermebkel/antigravity-connector/issues/1).
 
 ## What you get
 
@@ -56,9 +56,9 @@ Listens on `127.0.0.1` and refuses to start on any other address unless you allo
 </td>
 <td valign="top">
 
-**No web page, no database**
+**No web page, almost no state**
 
-The login link appears in the container logs and the code goes in through `docker exec` ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). State lives in memory ([ADR 0008](docs/adr/0008-no-database-in-the-mvp.md)).
+The login link appears in the container logs and the code goes in through `docker exec` ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The only stored data is a small SQLite call log with metadata, so the daily limits survive a restart ([ADR 0010](docs/adr/0010-sqlite-call-log-and-daily-counters.md)).
 
 </td>
 </tr>
@@ -76,52 +76,99 @@ The login link appears in the container logs and the code goes in through `docke
 
 Video, Google Flow, Deep Research from the Gemini app, workflows, swarms, MCP over stdio, any web page, several users and exposing the server to a network are out of scope ([ADR 0004](docs/adr/0004-scope-chat-image-search-research-and-browsing.md)).
 
+## Risk note
+
+Running a subscription through a local tool is not something Google documents for the CLI. Its terms, its limits and the CLI itself can change at any time, and a call can fail or be refused. Use it for yourself, on your own machine, at a low volume. Keep the API key secret: anyone who has it can spend your daily limits.
+
+## Requirements
+
+- Docker with Compose.
+- A Google account with an AI Pro subscription.
+
 ## Quick start
 
-Planned, and available when the Docker image lands ([#19](https://github.com/guilhermebkel/antigravity-connector/issues/19)):
-
 ```bash
-docker compose up -d
-docker compose logs -f          # prints the Google login link on the first start
-docker exec -it antigravity-connector agy   # paste the authorization code
+cp .env.example .env                 # then set API_KEY to a random value of at least 24 characters
+docker compose up -d --build
+docker logs antigravity-connector    # shows the login block if agy is not logged in yet
 curl http://127.0.0.1:8787/health
 ```
 
-Then point a client at it:
+## Logging in
+
+The first start has no session, so the server logs a login block with a URL and a command:
+
+1. Read the link: `docker logs antigravity-connector`.
+2. Open the URL in a browser, sign in, and copy the code it shows.
+3. Run `docker exec -it antigravity-connector agy` and paste the code.
+4. Check: `curl http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`.
+
+The login is kept in the named volume `agy-gemini`. `docker compose down` keeps it; `docker compose down -v` removes it, and you must log in again.
+
+## Using the API
+
+With `curl`:
 
 ```bash
 curl http://127.0.0.1:8787/v1/chat/completions \
   -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"gemini-3.8-flash-medium","messages":[{"role":"user","content":"ping"}]}'
+  -d '{"model":"gemini-3.8-flash","reasoning_effort":"low","messages":[{"role":"user","content":"Say hello in one word."}]}'
 ```
 
-```json
-{
-  "mcpServers": {
-    "antigravity": {
-      "url": "http://127.0.0.1:8787/mcp",
-      "headers": { "Authorization": "Bearer your-long-random-secret" }
-    }
-  }
-}
+With the Vercel AI SDK (`@ai-sdk/openai-compatible`):
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText } from "ai";
+
+const provider = createOpenAICompatible({
+  name: "antigravity",
+  baseURL: "http://127.0.0.1:8787/v1",
+  apiKey: process.env.API_KEY,
+});
+const { text } = await generateText({ model: provider("gemini-3.8-flash"), prompt: "Say hello in one word." });
 ```
+
+More endpoints and options:
+
+- `POST /v1/images/generations` returns one PNG as `data[0].b64_json`. `n` other than 1 and `response_format` other than `b64_json` return 400.
+- `response_format` with `{"type":"json_schema","json_schema":{"name":"x","schema":{...}}}` returns the JSON as the message content. `json_object` returns any JSON object. A streamed structured answer is sent once, at the end.
+- An `image_url` part with a base64 `data:` URL (PNG, JPEG or WebP, up to 4 MiB each, four per request) is saved for the run. Remote URLs are refused, and nothing is fetched.
+- `conversation_id` from a previous response continues that conversation: send the new message only. The id is kept for 24 hours, in memory; after a restart, or once it expires, send the full history without it.
+
+## Connecting Claude Code to `/mcp`
+
+```bash
+claude mcp add --transport http antigravity http://127.0.0.1:8787/mcp \
+  --header "Authorization: Bearer <API_KEY>"
+```
+
+The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
+
+The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`.
+
+The `research` tool writes a Markdown report with a source link for each claim. A call takes several minutes (up to 10), spends tens of thousands of tokens, and counts against `DAILY_LIMIT_RESEARCH`. The report is capped at 20000 characters, and `truncated` says when it was cut.
+
+The `browse` tool opens a public page in headless Chrome, reads it or does a simple task, and can return a screenshot. It has no logins and no saved cookies. Loopback and private addresses, and URLs with a user name or password, are refused. A call counts against `DAILY_LIMIT_BROWSE`. Pages may contain instructions; the tool treats them as data.
+
+When the client sends a progress token, the server reports progress while a call waits in the queue and runs. A client that cancels a call stops the agy process.
 
 ## Configuration
 
-The names are fixed in the brief so every issue agrees; `core` and the server read them in one place.
-
-| Variable | Default | Meaning |
+| Variable | Default | What it does |
 | --- | --- | --- |
-| `API_KEY` | none, required | Bearer secret for `/v1` and `/mcp`. Startup fails when it is missing or shorter than 24 characters |
-| `HOST` | `127.0.0.1` | Bind address |
-| `PORT` | `8787` | Bind port |
-| `ALLOW_NON_LOOPBACK_BIND` | `false` | Must be `true` to bind a non-loopback `HOST`. Only the Docker image sets it |
-| `AGY_BIN` | `agy` | Path of the binary. Tests and `pnpm dev` point it at the fake |
-| `AGY_TIMEOUT_MS` | `300000` | Kill an `agy` run after this long |
-| `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue fails with a clear error |
-| `DAILY_LIMIT_CHAT`, `_SEARCH`, `_IMAGE`, `_RESEARCH`, `_BROWSE` | `200`, `50`, `20`, `5`, `20` | Calls allowed per kind per UTC day |
-| `HTTP_MAX_REQUESTS_PER_MINUTE` | `120` | Rate limit, one bucket for failed authentication and one for authenticated requests |
-| `MCP_MAX_SESSIONS`, `MCP_SESSION_TTL_MS` | `8`, `1800000` | MCP session cap and idle expiry |
+| `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
+| `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
+| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. Only for Docker, with the port published on `127.0.0.1`. |
+| `PORT` | `8787` | The port. |
+| `AGY_BIN` | `agy` | The agy binary. |
+| `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
+| `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue is refused. |
+| `DAILY_LIMIT_CHAT` / `_SEARCH` / `_IMAGE` / `_RESEARCH` / `_BROWSE` | `200` / `50` / `20` / `5` / `20` | Calls per UTC day, per kind. `0` refuses that kind. |
+| `HTTP_MAX_REQUESTS_PER_MINUTE` | `120` | Requests per minute, counted separately for failed and valid authentications. |
+| `DATA_DIR` | `data` (`/data` in the image) | Where the SQLite call log (`calls.sqlite`) is kept. It holds metadata only: no prompts, responses, queries, URLs or images. Rows older than 90 days are deleted at startup. |
+| `MCP_MAX_SESSIONS` | `8` | MCP sessions open at once. |
+| `MCP_SESSION_TTL_MS` | `1800000` | An MCP session idle for longer expires. |
 
 ## How it works
 
@@ -144,6 +191,25 @@ The work is split into packages on purpose, and the direction of the imports is 
 | `packages/protocol` | Shared types and Zod schemas | Imports no other package |
 
 Decisions are in [`docs/adr/`](docs/adr/), vocabulary in [`GLOSSARY.md`](GLOSSARY.md).
+
+## Limits and what is not supported yet
+
+- One agy call runs at a time. Calls from the API and from MCP share one queue.
+- Calls are slow: a chat answer takes seconds, a search takes tens of seconds.
+- Streaming works with `stream: true` (Server-Sent Events, OpenAI chunk format). Set `stream_options.include_usage` to get the usage in the last chunk.
+- Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), PDF and other file input, audio and video, and a browser profile with your own logins.
+- `browse` runs Chrome through agy's `/browser` command. The temporary directory of each run is removed after it; agy chooses where its Chrome profile lives, and no flag sets that, so the profile is not confined to the run directory yet.
+- Sampling parameters (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`) are accepted and ignored. The response header `x-antigravity-connector-ignored-params` lists the ones you sent.
+- The agy binary is pinned to version 1.5.9 in the image. It cannot update itself, because it is installed read-only for the server user.
+
+## Troubleshooting
+
+- **`/health` says `login_required` after a restart.** The login is gone: the volume was removed or the image was rebuilt without it. Log in again (see above). A restart or a recreate with the same volume keeps the login.
+- **`503` with `queue_timeout`.** Another call held the queue longer than `QUEUE_MAX_WAIT_MS`. Retry in a moment.
+- **`429` with `daily_limit_reached`.** The limit for that kind is used up. It resets at the next UTC midnight, and the message says when.
+- **`504` with `agy_timeout`.** The call ran longer than `AGY_TIMEOUT_MS` and was stopped. Ask a shorter question.
+- **`502` with `agy_failed`.** agy failed. The container logs show the cause without the prompt or the answer.
+- **The container stops at once with a message about `API_KEY`.** `.env` is missing the key, or the key is shorter than 24 characters.
 
 ## Privacy and safety
 
@@ -178,7 +244,7 @@ There is no web page on purpose. When there is no session, `agy` prints a login 
 <details>
 <summary><b>Does the login survive a container restart?</b></summary>
 
-That is what the spike ([#2](https://github.com/guilhermebkel/antigravity-connector/issues/2)) decides, and the answer is recorded in an ADR when it is done.
+Yes, as long as the named volume `agy-gemini` is kept. `docker compose down` keeps it and `docker compose down -v` removes it, so you would log in again. Details are in [`docs/spike-results.md`](docs/spike-results.md).
 
 </details>
 
@@ -186,11 +252,12 @@ That is what the spike ([#2](https://github.com/guilhermebkel/antigravity-connec
 
 The full order, in groups, is in [#29](https://github.com/guilhermebkel/antigravity-connector/issues/29).
 
-- [x] **Harness and structure:** monorepo, lint rules, architecture tests, CI and docs ([#3](https://github.com/guilhermebkel/antigravity-connector/issues/3), [#4](https://github.com/guilhermebkel/antigravity-connector/issues/4), [#5](https://github.com/guilhermebkel/antigravity-connector/issues/5)).
-- [ ] **Spike:** `agy` inside Docker, login and session persistence ([#2](https://github.com/guilhermebkel/antigravity-connector/issues/2)).
-- [ ] **Chat over `/v1`**, then streaming.
-- [ ] **MCP** with `web_search`, then images, research and browsing.
-- [ ] **Docker image, end-to-end tests and the real acceptance run.**
+- [x] **Harness and structure:** monorepo, lint rules, architecture tests, CI and docs.
+- [x] **Spike:** `agy` inside Docker, login and session persistence.
+- [x] **Chat over `/v1`**, with streaming, structured output, conversations and image input.
+- [x] **MCP** with `web_search`, `generate_image`, `research` and `browse`.
+- [x] **Docker image, end-to-end tests and the real acceptance run** ([`docs/acceptance-2026-11.md`](docs/acceptance-2026-11.md)).
+- [ ] **Not available yet:** tool calling, PDF and other file input, audio and video, a browser profile with your own logins.
 
 ## Contributing
 
@@ -203,10 +270,13 @@ Needs the Node version in `.nvmrc` and pnpm.
 ```bash
 nvm use
 pnpm install
-pnpm check   # typecheck, lint, dead code, duplication, tests and build
+pnpm dev     # the server with the fake agy on 127.0.0.1:8787
+pnpm check   # typecheck, lint, quality, tests and build
 ```
 
-A release is started by hand: run the `Release` workflow on `master` and pick `patch`, `minor` or `major` (`none` releases the current version). It checks everything, tags the commit, publishes the GitHub Release and, once the Dockerfile exists, the image to `ghcr.io/guilhermebkel/antigravity-connector`.
+The image smoke test is `scripts/image-smoke.sh` (it needs Docker).
+
+A release is started by hand: run the `Release` workflow on `master` and pick `patch`, `minor` or `major` (`none` releases the current version). It checks everything, tags the commit, publishes the GitHub Release and the image to `ghcr.io/guilhermebkel/antigravity-connector`.
 
 ---
 

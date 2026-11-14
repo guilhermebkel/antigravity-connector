@@ -1,0 +1,36 @@
+import { describe, expect, it } from "vitest";
+import { RunProfileUtil } from "@antigravity-connector/core/Utils/RunProfileUtil.ts";
+
+const BASE_TIMEOUT_MS = 300000;
+
+describe("RunProfileUtil.build", () => {
+  it("builds a plan-mode profile with the base timeout for chat", () => {
+    expect(RunProfileUtil.build("chat", BASE_TIMEOUT_MS)).toStrictEqual({
+      isPlanMode: true,
+      shouldSkipPermissions: false,
+      timeoutMs: 300000,
+      expectedOutputFileNames: [],
+    });
+  });
+
+  it("doubles the timeout for research", () => {
+    expect(RunProfileUtil.build("research", BASE_TIMEOUT_MS).timeoutMs).toBe(600000);
+  });
+
+  it("does not use plan mode for image and expects the output file", () => {
+    expect(RunProfileUtil.build("image", BASE_TIMEOUT_MS)).toStrictEqual({
+      isPlanMode: false,
+      shouldSkipPermissions: false,
+      timeoutMs: 300000,
+      expectedOutputFileNames: ["output.png"],
+    });
+  });
+
+  it("AC7: only image and browse run without plan mode, and image expects output.png", () => {
+    const nonPlanKinds = (["chat", "search", "research", "image", "browse"] as const).filter(
+      (kind) => !RunProfileUtil.build(kind, 1000).isPlanMode,
+    );
+    expect(nonPlanKinds).toStrictEqual(["image", "browse"]);
+    expect(RunProfileUtil.build("image", 1000).expectedOutputFileNames).toStrictEqual(["output.png"]);
+  });
+});
