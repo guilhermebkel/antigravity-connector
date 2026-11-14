@@ -5,3 +5,16 @@ export type { OpenAiContentPart, OpenAiMessage, OpenAiRole } from "@antigravity-
 export type { OpenAiErrorCode } from "@antigravity-connector/protocol/Protocols/OpenAiErrorProtocol.ts";
 export type { RunKind } from "@antigravity-connector/protocol/Protocols/RunKindProtocol.ts";
 export type { ModelId, ReasoningEffort } from "@antigravity-connector/protocol/Protocols/ModelIdProtocol.ts";
+export { AsyncEventBufferService } from "@antigravity-connector/protocol/Services/AsyncEventBufferService.ts";
+export { AgyStreamEventSchema } from "@antigravity-connector/protocol/Schemas/AgyStreamEventSchema.ts";
+export type {
+  AgyInitEvent,
+  AgyResultEvent,
+  AgyStepState,
+  AgyStepType,
+  AgyStepUpdate,
+  AgyStepUpdateEvent,
+  AgyStreamEvent,
+} from "@antigravity-connector/protocol/Protocols/AgyStreamEventProtocol.ts";
+export { ModelCatalogueUtil } from "@antigravity-connector/protocol/Utils/ModelCatalogueUtil.ts";
+export type { ImageGenerationRequest } from "@antigravity-connector/protocol/Protocols/OpenAiImageProtocol.ts";

@@ -7,7 +7,16 @@ import { AgyFailedError } from "@antigravity-connector/agy/Errors/AgyFailedError
 import { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
 import { AgySessionRequiredError } from "@antigravity-connector/agy/Errors/AgySessionRequiredError.ts";
 import { AgyTimeoutError } from "@antigravity-connector/agy/Errors/AgyTimeoutError.ts";
-import type { AgyEnvNameToValue, AgyRunProfile, AgyRunRequest } from "@antigravity-connector/agy/Protocols/AgyRunnerProtocol.ts";
+import type {
+  AgyEnvNameToValue,
+  AgyRunProfile,
+  AgyRunRequest,
+  AgyActivityEvent,
+  AgyFinishedEvent,
+  AgyStartedEvent,
+  AgyStreamOutputEvent,
+  AgyTextEvent,
+} from "@antigravity-connector/agy/Protocols/AgyRunnerProtocol.ts";
 
 const FAKE_BINARY = resolve(import.meta.dirname, "../Testing/FakeAgy.mjs");
 const CHAT_FIXTURE = resolve(import.meta.dirname, "../Testing/fixtures/chatEnvelope.json");
@@ -168,5 +177,164 @@ describe("AgyCliAdapter.run", () => {
     const error = await failRun("[[fake-agy:invalid]] hi");
 
     expect(error).toBeInstanceOf(AgyOutputError);
+  });
+});
+
+const STREAM_CLOSED_MESSAGE = "the stream unexpectedly completed";
+const STREAM_TIMEOUT_MS = 5000;
+const STREAM_SLOW_PROMPT = "[[fake-agy:stream-slow]] hi";
+const STREAM_SLOW_TIMEOUT_MS = 300;
+
+const collectUntil = async (
+  events: AsyncIterable<AgyStreamOutputEvent>,
+  shouldStop: (event: AgyStreamOutputEvent) => boolean,
+): Promise<AgyStreamOutputEvent[]> => {
+  const collected: AgyStreamOutputEvent[] = [];
+  for await (const event of events) {
+    collected.push(event);
+    if (shouldStop(event)) {
+      break;
+    }
+  }
+  return collected;
+};
+
+const collectEvents = async (events: AsyncIterable<AgyStreamOutputEvent>): Promise<AgyStreamOutputEvent[]> => {
+  const collected: AgyStreamOutputEvent[] = [];
+  for await (const event of events) {
+    collected.push(event);
+  }
+  return collected;
+};
+
+const captureStreamFailure = async (events: AsyncIterable<AgyStreamOutputEvent>): Promise<unknown> => {
+  const outcome = await collectEvents(events).then(
+    () => new Error(STREAM_CLOSED_MESSAGE),
+    (error: unknown) => error,
+  );
+  return outcome;
+};
+
+const isTextEvent = (event: AgyStreamOutputEvent): event is AgyTextEvent => event.kind === "text";
+
+const isFinishedEvent = (event: AgyStreamOutputEvent): event is AgyFinishedEvent => event.kind === "finished";
+
+const isActivityEvent = (event: AgyStreamOutputEvent): event is AgyActivityEvent => event.kind === "activity";
+
+const isStartedEvent = (event: AgyStreamOutputEvent): event is AgyStartedEvent => event.kind === "started";
+
+const joinTextDeltas = (events: readonly AgyStreamOutputEvent[]): string =>
+  events.filter(isTextEvent).map((event) => event.delta).join("");
+
+const streamWith = (prompt: string, profile: Partial<AgyRunProfile> = {}): AsyncIterable<AgyStreamOutputEvent> => {
+  const adapter = buildAdapter();
+  return adapter.stream(buildRequest(prompt, { timeoutMs: STREAM_TIMEOUT_MS, ...profile }));
+};
+
+describe("AgyCliAdapter.stream", () => {
+  it("yields text deltas whose concatenation is the final response", async () => {
+    const events = await collectEvents(streamWith("[[fake-agy:stream-chat]] hi"));
+    const finished = events.find(isFinishedEvent);
+
+    expect(joinTextDeltas(events)).toBe("hello\n");
+    expect(finished?.envelope.response).toBe("hello\n");
+  });
+
+  it("produces activity events for the tool steps of a search stream without throwing", async () => {
+    const events = await collectEvents(streamWith("[[fake-agy:stream-search]] search"));
+    const activities = events.filter(isActivityEvent);
+
+    expect(activities).toHaveLength(3);
+    expect(events.at(-1)?.kind).toBe("finished");
+  });
+
+  it("stops the process and removes the directory when the consumer stops after the first delta", async () => {
+    const events = streamWith(STREAM_SLOW_PROMPT, { timeoutMs: STREAM_SLOW_TIMEOUT_MS });
+    await collectUntil(events, isTextEvent);
+    const remaining = readdirSync(tempRoot);
+
+    expect(remaining).toStrictEqual([]);
+  });
+
+  it("stops the process when the abort signal fires after the first delta", async () => {
+    const controller = new AbortController();
+    const adapter = buildAdapter();
+    const events = adapter.stream(
+      buildRequest(STREAM_SLOW_PROMPT, { timeoutMs: STREAM_TIMEOUT_MS }),
+      controller.signal,
+    );
+    const abortOnText = (event: AgyStreamOutputEvent): boolean => {
+      if (isTextEvent(event)) {
+        controller.abort(new Error("caller left"));
+      }
+      return false;
+    };
+    const failure = collectUntil(events, abortOnText).then(
+      () => new Error(STREAM_CLOSED_MESSAGE),
+      (error: unknown) => error,
+    );
+    const outcome = await failure;
+    const remaining = readdirSync(tempRoot);
+
+    expect(outcome).toStrictEqual(new Error("caller left"));
+    expect(remaining).toStrictEqual([]);
+  });
+
+  it("parses a stream whose lines arrive in pieces", async () => {
+    const events = await collectEvents(streamWith("[[fake-agy:stream-split]] hi"));
+    const started = events.filter(isStartedEvent);
+
+    expect(joinTextDeltas(events)).toBe("hello\n");
+    expect(started).toHaveLength(1);
+  });
+
+  it("rejects with AgyOutputError when the stream ends without a result", async () => {
+    const error = await captureStreamFailure(streamWith("[[fake-agy:stream-no-result]] hi"));
+
+    expect(error).toBeInstanceOf(AgyOutputError);
+  });
+
+  it("yields the deltas already received, then rejects with AgyFailedError for an error status", async () => {
+    const collected: AgyStreamOutputEvent[] = [];
+    const consume = async (): Promise<void> => {
+      for await (const event of streamWith("[[fake-agy:stream-error-status]] hi")) {
+        collected.push(event);
+      }
+    };
+    const error = await consume().then(
+      () => new Error(STREAM_CLOSED_MESSAGE),
+      (reason: unknown) => reason,
+    );
+
+    expect(error).toBeInstanceOf(AgyFailedError);
+    expect(joinTextDeltas(collected)).toBe("hello\n");
+  });
+
+  it("rejects with AgyFailedError carrying stderr when the process fails mid-stream", async () => {
+    const error = await captureStreamFailure(streamWith("[[fake-agy:stream-fail-midway]] hi"));
+
+    expect(error).toBeInstanceOf(AgyFailedError);
+    expect(readErrorMessage(error)).toContain("boom: the stream broke");
+  });
+
+  it("rejects with AgyTimeoutError and stops the process when the stream hangs", async () => {
+    const error = await captureStreamFailure(
+      streamWith(STREAM_SLOW_PROMPT, { timeoutMs: STREAM_SLOW_TIMEOUT_MS }),
+    );
+
+    expect(error).toBeInstanceOf(AgyTimeoutError);
+  });
+
+  it("rejects with AgySessionRequiredError when the stream asks to log in", async () => {
+    const error = await captureStreamFailure(streamWith("[[fake-agy:stream-no-session]] hi"));
+
+    expect(error).toBeInstanceOf(AgySessionRequiredError);
+  });
+
+  it("removes its temporary directory after a successful stream", async () => {
+    await collectEvents(streamWith("[[fake-agy:stream-chat]] hi"));
+    const remaining = readdirSync(tempRoot);
+
+    expect(remaining).toStrictEqual([]);
   });
 });

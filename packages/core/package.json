@@ -15,6 +15,7 @@
     "@antigravity-connector/tooling": "workspace:*"
   },
   "dependencies": {
+    "@antigravity-connector/agy": "workspace:*",
     "@antigravity-connector/protocol": "workspace:*",
     "zod": "^4.6.7"
   }

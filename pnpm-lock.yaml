@@ -81,6 +81,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@antigravity-connector/agy':
+        specifier: workspace:*
+        version: link:../agy
       '@antigravity-connector/protocol':
         specifier: workspace:*
         version: link:../protocol

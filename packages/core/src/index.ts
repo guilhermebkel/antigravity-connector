@@ -1,9 +1,17 @@
 export { EnvUtil } from "@antigravity-connector/core/Utils/EnvUtil.ts";
 export { LogUtil } from "@antigravity-connector/core/Utils/LogUtil.ts";
+export { RunPromptUtil } from "@antigravity-connector/core/Utils/RunPromptUtil.ts";
+export { RunProfileUtil } from "@antigravity-connector/core/Utils/RunProfileUtil.ts";
+export { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
+export { AgySessionService } from "@antigravity-connector/core/Services/AgySessionService.ts";
 export { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 export { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
+export { AgyUnavailableError } from "@antigravity-connector/core/Errors/AgyUnavailableError.ts";
 export { DailyLimitError } from "@antigravity-connector/core/Errors/DailyLimitError.ts";
 export { InvalidEnvError } from "@antigravity-connector/core/Errors/InvalidEnvError.ts";
+export { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 export { QueueTimeoutError } from "@antigravity-connector/core/Errors/QueueTimeoutError.ts";
 export type { Env, EnvNameToValue } from "@antigravity-connector/core/Protocols/EnvProtocol.ts";
 export type { LogContext, LogEntry, LogFieldToValue, LogLevel, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
+export type { RunDoor, RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
+export type { AgySessionStatus } from "@antigravity-connector/core/Protocols/AgySessionStatusProtocol.ts";
