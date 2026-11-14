@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// Acceptance measurement (issue #21, S2): generateText and streamText through the AI SDK provider against the real server.
-// Reads API_BASE_URL and API_KEY from the environment; prints one JSON line per measurement.
 import { generateText, streamText } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { env } from "node:process";
@@ -29,7 +27,7 @@ const measureGenerate = async (modelId) => {
   const startedAt = performance.now();
   const result = await generateText({ model: provider(modelId), prompt: PROMPT });
   const totalMs = performance.now() - startedAt;
-  return { mode: "generateText", modelId, totalSeconds: totalMs / MS_PER_SECOND, totalTokens: result.usage.totalTokens, text: result.text.trim() };
+  return { modelId, text: result.text.trim(), mode: "generateText", totalSeconds: totalMs / MS_PER_SECOND, totalTokens: result.usage.totalTokens };
 };
 
 const measureStream = async (modelId) => {
@@ -42,12 +40,12 @@ const measureStream = async (modelId) => {
   const totalMs = performance.now() - startedAt;
   const usage = await result.usage;
   return {
-    mode: "streamText",
     modelId,
+    text: (await result.text).trim(),
+    mode: "streamText",
     firstTokenSeconds: (firstTokenMs ?? totalMs) / MS_PER_SECOND,
     totalSeconds: totalMs / MS_PER_SECOND,
     totalTokens: usage.totalTokens,
-    text: (await result.text).trim(),
   };
 };
 
