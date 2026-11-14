@@ -101,47 +101,68 @@ docker exec antigravity-connector curl -s http://127.0.0.1:8787/health
 
 ## Install on a VPS with Docker
 
-Docker commands only, no clone and no files: the image is `ghcr.io/guilhermebkel/antigravity-connector`, public on GitHub Container Registry. A Caddy container in front gets the HTTPS certificate for your domain. Only ports 80 and 443 are published.
+Like the better-caprover-mcp install: one `docker run` command, no clone and no files. The image is `ghcr.io/guilhermebkel/antigravity-connector`, public on GitHub Container Registry.
 
-Before you start, point a host name at the VPS (an A record, such as `connector.your-domain.com`) and open ports 80 and 443 in its firewall.
+The VPS already runs nginx with Let's Encrypt (certbot), which serves HTTPS for your domain, as it does for your other apps. The container publishes its port on `127.0.0.1` only, so nginx reaches it and the internet does not.
 
-```bash
-docker network create connector
+1. Point a host name at the VPS (an A record, such as `connector.your-domain.com`).
 
-docker run -d --name antigravity-connector --network connector --restart unless-stopped \
-  -e API_KEY='your-random-api-key-at-least-24-chars' \
-  -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
-  ghcr.io/guilhermebkel/antigravity-connector:latest
+2. Start the container:
 
-docker run -d --name antigravity-connector-caddy --network connector --restart unless-stopped \
-  -p 80:80 -p 443:443 -e DOMAIN=connector.your-domain.com \
-  -v caddy-data:/data -v caddy-config:/config \
-  caddy:2 sh -c 'printf "%s {\n  reverse_proxy antigravity-connector:8787\n}\n" "$DOMAIN" > /etc/caddy/Caddyfile && exec caddy run --config /etc/caddy/Caddyfile'
-```
+   ```bash
+   docker run -d --name antigravity-connector --restart unless-stopped \
+     -p 127.0.0.1:8787:8787 \
+     -e API_KEY='your-random-api-key-at-least-24-chars' \
+     -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
+     ghcr.io/guilhermebkel/antigravity-connector:latest
+   ```
 
-Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)):
+3. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)):
 
-```bash
-docker logs antigravity-connector                 # shows the login block the first time
-docker exec -it antigravity-connector agy
-```
+   ```bash
+   docker logs antigravity-connector                 # shows the login block the first time
+   docker exec -it antigravity-connector agy
+   ```
 
-Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}` once Caddy has the certificate:
+4. Add the site to nginx and get the certificate. This block is the whole proxy; the streaming and the long `research` calls need the two timeout and buffering lines:
 
-```bash
-curl https://connector.your-domain.com/health
-```
+   ```nginx
+   server {
+       server_name connector.your-domain.com;
 
-Then connect Claude Code on your computer:
+       location / {
+           proxy_pass http://127.0.0.1:8787;
+           proxy_http_version 1.1;
+           proxy_buffering off;
+           proxy_read_timeout 900s;
+           proxy_set_header Host $host;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
 
-```bash
-claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
-  --header "Authorization: Bearer your-random-api-key-at-least-24-chars"
-```
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/connector /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d connector.your-domain.com
+   ```
 
-The API key must be at least 24 characters, and it is the only access control: anyone who has it can spend your daily limits. Note that `docker inspect` shows the value of `-e API_KEY`, so keep the VPS to yourself.
+5. Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}`:
 
-To update, pull the new image and run the two commands again with the same names and volumes; the login and the call log stay in their volumes.
+   ```bash
+   curl https://connector.your-domain.com/health
+   ```
+
+6. Connect Claude Code on your computer:
+
+   ```bash
+   claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
+     --header "Authorization: Bearer your-random-api-key-at-least-24-chars"
+   ```
+
+The API key must be at least 24 characters, and it is the only access control: anyone who has it can spend your daily limits. `docker inspect` shows the value of `-e API_KEY`, so keep the VPS to yourself.
+
+To update, pull the new image and run the `docker run` command again after removing the old container (`docker rm -f antigravity-connector`); the login and the call log stay in their volumes.
 
 ## Logging in
 
@@ -208,8 +229,7 @@ When the client sends a progress token, the server reports progress while a call
 | --- | --- | --- |
 | `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
-| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the Caddy proxy in compose can reach the app; only Caddy publishes ports. |
-| `DOMAIN` (the Caddy container) | none (required on the VPS) | The host name Caddy gets an HTTPS certificate for. It must point to the VPS. |
+| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the port can be published on the host. Publish it on `127.0.0.1` only and let nginx serve HTTPS. |
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
