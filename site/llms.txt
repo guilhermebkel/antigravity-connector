@@ -1,0 +1,13 @@
+# antigravity-connector
+
+> A personal, localhost-only Docker server that exposes a Google AI Pro subscription through two doors in one process: an OpenAI-compatible API under /v1 and an MCP server (Streamable HTTP) under /mcp. Every call runs the official Antigravity CLI, agy.
+
+One agy call runs at a time, and API and MCP calls share the same queue. The server never reads, copies or forwards the CLI login token. Not supported yet: tool calling, response_format other than text, image input, the research and browse tools, and POST /v1/images/generations. Using a subscription through a local tool is not documented by Google for the CLI, so terms, limits and the CLI may change; the project is meant for personal use at low volume.
+
+## Docs
+
+- [GitHub repository and README](https://github.com/guilhermebkel/antigravity-connector): install, login, configuration, tools
+
+## Optional
+
+- [Open issues and roadmap](https://github.com/guilhermebkel/antigravity-connector/issues)

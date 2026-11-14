@@ -237,7 +237,7 @@ No. It is a single-user, localhost-only server, and the subscription is yours. B
 <details>
 <summary><b>Why is the first login done in a terminal?</b></summary>
 
-There is no web page on purpose. When there is no session, `agy` prints a login link; you open it, sign in and paste the code with `docker exec`. `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)).
+There is no web page on purpose. When there is no session, `agy` prints a login link; you open it, sign in and paste the code with `docker exec`. `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The landing page is a separate static folder, `site/` ([ADR 0011](docs/adr/0011-landing-page-and-logo-in-the-repository.md)).
 
 </details>
 

@@ -1,8 +1,8 @@
 name: Release
 
-# Why: a release is started by hand on master, so the version number is chosen by a person and the tag, the image and
-# the GitHub Release all come from one commit. Same shape as better-investment-mcp and better-caprover-mcp, without the
-# npm package and the landing page: this project is a private Docker server, not a package.
+# Why: a release is started by hand on master, so the version number is chosen by a person and the tag, the image, the
+# GitHub Release and the version on the landing page all come from one commit. Same shape as better-caprover-mcp,
+# without the npm package: this project is a private Docker server, not a package.
 on:
   workflow_dispatch:
     inputs:
@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -58,6 +59,9 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Set the version and the date on the landing page
+        if: env.IS_TAGGED != 'true'
+        run: node scripts/site-version.mjs "$VERSION"
       - name: Check everything the release ships
         run: pnpm check
       - name: Commit, tag and push
@@ -65,7 +69,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json
+          git add package.json site/
           if ! git diff --cached --quiet; then
             git commit -m "release: v$VERSION [skip ci]"
           fi
@@ -80,6 +84,12 @@ jobs:
           else
             gh release create "v$VERSION" --title "v$VERSION" --generate-notes --verify-tag
           fi
+      # Why: a push made with the workflow token does not start other workflows, so the landing page is published on purpose.
+      - name: Publish the landing page with the new version
+        if: env.IS_TAGGED != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref master
 
   image:
     needs: release

@@ -1,0 +1,5 @@
+# Search and AI search: allowed
+User-agent: *
+Allow: /
+
+Sitemap: https://antigravity-connector.guilherr.me/sitemap.xml

@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>antigravity-connector: your Google AI Pro behind an OpenAI API and an MCP server</title>
+<meta name="description" content="A personal, localhost-only Docker server that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process.">
+<meta name="theme-color" content="#0D0E11">
+<link rel="canonical" href="https://antigravity-connector.guilherr.me/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="antigravity-connector">
+<meta property="og:url" content="https://antigravity-connector.guilherr.me/">
+<meta property="og:image" content="https://antigravity-connector.guilherr.me/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="antigravity-connector: one subscription, two doors. Two inputs merge into one output.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:title" content="antigravity-connector: one subscription, two doors">
+<meta property="og:description" content="OpenAI-compatible API and MCP server for your Google AI Pro subscription. Localhost-only, one Docker process.">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  color-scheme: dark;
+
+  --bg:          oklch(0.165 0.006 255);
+  --surface-1:   oklch(0.20 0.007 255);
+  --surface-2:   oklch(0.24 0.008 255);
+  --surface-3:   oklch(0.29 0.009 255);
+  --text:        oklch(0.96 0.004 255);
+  --text-2:      oklch(0.76 0.008 255);
+  --text-3:      oklch(0.62 0.010 255);
+  --border:      color-mix(in oklch, var(--text) 9%, transparent);
+  --border-strong: color-mix(in oklch, var(--text) 17%, transparent);
+  --accent:      oklch(0.80 0.125 214);
+  --accent-contrast: oklch(0.2 0.04 214);
+  --success:     oklch(0.78 0.13 160);
+  --warning:     oklch(0.80 0.13 80);
+  --danger:      oklch(0.72 0.16 25);
+
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-xs: 0.75rem; --fs-sm: 0.875rem; --fs-md: 1rem; --fs-lg: 1.25rem;
+  --fs-2xl: clamp(1.9rem, 1.3rem + 2vw, 2.9rem);
+  --fs-display: clamp(2.5rem, 1.2rem + 4vw, 4.25rem);
+
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px;
+  --section-gap: clamp(80px, 6vw + 44px, 152px);
+  --gutter: clamp(18px, 4vw, 40px);
+  --max-w: 1160px;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-pill: 999px;
+
+  --shadow-lg: 0 4px 8px oklch(0 0 0 / 0.22), 0 28px 56px -14px oklch(0 0 0 / 0.55);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms; --dur: 320ms; --dur-slow: 640ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 88px;
+  scrollbar-color: color-mix(in oklch, var(--text) 22%, transparent) transparent; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { min-height: 100dvh; background: var(--bg); color: var(--text); font-family: var(--font-body);
+  font-size: var(--fs-md); line-height: 1.55; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
+img, svg { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.08; text-wrap: balance; font-weight: 500; }
+p { text-wrap: pretty; }
+a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+code, pre, .mono { font-family: var(--font-mono); }
+::selection { background: color-mix(in oklch, var(--accent) 30%, transparent); color: var(--text); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.container { width: min(100% - 2 * var(--gutter), var(--max-w)); margin-inline: auto; }
+.num { font-variant-numeric: tabular-nums; }
+.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); height: 44px; padding: 0 var(--s-5);
+  border-radius: var(--r-md); border: 1px solid transparent; font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), border-color var(--dur-fast); }
+.btn:active { transform: translateY(1px) scale(0.99); }
+.btn-primary { background: linear-gradient(to bottom, color-mix(in oklch, var(--accent) 88%, white), var(--accent));
+  color: var(--accent-contrast); border-color: color-mix(in oklch, var(--accent) 80%, black);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), 0 1px 2px oklch(0 0 0 / 0.3); }
+.btn-primary:hover { filter: brightness(1.07); }
+.btn-secondary { background: var(--surface-1); border-color: var(--border-strong); }
+.btn-secondary:hover { background: var(--surface-2); }
+.btn-sm { height: 36px; padding: 0 var(--s-4); }
+
+/* Nav */
+.nav { position: fixed; top: 12px; left: 0; right: 0; z-index: 50; pointer-events: none; }
+.nav__pill { pointer-events: auto; width: min(100% - 2 * var(--gutter), var(--max-w)); margin-inline: auto; height: 56px; padding: 0 10px 0 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-4);
+  background: oklch(0.19 0.007 255 / 0.86); backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid var(--border-strong); border-radius: var(--r-pill); box-shadow: 0 8px 24px -8px oklch(0 0 0 / 0.5); }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; white-space: nowrap; }
+.brand__mark { width: 24px; height: 24px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-strong); display: grid; place-items: center; }
+.nav__links { display: flex; gap: var(--s-6); font-size: var(--fs-sm); color: var(--text-2); }
+.nav__links a { text-decoration: none; transition: color var(--dur-fast); }
+.nav__links a:hover { color: var(--text); }
+@media (max-width: 767px) { .nav__links { display: none; } .nav__pill { padding-left: 14px; } .nav__star span { display: none; } .nav__star { padding: 0 12px; } .rig__bar .opt { display: none; } }
+
+/* Hero */
+.hero { position: relative; padding: 148px 0 var(--section-gap); isolation: isolate; }
+.hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 760px; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 55% at 70% 0%, color-mix(in oklch, var(--accent) 14%, transparent), transparent 70%); }
+.hero__grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+.hero h1 { font-size: var(--fs-display); letter-spacing: -0.032em; font-weight: 500; }
+.hero h1 > span { display: block; color: var(--text-3); }
+.hero h1 > span:first-child { color: var(--text); }
+.hero__sub { margin-top: var(--s-5); max-width: 46ch; font-size: 1.125rem; color: var(--text-2); }
+.hero__sub code { font-size: 0.9em; color: var(--text); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+.hero__actions { margin-top: var(--s-6); display: flex; flex-wrap: wrap; gap: var(--s-3); }
+.hero__meta { margin-top: var(--s-5); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.hero__meta b { color: var(--text-2); font-weight: 500; }
+@media (max-width: 899px) { .hero__grid { grid-template-columns: 1fr; } .hero { padding-top: 120px; } }
+
+/* Signature: the two doors panel */
+.rig { background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06), var(--shadow-lg); overflow: hidden; }
+.rig__bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+.rig__bar b { color: var(--text-2); font-weight: 500; }
+.tag { border: 1px solid var(--border-strong); border-radius: var(--r-pill); padding: 1px 8px; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.rig__body { padding: 16px; display: grid; gap: 10px; }
+.door { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 12px 14px; border-radius: var(--r-md);
+  background: var(--bg); border: 1px solid var(--border); transition: border-color var(--dur) var(--ease-out), background var(--dur) var(--ease-out); }
+.door__route { font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; }
+.door__kind { grid-column: 1; font-size: var(--fs-xs); color: var(--text-3); }
+.door__state { grid-column: 2; grid-row: 1 / span 2; font-family: var(--font-mono); font-size: 11px; color: var(--text-3);
+  border: 1px solid var(--border); border-radius: var(--r-pill); padding: 2px 10px; white-space: nowrap; transition: all var(--dur) var(--ease-out); min-width: 84px; text-align: center; }
+.door[data-s="live"] { border-color: color-mix(in oklch, var(--accent) 55%, transparent); background: color-mix(in oklch, var(--accent) 6%, var(--bg)); }
+.door[data-s="live"] .door__state { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 50%, transparent); }
+.door[data-s="wait"] .door__state { color: var(--warning); border-color: color-mix(in oklch, var(--warning) 45%, transparent); }
+.door[data-s="done"] .door__state { color: var(--success); border-color: color-mix(in oklch, var(--success) 45%, transparent); }
+
+.merge { height: 28px; margin: -2px 0; position: relative; }
+.merge::before, .merge::after { content: ""; position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border-strong); }
+.merge::before { left: 22%; } .merge::after { right: 22%; }
+.merge i { position: absolute; left: 22%; right: 22%; bottom: 0; height: 1px; background: var(--border-strong); }
+.merge b { position: absolute; left: 50%; bottom: 0; width: 1px; height: 14px; background: var(--border-strong); }
+@media (prefers-reduced-motion: no-preference) {
+  .merge::before, .merge::after { background: linear-gradient(to bottom, transparent, var(--accent), transparent) 0 0 / 1px 200%; opacity: .7; animation: flow 2.4s linear infinite; }
+  .merge::after { animation-delay: -1.2s; }
+  @keyframes flow { to { background-position: 0 -200%; } }
+}
+
+.queue { display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--r-md); border: 1px dashed var(--border-strong); }
+.queue__head { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+.queue__slots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.slot { min-height: 40px; border-radius: 8px; border: 1px solid var(--border); padding: 8px 10px; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all var(--dur) var(--ease-out); }
+.slot[data-on] { color: var(--text); background: var(--surface-2); border-color: var(--border-strong); }
+.slot[data-run] { border-color: color-mix(in oklch, var(--accent) 55%, transparent); }
+.slot em { font-style: normal; color: var(--accent); }
+
+.sink { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.sink__box { border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg); padding: 10px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); line-height: 1.4; }
+.sink__box small { display: block; color: var(--text-3); font-size: 11px; }
+.sink .ic { color: var(--text-3); }
+.rig__foot { padding: 10px 16px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-3); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+/* Sections */
+section { position: relative; }
+.sec { padding-bottom: var(--section-gap); }
+.sec__head { margin-bottom: var(--s-7); }
+.sec__head h2 { font-size: var(--fs-2xl); letter-spacing: -0.028em; max-width: 20ch; }
+.sec__head h2 span { color: var(--text-3); }
+.sec__lede { margin-top: var(--s-4); color: var(--text-2); max-width: 52ch; }
+
+
+/* Doors section */
+.doors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+@media (max-width: 899px) { .doors { grid-template-columns: 1fr; } }
+.panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.panel__top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.panel h3 { font-size: var(--fs-lg); letter-spacing: -0.015em; }
+.panel__path { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+.panel p { color: var(--text-2); font-size: var(--fs-sm); }
+.facts { list-style: none; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--border); }
+.facts li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: var(--fs-sm); align-items: baseline; }
+.facts li span:last-child { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); text-align: right; }
+.facts code { font-size: var(--fs-sm); color: var(--accent); }
+.code { position: relative; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.7; color: var(--text-2); }
+.code .c { color: var(--text-3); } .code .k { color: var(--accent); } .code .s { color: var(--text); }
+.code pre { font-family: var(--font-mono); white-space: pre; }
+.panel .code { margin-top: auto; }
+
+/* Pipeline index */
+.steps { list-style: none; padding: 0; border-top: 1px solid var(--border-strong); }
+.step { align-items: baseline; display: grid; grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1.5fr) 190px; gap: var(--s-5); align-items: baseline; padding: 26px 0; border-bottom: 1px solid var(--border);
+  transition: background var(--dur) var(--ease-out); }
+.step:hover { background: color-mix(in oklch, var(--text) 2.5%, transparent); }
+.step__n { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--accent); }
+.step h3 { font-size: var(--fs-lg); letter-spacing: -0.015em; }
+.step p { color: var(--text-2); font-size: var(--fs-sm); max-width: 54ch; }
+.chip { justify-self: end; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-2); background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--r-pill); padding: 3px 12px; white-space: nowrap; }
+@media (max-width: 899px) {
+  .step { grid-template-columns: 40px 1fr; gap: 6px var(--s-4); padding: 22px 0; }
+  .step p, .step .chip { grid-column: 2; }
+  .step .chip { justify-self: start; margin-top: 8px; }
+}
+
+/* Numbers */
+.figs { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr; border-top: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); }
+.fig { padding: var(--s-6) var(--s-5); border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.fig:first-child { border-left: 0; padding-left: 0; }
+.fig__n { font-size: clamp(2.5rem, 2rem + 2.4vw, 4.25rem); letter-spacing: -0.04em; line-height: 1; font-weight: 500; }
+.fig:not(:first-child) .fig__n { font-size: clamp(2rem, 1.6rem + 1.4vw, 2.75rem); color: var(--text); }
+.fig__n small { font-size: 0.42em; letter-spacing: -0.01em; color: var(--text-3); margin-left: 4px; }
+.fig__l { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-3); }
+.fig p { font-size: var(--fs-sm); color: var(--text-2); max-width: 34ch; }
+@media (max-width: 899px) {
+  .figs { grid-template-columns: repeat(3, 1fr); }
+  .fig { padding: var(--s-4) var(--s-3); border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+  .fig:first-child { grid-column: 1 / -1; border-left: 0; border-top: 0; padding: var(--s-5) 0; }
+  .fig:nth-child(2) { border-left: 0; padding-left: 0; }
+  .fig__l { letter-spacing: 0.08em; font-size: 10px; }
+}
+.limits-line { margin-top: var(--s-5); display: flex; gap: var(--s-3); align-items: baseline; font-size: var(--fs-sm); color: var(--text-2); max-width: 74ch; }
+.limits-line .ic { transform: translateY(3px); color: var(--text-3); }
+
+/* Terminal */
+.term { background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--r-lg); overflow: hidden; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06), var(--shadow-lg); }
+.term__bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 10px 18px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+.term__body { padding: 22px 20px; overflow-x: auto; font-size: 13.5px; line-height: 2; }
+.term__body pre { font-family: var(--font-mono); white-space: pre; color: var(--text); }
+.term .p { color: var(--accent); user-select: none; } .term .c { color: var(--text-3); }
+.copy { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; background: transparent; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-2); font-size: var(--fs-xs); transition: background var(--dur-fast), color var(--dur-fast); }
+.copy:hover { background: var(--surface-2); color: var(--text); }
+.notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--s-6); margin-top: var(--s-6); }
+.notes div { border-top: 1px solid var(--border); padding-top: var(--s-4); }
+.notes h3 { font-size: var(--fs-md); letter-spacing: -0.01em; margin-bottom: 6px; }
+.notes p { font-size: var(--fs-sm); color: var(--text-2); }
+.notes code, .inline code { font-size: 0.88em; color: var(--text); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+@media (max-width: 899px) { .notes { grid-template-columns: 1fr; gap: var(--s-5); } }
+
+/* Limits */
+.limits { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--s-4); }
+@media (max-width: 899px) { .limits { grid-template-columns: 1fr; } }
+.nope { list-style: none; padding: 0; }
+.nope li { display: flex; gap: 14px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-2); }
+.nope li:first-child { border-top: 1px solid var(--border); }
+.nope code { color: var(--text); font-size: 0.92em; }
+.nope .x { font-family: var(--font-mono); color: var(--text-3); flex: none; width: 74px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+.risk { background: color-mix(in oklch, var(--warning) 5%, var(--surface-1)); border: 1px solid color-mix(in oklch, var(--warning) 28%, transparent); border-radius: var(--r-lg); padding: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); }
+.risk h3 { font-size: var(--fs-lg); letter-spacing: -0.015em; }
+.risk p { font-size: var(--fs-sm); color: var(--text-2); }
+.risk ul { padding-left: 18px; font-size: var(--fs-sm); color: var(--text-2); display: grid; gap: 8px; }
+.risk li::marker { color: var(--warning); }
+
+/* Closing */
+.closing { padding: var(--section-gap) 0; border-top: 1px solid var(--border); position: relative; isolation: isolate; text-align: left; }
+.closing::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(50% 80% at 20% 100%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%); }
+.closing h2 { font-size: clamp(2.4rem, 1.4rem + 4vw, 4.5rem); letter-spacing: -0.035em; max-width: 14ch; }
+.closing h2 span { color: var(--text-3); }
+.closing .hero__actions { margin-top: var(--s-6); }
+
+footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); font-size: var(--fs-sm); color: var(--text-3); }
+.foot { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: var(--s-6); }
+.foot h4 { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; color: var(--text-3); margin-bottom: 12px; }
+.foot ul { list-style: none; padding: 0; display: grid; gap: 8px; }
+.foot a { text-decoration: none; color: var(--text-2); } .foot a:hover { color: var(--text); text-decoration: underline; }
+.foot p { max-width: 40ch; margin-top: 12px; }
+@media (max-width: 767px) { .foot { grid-template-columns: 1fr 1fr; } .foot > div:first-child { grid-column: 1 / -1; } }
+
+/* Motion */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-reveal] { opacity: 0; transform: translateY(16px); filter: blur(6px);
+    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out), filter var(--dur-slow) var(--ease-out); }
+  .js [data-reveal].is-in { opacity: 1; transform: none; filter: none; }
+  .js [data-words] .w { display: inline-block; opacity: 0; filter: blur(10px); transform: translateY(0.3em);
+    animation: word-in 700ms var(--ease-out) forwards; animation-delay: calc(var(--i) * 70ms + 80ms); }
+  @keyframes word-in { to { opacity: 1; filter: blur(0); transform: none; } }
+}
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); translate: -50% 20px; opacity: 0; pointer-events: none;
+  background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: var(--r-pill); padding: 10px 18px; font-size: var(--fs-sm);
+  transition: opacity var(--dur) var(--ease-out), translate var(--dur) var(--ease-out); z-index: 60; }
+.toast[data-on] { opacity: 1; translate: -50% 0; }
+</style>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://antigravity-connector.guilherr.me/#website",
+   "url": "https://antigravity-connector.guilherr.me/",
+   "name": "antigravity-connector",
+   "inLanguage": "en",
+   "publisher": {
+    "@id": "https://antigravity-connector.guilherr.me/#autor"
+   }
+  },
+  {
+   "@type": "Person",
+   "@id": "https://antigravity-connector.guilherr.me/#autor",
+   "name": "Guilherme Mota",
+   "url": "https://github.com/guilhermebkel",
+   "sameAs": [
+    "https://github.com/guilhermebkel"
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "@id": "https://antigravity-connector.guilherr.me/#app",
+   "name": "antigravity-connector",
+   "softwareVersion": "0.0.0",
+   "dateModified": "2026-11-14",
+   "description": "A personal, localhost-only Docker server that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process.",
+   "applicationCategory": "DeveloperApplication",
+   "operatingSystem": "Any with Docker",
+   "url": "https://antigravity-connector.guilherr.me/",
+   "codeRepository": "https://github.com/guilhermebkel/antigravity-connector",
+   "license": "https://opensource.org/licenses/MIT",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@id": "https://antigravity-connector.guilherr.me/#autor"
+   }
+  }
+ ]
+}
+</script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="nav__pill">
+    <a class="brand" href="#top" aria-label="antigravity-connector, home">
+      <span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true"><path d="M86.16 49.1V76.96L128 118.8L169.84 76.96V49.1Q169.84 46.63 170.32 44.21Q170.8 41.78 171.75 39.5Q172.7 37.21 174.07 35.16Q175.44 33.1 177.19 31.35Q178.94 29.6 181 28.23Q183.05 26.86 185.34 25.91Q187.62 24.96 190.05 24.48Q192.47 24 194.94 24Q197.41 24 199.84 24.48Q202.26 24.96 204.55 25.91Q206.83 26.86 208.89 28.23Q210.95 29.6 212.69 31.35Q214.44 33.1 215.82 35.16Q217.19 37.21 218.14 39.5Q219.08 41.78 219.56 44.21Q220.05 46.63 220.05 49.1V87.36Q220.05 92.35 218.14 96.96Q216.22 101.58 212.69 105.11L153.1 164.7V154.3Q153.1 151.83 152.62 149.4Q152.14 146.98 151.19 144.69Q150.25 142.41 148.87 140.35Q147.5 138.3 145.75 136.55Q144 134.8 141.95 133.43Q139.89 132.05 137.61 131.11Q135.32 130.16 132.9 129.68Q130.47 129.2 128 129.2Q125.53 129.2 123.1 129.68Q120.68 130.16 118.39 131.11Q116.11 132.05 114.05 133.43Q112 134.8 110.25 136.55Q108.5 138.3 107.13 140.35Q105.75 142.41 104.81 144.69Q103.86 146.98 103.38 149.4Q102.9 151.83 102.9 154.3V164.7L43.31 105.11Q39.78 101.58 37.86 96.96Q35.95 92.35 35.95 87.36V49.1Q35.95 46.63 36.44 44.21Q36.92 41.78 37.86 39.5Q38.81 37.21 40.18 35.16Q41.56 33.1 43.31 31.35Q45.05 29.6 47.11 28.23Q49.17 26.86 51.45 25.91Q53.74 24.96 56.16 24.48Q58.58 24 61.06 24Q63.53 24 65.95 24.48Q68.38 24.96 70.66 25.91Q72.95 26.86 75 28.23Q77.06 29.6 78.81 31.35Q80.56 33.1 81.93 35.16Q83.3 37.21 84.25 39.5Q85.2 41.78 85.68 44.21Q86.16 46.63 86.16 49.1Z" fill="#F0F2F4"/><path d="M153.1 154.3V206.9Q153.1 209.37 152.62 211.79Q152.14 214.22 151.19 216.5Q150.25 218.79 148.87 220.84Q147.5 222.9 145.75 224.65Q144 226.4 141.95 227.77Q139.89 229.14 137.61 230.09Q135.32 231.04 132.9 231.52Q130.47 232 128 232Q125.53 232 123.1 231.52Q120.68 231.04 118.39 230.09Q116.11 229.14 114.05 227.77Q112 226.4 110.25 224.65Q108.5 222.9 107.13 220.84Q105.75 218.79 104.81 216.5Q103.86 214.22 103.38 211.79Q102.9 209.37 102.9 206.9V154.3Q102.9 151.83 103.38 149.4Q103.86 146.98 104.81 144.69Q105.75 142.41 107.13 140.35Q108.5 138.3 110.25 136.55Q112 134.8 114.05 133.43Q116.11 132.05 118.39 131.11Q120.68 130.16 123.1 129.68Q125.53 129.2 128 129.2Q130.47 129.2 132.9 129.68Q135.32 130.16 137.61 131.11Q139.89 132.05 141.95 133.43Q144 134.8 145.75 136.55Q147.5 138.3 148.87 140.35Q150.25 142.41 151.19 144.69Q152.14 146.98 152.62 149.4Q153.1 151.83 153.1 154.3Z" fill="#41D2EF"/></svg></span>
+      antigravity-connector
+    </a>
+    <nav class="nav__links" aria-label="Sections">
+      <a href="#doors">Doors</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="#limits">Limits</a>
+    </nav>
+    <a class="btn btn-secondary btn-sm nav__star" aria-label="Star on GitHub" href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener">
+      <svg class="ic"><use href="#i-star"/></svg><span>Star on GitHub</span>
+    </a>
+  </div>
+</header>
+
+<main id="top">
+<!-- HERO -->
+<section class="hero">
+  <div class="container hero__grid">
+    <div>
+      <h1><span data-words>One subscription.</span><span>Two doors.</span></h1>
+      <p class="hero__sub">A personal, localhost-only Docker server that exposes your Google AI Pro plan as an OpenAI-compatible API at <code>/v1</code> and an MCP server at <code>/mcp</code>, in one process.</p>
+      <div class="hero__actions" id="hero-cta">
+        <button class="btn btn-primary" data-copy-install type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy install command</span></button>
+        <a class="btn btn-secondary" href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener"><svg class="ic"><use href="#i-star"/></svg>Star on GitHub</a>
+      </div>
+      <p class="hero__meta"><span><b>MIT</b></span><span>Node.js 22</span><span>Docker Compose</span><span>127.0.0.1:8787</span></p>
+    </div>
+
+    <div class="rig" aria-label="Illustration of requests entering through two doors into one queue" data-reveal>
+      <div class="rig__bar"><span><b>antigravity-connector</b><span class="opt"> · one process</span></span><span class="tag">illustrative</span></div>
+      <div class="rig__body">
+        <div class="door" data-door="api" data-s="live">
+          <span class="door__route">POST /v1/chat/completions</span>
+          <span class="door__kind">OpenAI-compatible · stream: true</span>
+          <span class="door__state">streaming</span>
+        </div>
+        <div class="door" data-door="mcp" data-s="wait">
+          <span class="door__route">/mcp · web_search</span>
+          <span class="door__kind">MCP · Streamable HTTP</span>
+          <span class="door__state">queued</span>
+        </div>
+        <div class="merge" aria-hidden="true"><i></i><b></b></div>
+        <div class="queue">
+          <div class="queue__head"><span>shared queue</span><span>one agy call at a time</span></div>
+          <div class="queue__slots">
+            <div class="slot" data-on data-run data-slot="run"><span>chat</span><em>running</em></div>
+            <div class="slot" data-on data-slot="wait"><span>web_search</span><span>waiting</span></div>
+          </div>
+        </div>
+        <div class="sink">
+          <div class="sink__box">agy<small>official CLI, subprocess</small></div>
+          <svg class="ic"><use href="#i-arrow"/></svg>
+          <div class="sink__box">Google AI Pro<small>your subscription</small></div>
+        </div>
+      </div>
+      <div class="rig__foot"><span>Login token stays inside agy.</span><span>No page, no dashboard.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOORS -->
+<section class="sec" id="doors">
+  <div class="container">
+    <div class="sec__head sec__head--wide" data-reveal>
+      <h2>Same subscription, <span>two ways in.</span></h2>
+      <p class="sec__lede">Point an OpenAI-compatible client at one door, or an MCP client at the other. Both end up in the same queue.</p>
+    </div>
+    <div class="doors">
+      <article class="panel" data-reveal>
+        <div class="panel__top"><h3>OpenAI-compatible API</h3><span class="panel__path">/v1</span></div>
+        <p>Use it from anything that speaks the OpenAI chat format, including <code class="mono">@ai-sdk/openai-compatible</code>.</p>
+        <ul class="facts">
+          <li><code>POST /v1/chat/completions</code><span>chat</span></li>
+          <li><code>GET /v1/models</code><span>models</span></li>
+          <li><span>Streaming with <code>stream: true</code>, SSE chunks in OpenAI format</span><span>SSE</span></li>
+          <li><span>Token usage in the last chunk with <code>include_usage</code></span><span>usage</span></li>
+        </ul>
+        <div class="code"><pre><span class="k">curl</span> http://127.0.0.1:8787/v1/chat/completions \
+  -H <span class="s">"Authorization: Bearer $API_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"model":"gemini-3.8-flash",
+       "reasoning_effort":"low",
+       "messages":[{"role":"user",
+         "content":"Say hello in one word."}]}'</span></pre></div>
+      </article>
+
+      <article class="panel" data-reveal data-delay="80">
+        <div class="panel__top"><h3>MCP server</h3><span class="panel__path">/mcp</span></div>
+        <p>Streamable HTTP. Progress is reported while a call waits and runs, and a cancelled call kills the agy process.</p>
+        <ul class="facts">
+          <li><code>web_search</code><span>links · ~20 to 45 s</span></li>
+          <li><code>generate_image</code><span>one PNG · ~1 min</span></li>
+          <li><span>Progress during queue and run, when the client sends a progress token</span><span>progress</span></li>
+        </ul>
+        <div class="code"><pre><span class="c"># add it to Claude Code</span>
+<span class="k">claude mcp add</span> --transport http antigravity \
+  http://127.0.0.1:8787/mcp \
+  --header <span class="s">"Authorization: Bearer &lt;API_KEY&gt;"</span></pre></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="sec" id="how">
+  <div class="container">
+    <div class="sec__head sec__head--wide" data-reveal>
+      <h2>Every call takes <span>the same four steps.</span></h2>
+    </div>
+    <ol class="steps">
+      <li class="step" data-reveal>
+        <span class="step__n">01</span>
+        <h3>The request arrives</h3>
+        <p>Every route except <code class="mono">/health</code> needs the Bearer token. By default the server listens on <code class="mono">127.0.0.1</code> only.</p>
+        <span class="chip">API_KEY</span>
+      </li>
+      <li class="step" data-reveal>
+        <span class="step__n">02</span>
+        <h3>It waits its turn</h3>
+        <p>Only one agy call runs at a time. API and MCP calls share the same queue, with a limit on how long a call may wait.</p>
+        <span class="chip">QUEUE_MAX_WAIT_MS</span>
+      </li>
+      <li class="step" data-reveal>
+        <span class="step__n">03</span>
+        <h3>agy runs it</h3>
+        <p>Each call executes the official Antigravity CLI as a subprocess. The server never reads, copies or forwards the CLI login token, and never calls Google directly.</p>
+        <span class="chip">AGY_TIMEOUT_MS</span>
+      </li>
+      <li class="step" data-reveal>
+        <span class="step__n">04</span>
+        <h3>The answer comes back</h3>
+        <p>SSE chunks for chat, progress notifications for MCP. If the client cancels, the agy process is stopped.</p>
+        <span class="chip">stream: true</span>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- GUARDRAILS / NUMBERS -->
+<section class="sec" id="guardrails">
+  <div class="container">
+    <div class="sec__head sec__head--wide" data-reveal>
+      <h2>Small on purpose. <span>Limits live in the server.</span></h2>
+    </div>
+    <div class="figs" data-reveal>
+      <div class="fig">
+        <span class="fig__n num">1<small>call at a time</small></span>
+        <span class="fig__l">Concurrency</span>
+        <p>Chat, search and image calls queue behind each other instead of racing the CLI.</p>
+      </div>
+      <div class="fig">
+        <span class="fig__n num">24<small>chars</small></span>
+        <span class="fig__l">API_KEY minimum</span>
+      </div>
+      <div class="fig">
+        <span class="fig__n num">300<small>s</small></span>
+        <span class="fig__l">Call timeout, default</span>
+      </div>
+      <div class="fig">
+        <span class="fig__n num">120<small>s</small></span>
+        <span class="fig__l">Queue wait, default</span>
+      </div>
+    </div>
+    <p class="limits-line"><svg class="ic"><use href="#i-info"/></svg><span>Daily limits per call type (chat, search, image, research and browse) and per-minute request limits are set with <code class="mono">DAILY_LIMIT_*</code> variables. MCP sessions default to a maximum of 8.</span></p>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section class="sec" id="install">
+  <div class="container">
+    <div class="sec__head sec__head--wide" data-reveal>
+      <h2>Four commands, <span>then log in once.</span></h2>
+    </div>
+    <div class="term" data-reveal>
+      <div class="term__bar"><span>~/antigravity-connector</span>
+        <button class="copy" data-copy-install type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy install command</span></button>
+      </div>
+      <div class="term__body"><pre><span class="p">$</span> cp .env.example .env                 <span class="c"># set API_KEY, at least 24 characters</span>
+<span class="p">$</span> docker compose up -d --build
+<span class="p">$</span> docker logs antigravity-connector    <span class="c"># prints the login block, if needed</span>
+<span class="p">$</span> curl http://127.0.0.1:8787/health</pre></div>
+    </div>
+    <div class="notes">
+      <div data-reveal>
+        <h3>Login happens in the terminal</h3>
+        <p>There is no web page. Open the link shown in the logs, sign in and copy the code. Then run <code>docker exec -it antigravity-connector agy</code> and paste it.</p>
+      </div>
+      <div data-reveal data-delay="60">
+        <h3>It survives restarts</h3>
+        <p>The login lives in the named volume <code>agy-gemini</code>. <code>docker compose down -v</code> removes it, and you log in again.</p>
+      </div>
+      <div data-reveal data-delay="120">
+        <h3>Check it works</h3>
+        <p><code>/health</code> is the only route without the token. Everything else expects <code>Authorization: Bearer</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIMITS -->
+<section class="sec" id="limits">
+  <div class="container">
+    <div class="sec__head sec__head--wide" data-reveal>
+      <h2>What it does not do, <span>and what could go wrong.</span></h2>
+    </div>
+    <div class="limits">
+      <ul class="nope" data-reveal>
+        <li><span class="x">Not yet</span><span>Tool calling. The <code>tools</code> field returns 400.</span></li>
+        <li><span class="x">Not yet</span><span><code>response_format</code> other than text, and image input.</span></li>
+        <li><span class="x">Not yet</span><span>The <code>research</code> and <code>browse</code> tools, and <code>POST /v1/images/generations</code>.</span></li>
+        <li><span class="x">Ignored</span><span><code>temperature</code> and <code>max_tokens</code> are accepted but have no effect.</span></li>
+        <li><span class="x">Pinned</span><span>The agy binary is fixed at version 1.5.9 in the image.</span></li>
+      </ul>
+      <aside class="risk" data-reveal data-delay="80">
+        <h3>Read this before you run it</h3>
+        <p>Using a subscription through a local tool is not documented by Google for the CLI.</p>
+        <ul>
+          <li>Terms, limits and the CLI itself may change.</li>
+          <li>A call can fail or be refused.</li>
+          <li>Meant for personal use, at low volume.</li>
+          <li>Keep the API key secret.</li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="closing">
+  <div class="container">
+    <h2 data-reveal>Start on <span>localhost.</span></h2>
+    <div class="hero__actions" data-reveal data-delay="80">
+      <button class="btn btn-primary" data-copy-install type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy install command</span></button>
+      <a class="btn btn-secondary" href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener"><svg class="ic"><use href="#i-star"/></svg>Star on GitHub</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container foot">
+    <div>
+      <a class="brand" href="#top"><span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true"><path d="M86.16 49.1V76.96L128 118.8L169.84 76.96V49.1Q169.84 46.63 170.32 44.21Q170.8 41.78 171.75 39.5Q172.7 37.21 174.07 35.16Q175.44 33.1 177.19 31.35Q178.94 29.6 181 28.23Q183.05 26.86 185.34 25.91Q187.62 24.96 190.05 24.48Q192.47 24 194.94 24Q197.41 24 199.84 24.48Q202.26 24.96 204.55 25.91Q206.83 26.86 208.89 28.23Q210.95 29.6 212.69 31.35Q214.44 33.1 215.82 35.16Q217.19 37.21 218.14 39.5Q219.08 41.78 219.56 44.21Q220.05 46.63 220.05 49.1V87.36Q220.05 92.35 218.14 96.96Q216.22 101.58 212.69 105.11L153.1 164.7V154.3Q153.1 151.83 152.62 149.4Q152.14 146.98 151.19 144.69Q150.25 142.41 148.87 140.35Q147.5 138.3 145.75 136.55Q144 134.8 141.95 133.43Q139.89 132.05 137.61 131.11Q135.32 130.16 132.9 129.68Q130.47 129.2 128 129.2Q125.53 129.2 123.1 129.68Q120.68 130.16 118.39 131.11Q116.11 132.05 114.05 133.43Q112 134.8 110.25 136.55Q108.5 138.3 107.13 140.35Q105.75 142.41 104.81 144.69Q103.86 146.98 103.38 149.4Q102.9 151.83 102.9 154.3V164.7L43.31 105.11Q39.78 101.58 37.86 96.96Q35.95 92.35 35.95 87.36V49.1Q35.95 46.63 36.44 44.21Q36.92 41.78 37.86 39.5Q38.81 37.21 40.18 35.16Q41.56 33.1 43.31 31.35Q45.05 29.6 47.11 28.23Q49.17 26.86 51.45 25.91Q53.74 24.96 56.16 24.48Q58.58 24 61.06 24Q63.53 24 65.95 24.48Q68.38 24.96 70.66 25.91Q72.95 26.86 75 28.23Q77.06 29.6 78.81 31.35Q80.56 33.1 81.93 35.16Q83.3 37.21 84.25 39.5Q85.2 41.78 85.68 44.21Q86.16 46.63 86.16 49.1Z" fill="#F0F2F4"/><path d="M153.1 154.3V206.9Q153.1 209.37 152.62 211.79Q152.14 214.22 151.19 216.5Q150.25 218.79 148.87 220.84Q147.5 222.9 145.75 224.65Q144 226.4 141.95 227.77Q139.89 229.14 137.61 230.09Q135.32 231.04 132.9 231.52Q130.47 232 128 232Q125.53 232 123.1 231.52Q120.68 231.04 118.39 230.09Q116.11 229.14 114.05 227.77Q112 226.4 110.25 224.65Q108.5 222.9 107.13 220.84Q105.75 218.79 104.81 216.5Q103.86 214.22 103.38 211.79Q102.9 209.37 102.9 206.9V154.3Q102.9 151.83 103.38 149.4Q103.86 146.98 104.81 144.69Q105.75 142.41 107.13 140.35Q108.5 138.3 110.25 136.55Q112 134.8 114.05 133.43Q116.11 132.05 118.39 131.11Q120.68 130.16 123.1 129.68Q125.53 129.2 128 129.2Q130.47 129.2 132.9 129.68Q135.32 130.16 137.61 131.11Q139.89 132.05 141.95 133.43Q144 134.8 145.75 136.55Q147.5 138.3 148.87 140.35Q150.25 142.41 151.19 144.69Q152.14 146.98 152.62 149.4Q153.1 151.83 153.1 154.3Z" fill="#41D2EF"/></svg></span>antigravity-connector</a>
+      <p>MIT license. An independent personal project, not affiliated with Google. Version 0.0.0, page updated <time datetime="2026-11-14">November 14, 2026</time>.</p>
+    </div>
+    <div>
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/guilhermebkel/antigravity-connector" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/guilhermebkel/antigravity-connector/blob/master/AGENTS.md" target="_blank" rel="noopener">AGENTS.md</a></li>
+        <li><a href="https://github.com/guilhermebkel/antigravity-connector/blob/master/LICENSE" target="_blank" rel="noopener">License</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>More MCP servers</h4>
+      <ul>
+        <li><a href="http://better-caprover-mcp.guilherr.me/" target="_blank" rel="noopener">better-caprover-mcp</a></li>
+        <li><a href="http://better-investment-mcp.guilherr.me/" target="_blank" rel="noopener">better-investment-mcp</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" role="status" aria-live="polite" id="toast">Install command copied</div>
+
+<script>
+document.documentElement.classList.add('js');
+
+// Hero title, word by word
+document.querySelectorAll('[data-words]').forEach(el => {
+  el.innerHTML = el.textContent.trim().split(/\s+/).map((w, i) => '<span class="w" style="--i:' + i + '">' + w + '</span>').join(' ');
+});
+
+// Scroll reveal
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+}), { rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('[data-reveal]').forEach(el => {
+  el.style.transitionDelay = (el.dataset.delay || 0) + 'ms';
+  io.observe(el);
+});
+
+// Copy install command
+const INSTALL = 'git clone https://github.com/guilhermebkel/antigravity-connector && cd antigravity-connector && cp .env.example .env && docker compose up -d --build';
+const toast = document.getElementById('toast');
+let tt;
+document.querySelectorAll('[data-copy-install]').forEach(btn => btn.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(INSTALL); } catch (e) {
+    const t = document.createElement('textarea'); t.value = INSTALL; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch (_) {} t.remove();
+  }
+  const label = btn.querySelector('span'), icon = btn.querySelector('use'), old = label.textContent;
+  label.textContent = 'Copied'; icon.setAttribute('href', '#i-check');
+  toast.setAttribute('data-on', ''); clearTimeout(tt);
+  tt = setTimeout(() => { label.textContent = old; icon.setAttribute('href', '#i-copy'); toast.removeAttribute('data-on'); }, 1800);
+}));
+
+// The two doors: looping, illustrative states
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const api = document.querySelector('[data-door="api"]'), mcp = document.querySelector('[data-door="mcp"]');
+  const run = document.querySelector('[data-slot="run"]'), wait = document.querySelector('[data-slot="wait"]');
+  const set = (door, s, txt) => { door.dataset.s = s; door.querySelector('.door__state').textContent = txt; };
+  const slot = (el, on, running, name, state) => {
+    on ? el.setAttribute('data-on', '') : el.removeAttribute('data-on');
+    running ? el.setAttribute('data-run', '') : el.removeAttribute('data-run');
+    el.innerHTML = '<span>' + name + '</span>' + (running ? '<em>' + state + '</em>' : '<span>' + state + '</span>');
+  };
+  const frames = [
+    () => { set(api, 'live', 'streaming'); set(mcp, 'wait', 'queued'); slot(run, 1, 1, 'chat', 'running'); slot(wait, 1, 0, 'web_search', 'waiting'); },
+    () => { set(api, 'done', 'done'); set(mcp, 'wait', 'queued'); slot(run, 1, 1, 'chat', 'last chunk'); slot(wait, 1, 0, 'web_search', 'next'); },
+    () => { set(api, 'idle', 'idle'); set(mcp, 'live', 'progress'); slot(run, 1, 1, 'web_search', 'running'); slot(wait, 0, 0, 'empty', 'free'); },
+    () => { set(api, 'wait', 'queued'); set(mcp, 'live', 'progress'); slot(run, 1, 1, 'web_search', 'running'); slot(wait, 1, 0, 'chat', 'waiting'); },
+    () => { set(api, 'wait', 'queued'); set(mcp, 'done', 'done'); slot(run, 1, 1, 'web_search', 'returned'); slot(wait, 1, 0, 'chat', 'next'); },
+    () => { set(api, 'live', 'streaming'); set(mcp, 'idle', 'idle'); slot(run, 1, 1, 'chat', 'running'); slot(wait, 0, 0, 'empty', 'free'); }
+  ];
+  let i = 0;
+  setInterval(() => { i = (i + 1) % frames.length; frames[i](); }, 2600);
+}
+</script>
+</body>
+</html>
