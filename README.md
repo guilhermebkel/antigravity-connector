@@ -56,7 +56,7 @@ Both doors share one global queue with concurrency 1, plus a daily limit per kin
 
 **Local by default**
 
-Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces so the published port works, and the install publishes it on `127.0.0.1` only, behind nginx. Every route but `/health` needs the bearer `API_KEY`.
+Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces so the published port works, and the install publishes it on `127.0.0.1` only, behind the HTTPS proxy. Every route but `/health` needs the bearer `API_KEY`.
 
 </td>
 <td valign="top">
@@ -148,7 +148,7 @@ The first start has no session, so the server logs a login block with a URL and 
 1. Read the link: `docker logs antigravity-connector`.
 2. Open the URL in a browser, sign in, and copy the code it shows.
 3. Run `docker exec -it antigravity-connector agy` and paste the code.
-4. Check: `docker exec antigravity-connector curl -s http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`, and `https://connector.your-domain.com/health` answers the same through nginx.
+4. Check: `docker exec antigravity-connector curl -s http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`, and `https://connector.your-domain.com/health` answers the same through the HTTPS proxy.
 
 The login is kept in the named volume `agy-gemini`. `docker compose down` keeps it; `docker compose down -v` removes it, and you must log in again.
 
@@ -206,7 +206,7 @@ When the client sends a progress token, the server reports progress while a call
 | --- | --- | --- |
 | `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
-| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the port can be published on the host. Publish it on `127.0.0.1` only and let nginx serve HTTPS. |
+| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the port can be published on the host. Publish it on `127.0.0.1` only and put an HTTPS proxy in front. |
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
