@@ -14,6 +14,10 @@ export class ModelCatalogueUtil {
     },
   };
 
+  static listModelIds(): string[] {
+    return Object.keys(ModelCatalogueUtil.MODEL_ID_TO_EFFORT_TO_SLUG);
+  }
+
   static resolveSlug(modelId: string, effort: string): string | undefined {
     if (!Object.hasOwn(ModelCatalogueUtil.MODEL_ID_TO_EFFORT_TO_SLUG, modelId)) {
       return undefined;

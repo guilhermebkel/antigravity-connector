@@ -19,3 +19,8 @@ export type {
 export { ModelCatalogueUtil } from "@antigravity-connector/protocol/Utils/ModelCatalogueUtil.ts";
 export type { ImageGenerationRequest } from "@antigravity-connector/protocol/Protocols/OpenAiImageProtocol.ts";
 export type { OpenAiError, OpenAiErrorType } from "@antigravity-connector/protocol/Protocols/OpenAiErrorProtocol.ts";
+export type { ChatCompletionRequest, ChatCompletionResponse, OpenAiFinishReason, OpenAiUsage } from "@antigravity-connector/protocol/Protocols/OpenAiChatProtocol.ts";
+export type { ModelList } from "@antigravity-connector/protocol/Protocols/OpenAiModelProtocol.ts";
+export { ChatCompletionRequestSchema } from "@antigravity-connector/protocol/Schemas/ChatCompletionRequestSchema.ts";
+export { ModelListSchema } from "@antigravity-connector/protocol/Schemas/ModelListSchema.ts";
+export { OpenAiUsageUtil } from "@antigravity-connector/protocol/Utils/OpenAiUsageUtil.ts";

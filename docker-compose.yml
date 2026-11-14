@@ -1,0 +1,18 @@
+# One container for the server. The API and MCP ports are published on 127.0.0.1 only.
+# The named volume keeps the agy login across restarts and recreates (keep it: `docker compose down` without -v).
+services:
+  antigravity-connector:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    image: antigravity-connector:local
+    container_name: antigravity-connector
+    env_file: .env
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - agy-gemini:/home/agy/.gemini
+    restart: unless-stopped
+
+volumes:
+  agy-gemini:
