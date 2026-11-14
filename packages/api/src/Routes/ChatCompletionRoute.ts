@@ -4,6 +4,7 @@ import { ApiRequestError } from "@antigravity-connector/api/Errors/ApiRequestErr
 import type { ChatCompletionService } from "@antigravity-connector/api/Services/ChatCompletionService.ts";
 import { ChatStreamService } from "@antigravity-connector/api/Services/ChatStreamService.ts";
 import { ApiErrorUtil } from "@antigravity-connector/api/Utils/ApiErrorUtil.ts";
+import { ApiReplyUtil } from "@antigravity-connector/api/Utils/ApiReplyUtil.ts";
 import { ChatChunkUtil } from "@antigravity-connector/api/Utils/ChatChunkUtil.ts";
 
 export type HeaderNameToValue = Record<string, string>;
@@ -97,7 +98,6 @@ export class ChatCompletionRoute {
   }
 
   static async sendError(reply: FastifyReply, error: unknown): Promise<void> {
-    const response = ApiErrorUtil.build(error);
-    await reply.code(response.statusCode).send(response.body);
+    await ApiReplyUtil.sendError(reply, error);
   }
 }

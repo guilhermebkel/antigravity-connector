@@ -8,6 +8,7 @@ export type McpSetupOptions = {
   clock: () => number;
   sessionTtlMs: number;
   maxSessions: number;
+  researchDailyLimit: number;
 };
 
 export class McpSetup {
@@ -20,6 +21,7 @@ export class McpSetup {
     const services = {
       runService: options.runService,
       imageService: new ImageRunService({ runService: options.runService }),
+      researchDailyLimit: options.researchDailyLimit,
     };
     McpRoute.register(app, { services, sessions });
   }

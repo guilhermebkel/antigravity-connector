@@ -78,3 +78,16 @@ Because of the quota, the image path is not proven by this run. The same path wa
 
 - `web_search`: "about 20 to 45 seconds" stays. The run measured 15 s end to end through Claude Code and 19.7 to 44.7 s in the spike.
 - `generate_image`: "about a minute" stays. Spike 54 s. The failed attempts took 19 s and 57 s; a success under load was not measured. Revisit when #39 is answered.
+
+## Checks with the real agy for #25, #26 and #27
+
+Run in the sandbox with the same login, in fresh working directories, with the plan mode and the flags the adapter uses (`--output-format json --mode plan --model gemini-3.8-flash-low`). Prompts and answers are summarized here; no login data or key is recorded.
+
+| Check | Result |
+| --- | --- |
+| #27: a PNG saved as `attachment-1.png` in the working directory, read with `read_file` | Read and described: the answer named the color red. |
+| #27: a PDF saved as `doc.pdf`, read with `read_file` | Read: the answer gave the text in the file. PDF input is not implemented in the API yet; the message part for files is a separate change. |
+| #25: `--json-schema` with a schema file | Returned `structured_output` as a JSON object that matched the schema. |
+| #26: `--conversation <id>` with the id of the previous run | Same `conversation_id` returned, and the run answered from the earlier turn (it named the attached file). |
+| #23: a Chrome profile location flag | `agy --help` lists no browser or profile flag, so the profile location cannot be set from the server. |
+

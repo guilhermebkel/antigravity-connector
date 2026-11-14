@@ -17,7 +17,9 @@ export type {
   AgyStreamEvent,
 } from "@antigravity-connector/protocol/Protocols/AgyStreamEventProtocol.ts";
 export { ModelCatalogueUtil } from "@antigravity-connector/protocol/Utils/ModelCatalogueUtil.ts";
-export type { ImageGenerationRequest } from "@antigravity-connector/protocol/Protocols/OpenAiImageProtocol.ts";
+export type { ImageGenerationRequest, ImageGenerationResponse } from "@antigravity-connector/protocol/Protocols/OpenAiImageProtocol.ts";
+export { ImageGenerationRequestSchema } from "@antigravity-connector/protocol/Schemas/ImageGenerationRequestSchema.ts";
+export { ResponseSchemaWrapperSchema } from "@antigravity-connector/protocol/Schemas/ResponseFormatSchema.ts";
 export type { OpenAiError, OpenAiErrorType } from "@antigravity-connector/protocol/Protocols/OpenAiErrorProtocol.ts";
 export type { ChatCompletionRequest, ChatCompletionResponse, OpenAiFinishReason, OpenAiUsage } from "@antigravity-connector/protocol/Protocols/OpenAiChatProtocol.ts";
 export type { ModelList } from "@antigravity-connector/protocol/Protocols/OpenAiModelProtocol.ts";

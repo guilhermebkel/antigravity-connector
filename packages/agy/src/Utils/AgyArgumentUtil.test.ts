@@ -25,8 +25,7 @@ describe("AgyArgumentUtil.build", () => {
       modelSlug: "gemini-4-argon-high",
       profile: { ...CHAT_PROFILE, isPlanMode: false, shouldSkipPermissions: true },
       conversationId: "00000000-0000-4000-8000-000000000000",
-      jsonSchema: "{\"type\":\"object\"}",
-    });
+    }, "json", "schema.json");
 
     expect(args).toStrictEqual([
       "-p",
@@ -39,7 +38,7 @@ describe("AgyArgumentUtil.build", () => {
       "--conversation",
       "00000000-0000-4000-8000-000000000000",
       "--json-schema",
-      "{\"type\":\"object\"}",
+      "schema.json",
     ]);
   });
 });

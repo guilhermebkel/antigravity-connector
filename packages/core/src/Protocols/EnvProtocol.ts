@@ -11,6 +11,7 @@ export type Env = {
   DAILY_LIMIT_IMAGE: number;
   DAILY_LIMIT_RESEARCH: number;
   DAILY_LIMIT_BROWSE: number;
+  DATA_DIR: string;
   HTTP_MAX_REQUESTS_PER_MINUTE: number;
   MCP_MAX_SESSIONS: number;
   MCP_SESSION_TTL_MS: number;

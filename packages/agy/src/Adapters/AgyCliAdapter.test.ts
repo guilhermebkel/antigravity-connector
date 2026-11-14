@@ -338,3 +338,37 @@ describe("AgyCliAdapter.stream", () => {
     expect(remaining).toStrictEqual([]);
   });
 });
+
+type InputFile = {
+  name: string;
+  size: number;
+  head: string;
+};
+
+type InputReport = {
+  files: InputFile[];
+  schema: string;
+};
+
+describe("AgyCliAdapter inputs", () => {
+  const PNG_HEX = "89504e470d0a1a0a0000000d";
+
+  it("AC1: an attachment is in the working directory during the run and gone afterwards, and the schema is passed as a file", async () => {
+    const request: AgyRunRequest = {
+      ...buildRequest("[[fake-agy:stream-files]] describe"),
+      attachments: [{ fileName: "attachment-1.png", bytes: new Uint8Array(Buffer.from(PNG_HEX, "hex")) }],
+      jsonSchema: "{\"type\":\"object\"}",
+    };
+
+    const events = await collectEvents(buildAdapter().stream(request));
+    const finished = events.find((event): event is AgyFinishedEvent => event.kind === "finished");
+    const report = JSON.parse(finished?.envelope.response ?? "{}") as InputReport;
+
+    expect(report.files).toStrictEqual([
+      expect.objectContaining({ name: "attachment-1.png", size: PNG_HEX.length / 2, head: PNG_HEX.slice(0, 16) }),
+      expect.objectContaining({ name: "schema.json" }),
+    ]);
+    expect(report.schema).toBe("{\"type\":\"object\"}");
+    expect(readdirSync(tempRoot).filter((name) => name.startsWith("agy-run-"))).toStrictEqual([]);
+  });
+});

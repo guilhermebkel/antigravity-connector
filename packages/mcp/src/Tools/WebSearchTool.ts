@@ -1,9 +1,8 @@
-import type { AgyRunService } from "@antigravity-connector/core";
-import { RunIncompleteError } from "@antigravity-connector/core";
 import type { McpToolContext, McpToolPort, McpToolRun } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
 import type { WebSearchInput, WebSearchOutput } from "@antigravity-connector/mcp/Protocols/WebSearchProtocol.ts";
 import { WebSearchInputSchema, WebSearchOutputSchema } from "@antigravity-connector/mcp/Schemas/WebSearchSchema.ts";
 import { SourceUtil } from "@antigravity-connector/mcp/Utils/SourceUtil.ts";
+import { RunEnvelopeUtil } from "@antigravity-connector/mcp/Utils/RunEnvelopeUtil.ts";
 
 export class WebSearchTool implements McpToolPort<WebSearchInput, WebSearchOutput> {
   static readonly DEFAULT_MODEL = "gemini-3.8-flash";
@@ -30,7 +29,11 @@ export class WebSearchTool implements McpToolPort<WebSearchInput, WebSearchOutpu
 
   async run(input: WebSearchInput, context: McpToolContext): Promise<McpToolRun<WebSearchOutput>> {
     const model = input.model ?? WebSearchTool.DEFAULT_MODEL;
-    const envelope = await WebSearchTool.readEnvelope(context.runService, input, model, context);
+    const envelope = await RunEnvelopeUtil.read(
+      context.runService,
+      { kind: "search", source: this.name, text: input.query, model },
+      context,
+    );
     const answer = envelope.response;
     return {
       output: {
@@ -42,28 +45,6 @@ export class WebSearchTool implements McpToolPort<WebSearchInput, WebSearchOutpu
       },
       extraContent: [],
     };
-  }
-
-  static async readEnvelope(
-    runService: AgyRunService,
-    input: WebSearchInput,
-    model: string,
-    context: McpToolContext,
-  ): Promise<{
-    response: string; duration_seconds?: number; usage: { total_tokens: number };
-  }> {
-    const events = runService.stream(
-      "search",
-      { model, door: "mcp", messages: [{ role: "user", content: input.query }] },
-      context.signal,
-      context.observer,
-    );
-    for await (const event of events) {
-      if (event.kind === "finished") {
-        return event.envelope;
-      }
-    }
-    throw new RunIncompleteError();
   }
 
   summarize(output: WebSearchOutput): string {

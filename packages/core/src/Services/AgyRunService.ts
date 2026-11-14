@@ -5,6 +5,7 @@ import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol
 import type { LogFieldToValue, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
 import type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
 import type { QueueHooks } from "@antigravity-connector/core/Protocols/QueueHooksProtocol.ts";
+import type { CallLogPort, CallRecord, CallStatus } from "@antigravity-connector/core/Protocols/CallLogProtocol.ts";
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
@@ -22,6 +23,7 @@ export type AgyRunServiceOptions = {
   clock: () => number;
   logSink: LogSink;
   secrets: readonly string[];
+  callLog: CallLogPort;
 };
 
 export type CallResult = "success" | "error" | "stopped";
@@ -59,6 +61,8 @@ export class AgyRunService {
 
   private readonly secrets: readonly string[];
 
+  private readonly callLog: CallLogPort;
+
   constructor(options: AgyRunServiceOptions) {
     this.runner = options.runner;
     this.queue = options.queue;
@@ -68,6 +72,7 @@ export class AgyRunService {
     this.clock = options.clock;
     this.logSink = options.logSink;
     this.secrets = options.secrets;
+    this.callLog = options.callLog;
   }
 
   async run(kind: RunKind, input: RunInput, signal?: AbortSignal, observer?: RunObserver): Promise<AgyRunResult> {
@@ -173,9 +178,11 @@ export class AgyRunService {
     if (modelSlug === undefined) {
       throw new ModelNotFoundError(input.model);
     }
+    const attachments = input.attachments ?? [];
     return {
+      attachments,
       modelSlug,
-      prompt: RunPromptUtil.build(kind, input.messages),
+      prompt: RunPromptUtil.build(kind, input.messages, attachments.map((attachment) => attachment.fileName)),
       profile: RunProfileUtil.build(kind, this.baseTimeoutMs),
       conversationId: input.conversationId,
       jsonSchema: input.jsonSchema,
@@ -198,6 +205,8 @@ export class AgyRunService {
       ...AgyRunService.buildUsageFields(outcome.usage),
       ...AgyRunService.buildErrorFields(outcome.errorCode),
     };
+    const record = AgyRunService.buildCallRecord(kind, input, startedAtMs, this.clock(), outcome);
+    this.callLog.write(record);
     LogUtil.write(
       {
         level: AgyRunService.RESULT_TO_LEVEL[outcome.result],
@@ -206,6 +215,28 @@ export class AgyRunService {
       },
       { now: new Date(this.clock()), secrets: this.secrets, sink: this.logSink },
     );
+  }
+
+  static buildCallRecord(
+    kind: RunKind,
+    input: RunInput,
+    startedAtMs: number,
+    endedAtMs: number,
+    outcome: CallOutcome,
+  ): CallRecord {
+    const status: CallStatus = outcome.result;
+    return {
+      kind,
+      status,
+      startedAt: new Date(startedAtMs).toISOString(),
+      door: input.door,
+      routeOrTool: input.source ?? kind,
+      model: input.model,
+      durationMs: endedAtMs - startedAtMs,
+      inputTokens: outcome.usage?.input_tokens ?? null,
+      outputTokens: outcome.usage?.output_tokens ?? null,
+      totalTokens: outcome.usage?.total_tokens ?? null,
+    };
   }
 
   static buildHooks(observer: RunObserver | undefined): QueueHooks {

@@ -13,6 +13,7 @@ import type {
   AgyStreamOutputEvent,
 } from "@antigravity-connector/agy/Protocols/AgyRunnerProtocol.ts";
 import { AgyArgumentUtil } from "@antigravity-connector/agy/Utils/AgyArgumentUtil.ts";
+import { AgyWorkspaceUtil } from "@antigravity-connector/agy/Utils/AgyWorkspaceUtil.ts";
 import { AgyEnvUtil } from "@antigravity-connector/agy/Utils/AgyEnvUtil.ts";
 import { AgyOutcomeUtil } from "@antigravity-connector/agy/Utils/AgyOutcomeUtil.ts";
 import { AgySpawnUtil } from "@antigravity-connector/agy/Utils/AgySpawnUtil.ts";
@@ -78,7 +79,8 @@ export class AgyCliAdapter implements AgyRunnerPort {
     workingDirectory: string,
     signal: AbortSignal | undefined,
   ): Promise<AgyRunResult> {
-    const args = AgyArgumentUtil.build(request);
+    const schemaPath = await AgyWorkspaceUtil.writeInputs(workingDirectory, request);
+    const args = AgyArgumentUtil.build(request, AgyArgumentUtil.DEFAULT_OUTPUT_FORMAT, schemaPath);
     const outcome = await this.runProcess(args, workingDirectory, request.profile.timeoutMs, signal);
     const envelope = AgyOutcomeUtil.readEnvelope(outcome, request.profile.timeoutMs, this.buildSecrets());
     const outputFiles = await this.readOutputFiles(workingDirectory, request.profile.expectedOutputFileNames);
@@ -90,7 +92,8 @@ export class AgyCliAdapter implements AgyRunnerPort {
     workingDirectory: string,
     signal: AbortSignal | undefined,
   ): AsyncGenerator<AgyStreamOutputEvent> {
-    const run = this.startStreamProcess(request, workingDirectory, signal);
+    const schemaPath = await AgyWorkspaceUtil.writeInputs(workingDirectory, request);
+    const run = this.startStreamProcess(request, workingDirectory, signal, schemaPath);
     try {
       yield* run.buffer.readItems();
     } finally {
@@ -103,8 +106,9 @@ export class AgyCliAdapter implements AgyRunnerPort {
     request: AgyRunRequest,
     workingDirectory: string,
     signal: AbortSignal | undefined,
+    schemaPath: string | undefined,
   ): AgyStreamRun {
-    const args = AgyArgumentUtil.build(request, "stream-json");
+    const args = AgyArgumentUtil.build(request, "stream-json", schemaPath);
     const childEnv = AgyEnvUtil.build(this.parentEnv);
     const child = this.startTracked(args, workingDirectory, childEnv);
     const buffer = new AsyncEventBufferService<AgyStreamOutputEvent>();

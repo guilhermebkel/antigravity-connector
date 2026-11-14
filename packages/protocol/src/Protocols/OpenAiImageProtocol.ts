@@ -3,7 +3,9 @@ export type ImageGenerationRequest = {
   model?: string;
   n?: number;
   size?: string;
-  response_format?: "b64_json";
+  quality?: string;
+  style?: string;
+  response_format?: string;
 };
 
 export type ImageGenerationResponse = {

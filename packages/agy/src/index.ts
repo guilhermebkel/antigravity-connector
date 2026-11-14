@@ -7,6 +7,7 @@ export { AgySessionRequiredError } from "@antigravity-connector/agy/Errors/AgySe
 export { AgyTimeoutError } from "@antigravity-connector/agy/Errors/AgyTimeoutError.ts";
 export { PromptUtil } from "@antigravity-connector/agy/Utils/PromptUtil.ts";
 export type {
+  AgyAttachment,
   AgyCliAdapterOptions,
   AgyEnvNameToValue,
   AgyOutputFormat,

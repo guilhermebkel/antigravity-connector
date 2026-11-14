@@ -8,7 +8,9 @@ import {
 import type { RunObserver } from "@antigravity-connector/core";
 import type { McpToolContext, McpToolPort } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
 import type { McpServices } from "@antigravity-connector/mcp/Protocols/McpServicesProtocol.ts";
+import { BrowseTool } from "@antigravity-connector/mcp/Tools/BrowseTool.ts";
 import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
+import { ResearchTool } from "@antigravity-connector/mcp/Tools/ResearchTool.ts";
 import { WebSearchTool } from "@antigravity-connector/mcp/Tools/WebSearchTool.ts";
 import { McpProgressService } from "@antigravity-connector/mcp/Services/McpProgressService.ts";
 import { McpErrorUtil } from "@antigravity-connector/mcp/Utils/McpErrorUtil.ts";
@@ -29,11 +31,17 @@ export class McpManifestUtil {
   static registerAll(server: McpServer, services: McpServices): void {
     const webSearch = new WebSearchTool();
     const generateImage = new GenerateImageTool();
+    const research = new ResearchTool({ dailyLimit: services.researchDailyLimit });
+    const browse = new BrowseTool();
     McpManifestUtil.registerTool(server, webSearch, services);
     McpManifestUtil.registerTool(server, generateImage, services);
+    McpManifestUtil.registerTool(server, research, services);
+    McpManifestUtil.registerTool(server, browse, services);
     const toolNameToRunner = new Map<string, ToolRunner>([
-      [webSearch.name, (args, context) => McpManifestUtil.callWith(webSearch, args, context)],
-      [generateImage.name, (args, context) => McpManifestUtil.callWith(generateImage, args, context)],
+      McpManifestUtil.buildRunnerEntry(webSearch),
+      McpManifestUtil.buildRunnerEntry(generateImage),
+      McpManifestUtil.buildRunnerEntry(research),
+      McpManifestUtil.buildRunnerEntry(browse),
     ]);
     server.server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const runner = toolNameToRunner.get(request.params.name);
@@ -52,6 +60,10 @@ export class McpManifestUtil {
         progress.close();
       }
     });
+  }
+
+  static buildRunnerEntry<I, O extends Record<string, unknown>>(tool: McpToolPort<I, O>): [string, ToolRunner] {
+    return [tool.name, (args, context) => McpManifestUtil.callWith(tool, args, context)];
   }
 
   static registerTool<I, O extends Record<string, unknown>>(

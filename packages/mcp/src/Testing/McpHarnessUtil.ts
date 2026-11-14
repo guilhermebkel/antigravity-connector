@@ -10,6 +10,7 @@ export const DAY_MS = 86400000;
 
 export type McpHarnessOptions = StubRunOptions & {
   maxSessions?: number;
+  researchDailyLimit?: number;
   sessionTtlMs?: number;
 };
 
@@ -23,6 +24,8 @@ export type McpHarness = {
 export class McpHarnessUtil {
   static readonly MAX_SESSIONS = 8;
 
+  static readonly RESEARCH_DAILY_LIMIT = 5;
+
   static async start(options: McpHarnessOptions = {}): Promise<McpHarness> {
     const stub = StubRuntimeUtil.build(options);
     const clock = { now: 0 };
@@ -32,6 +35,7 @@ export class McpHarnessUtil {
       clock: () => clock.now,
       sessionTtlMs: options.sessionTtlMs ?? DAY_MS,
       maxSessions: options.maxSessions ?? McpHarnessUtil.MAX_SESSIONS,
+      researchDailyLimit: options.researchDailyLimit ?? McpHarnessUtil.RESEARCH_DAILY_LIMIT,
     });
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
     return { app, address, clock, requests: stub.requests };

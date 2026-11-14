@@ -66,6 +66,7 @@ export class ServerSetup {
           runService: runtime.runService,
           sessionTtlMs: env.MCP_SESSION_TTL_MS,
           maxSessions: env.MCP_MAX_SESSIONS,
+          researchDailyLimit: env.DAILY_LIMIT_RESEARCH,
         });
       },
     ];
