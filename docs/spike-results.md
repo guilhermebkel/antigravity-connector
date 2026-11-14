@@ -2,7 +2,7 @@
 
 Investigation for issue #2: `agy` inside Docker, login, session persistence, fixtures and measurements.
 
-Measured with `agy` 1.5.9 from the official installer, in a Linux sandbox and in Docker containers built from `spike/Dockerfile` (with one test-only change, see S1). Raw output is in `spike/fixtures/`, with conversation ids replaced by invented values.
+Measured with `agy` 1.5.9 from the official installer, in a Linux sandbox and in Docker containers built from `spike/Dockerfile` (with one test-only change, see S1). Raw output is in `packages/protocol/src/Testing/fixtures/` (moved there by issue #6), with conversation ids replaced by invented values.
 
 **Status: complete for the questions in the issue**, with the reasons below for the parts that could not be fully determined.
 
@@ -62,10 +62,10 @@ Measured, without the flag, for each profile:
 
 - **Chat** (`ping`, plan mode): `SUCCESS`, no permission stop.
 - **Search** (three runs and a stream run): `SUCCESS`, no permission stop; 6 `search_web` tool steps for one question.
-- **Image**: the run ended `SUCCESS`, but the built-in generator returned `image failed to generate: no image generated in response`. The model then wrote a 256×256 PNG with a Python script (`run_command`). So image generation did not work on this account, and the `SUCCESS` status does not mean an image was generated.
+- **Image**: the first run failed in a way that looked like success. The status was `SUCCESS`, but the built-in generator returned `image failed to generate: no image generated in response`, and the model wrote a 256×256 PNG with a Python script instead. A later run (`--output-format json`) produced a real image file, saved by the generator under the agy brain folder. So the image profile works, but it is not reliable: a `SUCCESS` status does not prove an image was generated, and the caller must check for the file.
 - **Browse**: the run ended `SUCCESS` with the page title "Example Domain", but no browser tool was called. The model said browser tools need the `/browser` command. So the browse profile is **not determined**: this answer does not show that browsing works.
 
-Conclusion: no profile here needed `--dangerously-skip-permissions` to run unattended. The image and browse profiles still need a check of their own before the adapter relies on them.
+Conclusion: no profile here needed `--dangerously-skip-permissions` to run unattended. The image profile works but can fail silently, and the browse profile is not proven.
 
 ## S6. Reasoning effort
 
@@ -73,6 +73,12 @@ Measured:
 
 - `--effort low` and `--effort high` are accepted; both `SUCCESS`.
 - `--model gemini-3.8-flash-low` is accepted; `SUCCESS`.
+- The slugs for each public model and effort, from `agy models` (see the table below). `gemini-4-argon` and `gemini-3.8-flash` have `low`, `medium` and `high` slugs.
+
+| Public id | low | medium | high |
+| --- | --- | --- | --- |
+| `gemini-4-argon` | `gemini-4-argon-low` | `gemini-4-argon-medium` | `gemini-4-argon-high` |
+| `gemini-3.8-flash` | `gemini-3.8-flash-low` | `gemini-3.8-flash-medium` | `gemini-3.8-flash-high` |
 
 Not measured: combining the slug suffix and `--effort`, and invalid values. On a one-word prompt the token counts were close across efforts (9,428 for low, 9,447 for high), so this does not show a cost difference.
 
@@ -105,7 +111,7 @@ The `acp` figure does not include session creation (one call before the loop, no
 
 ## S10. Fixtures
 
-Captured in `spike/fixtures/` (see its README): chat, search and image envelopes or streams; plan-mode and browse streams; and the container chat after recreate. The image and error envelopes were not captured as separate files; the no-session output is in S2.
+Captured in `packages/protocol/src/Testing/fixtures/`: `chatEnvelope.json`, `searchEnvelope.json`, `imageEnvelope.json`, `errorEnvelope.json` (the no-session error line), `chatStream.ndjson` (plan mode), `searchStream.ndjson`, `noSession.txt`. The browse and container runs were kept in the same folder under their own names during the spike.
 
 Redaction: conversation ids are replaced with `00000000-0000-4000-8000-000000000000`, and the secret grep from issue #2 prints nothing over `spike/`.
 

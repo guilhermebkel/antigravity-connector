@@ -19,3 +19,5 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **Fixture** | A real output recorded from `agy` (an envelope, a stream) and stored for tests. Recorded fixtures are preferred over written ones. |
 | **Loopback bind** | The default of listening on `127.0.0.1` only. A non-loopback `HOST` needs `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets. |
 | **API key** | The bearer secret (`API_KEY`) that every route except `/health` requires. |
+| **Public model id** | The model name a client sends, such as `gemini-4-argon` or `gemini-3.8-flash`. Each maps to one `agy` slug per reasoning effort; an unknown id or effort has no slug and is refused. |
+| **Reasoning effort** | The `low`, `medium` or `high` level a client asks for. It selects the `agy` slug of the public model id. |

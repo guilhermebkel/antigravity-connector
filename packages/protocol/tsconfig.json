@@ -1,10 +1,16 @@
 {
   "extends": "@antigravity-connector/tooling/tsconfig.base.json",
   "compilerOptions": {
-    "types": [],
+    "types": [
+      "node"
+    ],
     "paths": {
-      "@antigravity-connector/protocol/*": ["./src/*"]
+      "@antigravity-connector/protocol/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
