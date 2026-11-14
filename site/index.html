@@ -537,6 +537,21 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
 <span class="p">$</span> docker logs antigravity-connector    <span class="c"># prints the login block, if needed</span>
 <span class="p">$</span> curl http://127.0.0.1:8787/health</pre></div>
     </div>
+    <div class="sec__head sec__head--wide" data-reveal>
+      <h2>On a server, <span>through an SSH tunnel.</span></h2>
+    </div>
+    <div class="term" data-reveal>
+      <div class="term__bar"><span>your server, then your computer</span></div>
+      <div class="term__body"><pre><span class="c"># on the server (Ubuntu or Debian, Docker with the Compose plugin)</span>
+<span class="p">$</span> git clone https://github.com/guilhermebkel/antigravity-connector.git && cd antigravity-connector
+<span class="p">$</span> cp .env.example .env && sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/" .env
+<span class="p">$</span> docker compose up -d --build
+<span class="p">$</span> docker exec -it antigravity-connector agy    <span class="c"># log in once, with the AI Pro account</span>
+<span class="p">$</span> curl http://127.0.0.1:8787/health
+
+<span class="c"># on your computer: keep this running, and point the client at 127.0.0.1:8787</span>
+<span class="p">$</span> ssh -N -L 8787:127.0.0.1:8787 your-user@your-server</pre></div>
+    </div>
     <div class="notes">
       <div data-reveal>
         <h3>Login happens in the terminal</h3>

@@ -1,4 +1,9 @@
-<h1 align="center">antigravity-connector</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/svg/horizontal-dark.svg" />
+    <img src="design/svg/horizontal-light.svg" alt="antigravity-connector" width="420" />
+  </picture>
+</h1>
 
 <p align="center">
   <strong>Use your Google AI Pro subscription as an OpenAI-compatible API and as MCP tools, from one Docker container on your own machine.</strong>
@@ -93,6 +98,39 @@ docker compose up -d --build
 docker logs antigravity-connector    # shows the login block if agy is not logged in yet
 curl http://127.0.0.1:8787/health
 ```
+
+## Install on a server with Docker
+
+The server only listens on `127.0.0.1`, so on a remote machine you reach it through an SSH tunnel. Do not publish port 8787 to the internet.
+
+1. On the server (a VPS or a home machine, Ubuntu or Debian), install Docker with the Compose plugin, and check it:
+
+       docker --version && docker compose version
+
+2. Clone the repository and create the settings file. Generate the API key on the server and keep it secret:
+
+       git clone https://github.com/guilhermebkel/antigravity-connector.git
+       cd antigravity-connector
+       cp .env.example .env
+       sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 32)/" .env
+
+3. Build and start the container:
+
+       docker compose up -d --build
+       docker logs antigravity-connector        # shows the login block the first time
+
+4. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)), then check the health route on the server:
+
+       docker exec -it antigravity-connector agy
+       curl http://127.0.0.1:8787/health        # {"status":"ok","agy":"connected"}
+
+5. From your own computer, open the tunnel and point your client at the local end:
+
+       ssh -N -L 8787:127.0.0.1:8787 your-user@your-server
+
+   With the tunnel up, the API is at `http://127.0.0.1:8787/v1` and MCP at `http://127.0.0.1:8787/mcp`, both with `Authorization: Bearer <API_KEY>`. The key is in the server's `.env`.
+
+The login belongs to the server: everyone who uses the tunnel spends the same subscription and the same daily limits.
 
 ## Logging in
 
