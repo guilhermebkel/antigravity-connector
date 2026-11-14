@@ -3,6 +3,8 @@ import type { AgyRunRequest, AgyRunResult, AgyRunnerPort, AgyStreamOutputEvent }
 import { AgySessionRequiredError } from "@antigravity-connector/agy";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { LogFieldToValue, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
+import type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
+import type { QueueHooks } from "@antigravity-connector/core/Protocols/QueueHooksProtocol.ts";
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
@@ -68,12 +70,13 @@ export class AgyRunService {
     this.secrets = options.secrets;
   }
 
-  async run(kind: RunKind, input: RunInput, signal?: AbortSignal): Promise<AgyRunResult> {
+  async run(kind: RunKind, input: RunInput, signal?: AbortSignal, observer?: RunObserver): Promise<AgyRunResult> {
     const request = this.prepare(kind, input);
     this.limits.consume(kind);
     const startedAtMs = this.clock();
     try {
-      const result = await this.queue.run(() => this.runChecked(request, signal), signal);
+      const hooks = AgyRunService.buildHooks(observer);
+      const result = await this.queue.run(() => this.runChecked(request, signal), signal, hooks);
       this.logCall(kind, input, startedAtMs, { result: "success", usage: result.envelope.usage });
       return result;
     } catch (error: unknown) {
@@ -83,14 +86,46 @@ export class AgyRunService {
     }
   }
 
-  async* stream(kind: RunKind, input: RunInput, signal?: AbortSignal): AsyncGenerator<AgyStreamOutputEvent> {
+  openStream(
+    kind: RunKind,
+    input: RunInput,
+    signal?: AbortSignal,
+    observer?: RunObserver,
+  ): Promise<AsyncIterable<AgyStreamOutputEvent>> {
     const request = this.prepare(kind, input);
+    this.session.assertNotKnownDown();
     this.limits.consume(kind);
+    const events = this.readStream(kind, input, request, signal, observer);
+    return Promise.resolve(events);
+  }
+
+  async* stream(
+    kind: RunKind,
+    input: RunInput,
+    signal?: AbortSignal,
+    observer?: RunObserver,
+  ): AsyncGenerator<AgyStreamOutputEvent> {
+    const events = await this.openStream(kind, input, signal, observer);
+    yield* events;
+  }
+
+  private async* readStream(
+    kind: RunKind,
+    input: RunInput,
+    request: AgyRunRequest,
+    signal: AbortSignal | undefined,
+    observer: RunObserver | undefined,
+  ): AsyncGenerator<AgyStreamOutputEvent> {
     const startedAtMs = this.clock();
     const buffer = new AsyncEventBufferService<AgyStreamOutputEvent>();
     const controller = new AbortController();
+    const onAbort = (): void => {
+      controller.abort();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+    const hooks = AgyRunService.buildHooks(observer);
     void this.queue
-      .run(() => this.runStream(request, buffer, controller.signal), signal)
+      .run(() => this.runStream(request, buffer, controller.signal), signal, hooks)
       .catch((error: unknown) => {
         buffer.end(error);
       });
@@ -98,7 +133,10 @@ export class AgyRunService {
     try {
       for await (const event of buffer.readItems()) {
         usage = AgyRunService.readUsage(event) ?? usage;
-        yield event;
+        AgyRunService.notify(observer, event);
+        if (AgyRunService.isForwarded(event)) {
+          yield event;
+        }
       }
       const outcome: CallOutcome = usage === undefined ? { result: "stopped" } : { result: "success", usage };
       this.logCall(kind, input, startedAtMs, outcome);
@@ -107,6 +145,7 @@ export class AgyRunService {
       this.logCall(kind, input, startedAtMs, { result: "error", errorCode: AgyRunService.readCode(error) });
       throw error;
     } finally {
+      signal?.removeEventListener("abort", onAbort);
       controller.abort();
     }
   }
@@ -167,6 +206,42 @@ export class AgyRunService {
       },
       { now: new Date(this.clock()), secrets: this.secrets, sink: this.logSink },
     );
+  }
+
+  static buildHooks(observer: RunObserver | undefined): QueueHooks {
+    return {
+      onWaiting: (position) => {
+        observer?.({ kind: "queued", position });
+      },
+      onStarted: () => {
+        observer?.({ kind: "started" });
+      },
+    };
+  }
+
+  static notify(observer: RunObserver | undefined, event: AgyStreamOutputEvent): void {
+    const progress = AgyRunService.readActivityProgress(event) ?? AgyRunService.readTextProgress(event);
+    if (progress !== undefined) {
+      observer?.(progress);
+    }
+  }
+
+  static isForwarded(event: AgyStreamOutputEvent): boolean {
+    return event.kind !== "activity";
+  }
+
+  static readActivityProgress(event: AgyStreamOutputEvent): RunProgressEvent | undefined {
+    if (event.kind !== "activity") {
+      return undefined;
+    }
+    return { kind: "activity", stepType: event.stepType };
+  }
+
+  static readTextProgress(event: AgyStreamOutputEvent): RunProgressEvent | undefined {
+    if (event.kind !== "text") {
+      return undefined;
+    }
+    return { kind: "text" };
   }
 
   static readUsage(event: AgyStreamOutputEvent): AgyUsage | undefined {

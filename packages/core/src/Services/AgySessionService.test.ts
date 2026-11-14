@@ -100,3 +100,19 @@ describe("AgySessionService", () => {
     await expect(service.ensureConnected()).rejects.toBeInstanceOf(AgyUnavailableError);
   });
 });
+
+describe("AgySessionService.assertNotKnownDown", () => {
+  it("refuses at once when the login is known to be missing and a recheck is not due", async () => {
+    const service = new AgySessionService({
+      checkPort: { check: () => Promise.resolve({ kind: "login_required", loginUrl: "https://accounts.google.com/o/oauth2/EXAMPLE" }) },
+      clock: () => 0,
+      minRecheckIntervalMs: 30000,
+      logSink: () => undefined,
+      secrets: [],
+    });
+    await service.check();
+    expect(() => {
+      service.assertNotKnownDown();
+    }).toThrow(AgySessionRequiredError);
+  });
+});

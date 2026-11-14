@@ -25,4 +25,12 @@ describe("RunProfileUtil.build", () => {
       expectedOutputFileNames: ["output.png"],
     });
   });
+
+  it("AC7: only image and browse run without plan mode, and image expects output.png", () => {
+    const nonPlanKinds = (["chat", "search", "research", "image", "browse"] as const).filter(
+      (kind) => !RunProfileUtil.build(kind, 1000).isPlanMode,
+    );
+    expect(nonPlanKinds).toStrictEqual(["image", "browse"]);
+    expect(RunProfileUtil.build("image", 1000).expectedOutputFileNames).toStrictEqual(["output.png"]);
+  });
 });

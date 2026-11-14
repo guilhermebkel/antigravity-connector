@@ -9,6 +9,8 @@ export class McpErrorUtil {
     queue_timeout: "The call did not run: it waited too long in the agy queue. What to do: retry in a moment.",
     agy_timeout: "The call was stopped: agy did not finish in time. What to do: retry with a narrower query.",
     agy_failed: "The call failed: agy could not answer. What to do: check the container logs, then retry.",
+    image_not_produced: "The call did not produce an image: agy finished without a PNG file. What to do: retry, or describe the picture in more detail.",
+    image_invalid: "The call did not return an image: agy wrote a file that is not a PNG of the allowed size. What to do: retry with a simpler prompt.",
   };
 
   static readonly CODES_WITH_OWN_MESSAGE: ReadonlySet<OpenAiErrorCode> = new Set<OpenAiErrorCode>([

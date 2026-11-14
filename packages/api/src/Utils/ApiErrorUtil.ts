@@ -21,6 +21,8 @@ export class ApiErrorUtil {
       message: "agy is not logged in. Run docker logs antigravity-connector to find the login block, then log in with docker exec.",
     },
     agy_failed: { statusCode: 502, type: "server_error", message: "agy failed to answer. Check the container logs and retry." },
+    image_not_produced: { statusCode: 502, type: "server_error", message: undefined },
+    image_invalid: { statusCode: 502, type: "server_error", message: undefined },
     agy_timeout: {
       statusCode: 504,
       type: "server_error",
@@ -33,6 +35,8 @@ export class ApiErrorUtil {
     "tools_not_supported",
     "model_not_found",
     "daily_limit_reached",
+    "image_not_produced",
+    "image_invalid",
   ]);
 
   static build(error: unknown): ApiErrorResponse {

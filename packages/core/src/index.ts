@@ -7,7 +7,6 @@ export { AgySessionService } from "@antigravity-connector/core/Services/AgySessi
 export { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 export { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
 export { AgyUnavailableError } from "@antigravity-connector/core/Errors/AgyUnavailableError.ts";
-export { DailyLimitError } from "@antigravity-connector/core/Errors/DailyLimitError.ts";
 export { InvalidEnvError } from "@antigravity-connector/core/Errors/InvalidEnvError.ts";
 export { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 export { QueueTimeoutError } from "@antigravity-connector/core/Errors/QueueTimeoutError.ts";
@@ -30,3 +29,11 @@ export type {
   StubRuntime,
   StubSessionKind,
 } from "@antigravity-connector/core/Testing/StubRuntimeUtil.ts";
+export { ImageRunService } from "@antigravity-connector/core/Services/ImageRunService.ts";
+export type { ImageRunInput, ImageRunOutcome } from "@antigravity-connector/core/Services/ImageRunService.ts";
+export { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
+export { ImageInvalidError } from "@antigravity-connector/core/Errors/ImageInvalidError.ts";
+export { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
+export { RunIncompleteError } from "@antigravity-connector/core/Errors/RunIncompleteError.ts";
+export type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
+export type { AgyStreamOutputEvent } from "@antigravity-connector/agy";

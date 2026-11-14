@@ -92,6 +92,13 @@ export class AgySessionService {
     throw AgySessionService.KIND_TO_REFUSAL[this.status.kind](this.status);
   }
 
+  assertNotKnownDown(): void {
+    if (this.isConnected() || this.canRecheck()) {
+      return;
+    }
+    throw AgySessionService.KIND_TO_REFUSAL[this.status.kind](this.status);
+  }
+
   reportSessionRequired(loginUrl: string | undefined): void {
     if (loginUrl === undefined) {
       this.applyStatus({ kind: "unavailable", reason: "agy asked to log in without a login URL" });

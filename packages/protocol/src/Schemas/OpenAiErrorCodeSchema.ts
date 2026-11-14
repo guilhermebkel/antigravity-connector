@@ -11,4 +11,6 @@ export const OpenAiErrorCodeSchema: z.ZodType<OpenAiErrorCode> = z.enum([
   "agy_session_required",
   "agy_failed",
   "agy_timeout",
+  "image_not_produced",
+  "image_invalid",
 ]);

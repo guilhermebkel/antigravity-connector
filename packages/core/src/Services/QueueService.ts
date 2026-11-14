@@ -1,4 +1,5 @@
 import { QueueTimeoutError } from "@antigravity-connector/core/Errors/QueueTimeoutError.ts";
+import type { QueueHooks } from "@antigravity-connector/core/Protocols/QueueHooksProtocol.ts";
 
 export type QueueOptions = { maxWaitMs: number };
 
@@ -26,24 +27,22 @@ export class QueueService {
     return this.waiting.length + (this.isBusy ? 1 : 0);
   }
 
-  run<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  run<T>(task: () => Promise<T>, signal?: AbortSignal, hooks?: QueueHooks): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       if (signal?.aborted === true) {
         reject(QueueService.buildError(signal.reason));
         return;
       }
-      if (!this.isBusy) {
+      const start = (): void => {
+        hooks?.onStarted?.();
         this.startTask(task, resolve, reject);
+      };
+      if (!this.isBusy) {
+        start();
         return;
       }
-      this.addWaiting({
-        startTask: () => {
-          this.startTask(task, resolve, reject);
-        },
-        failTask: reject,
-        cleanup: () => undefined,
-        signal,
-      });
+      this.addWaiting({ startTask: start, failTask: reject, cleanup: () => undefined, signal });
+      hooks?.onWaiting?.(this.waiting.length);
     });
   }
 

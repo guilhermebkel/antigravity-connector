@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { AgyRunService } from "@antigravity-connector/core";
+import { ImageRunService, type AgyRunService } from "@antigravity-connector/core";
 import { McpSessionService } from "@antigravity-connector/mcp/Services/McpSessionService.ts";
 import { McpRoute } from "@antigravity-connector/mcp/Routes/McpRoute.ts";
 
@@ -17,6 +17,10 @@ export class McpSetup {
       maxSessions: options.maxSessions,
       clock: options.clock,
     });
-    McpRoute.register(app, { runService: options.runService, sessions });
+    const services = {
+      runService: options.runService,
+      imageService: new ImageRunService({ runService: options.runService }),
+    };
+    McpRoute.register(app, { services, sessions });
   }
 }
