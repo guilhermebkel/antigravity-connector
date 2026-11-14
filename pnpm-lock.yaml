@@ -64,6 +64,10 @@ importers:
         version: link:../../packages/tooling
 
   packages/agy:
+    dependencies:
+      '@antigravity-connector/protocol':
+        specifier: workspace:*
+        version: link:../protocol
     devDependencies:
       '@antigravity-connector/tooling':
         specifier: workspace:*
@@ -76,6 +80,13 @@ importers:
         version: link:../tooling
 
   packages/core:
+    dependencies:
+      '@antigravity-connector/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@antigravity-connector/tooling':
         specifier: workspace:*
