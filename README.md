@@ -5,7 +5,7 @@ A personal, localhost-only Docker server that exposes a Google AI Pro subscripti
 - an OpenAI-compatible API under `/v1` (`POST /v1/chat/completions`, `GET /v1/models`);
 - an MCP server (Streamable HTTP) under `/mcp`, with the `web_search` and `generate_image` tools.
 
-Every call runs the official Antigravity CLI (`agy`) as a subprocess. The server never reads, copies or forwards the CLI's login token, and never calls Google directly. There is no web page: the login link is printed in the container logs, and the code is entered with `docker exec`.
+Every call runs the official Antigravity CLI (`agy`) as a subprocess. The server never reads, copies or forwards the CLI's login token, and never calls Google directly. The server has no web page: the login link is printed in the container logs, and the code is entered with `docker exec`.
 
 ## Risk note
 

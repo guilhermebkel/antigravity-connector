@@ -1,0 +1,124 @@
+name: Release
+
+# Why: a release is started by hand on master, so the version number is chosen by a person and the tag, the image, the
+# GitHub Release and the version on the landing page all come from one commit. Same shape as better-caprover-mcp,
+# without the npm package: this project is a private Docker server, not a package.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "patch, minor or major; none releases the current version as is (first release)"
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major, none]
+
+concurrency:
+  group: master-writes
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Bump the version in package.json
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$BUMP" != "none" ]; then
+            pnpm version "$BUMP" --no-git-tag-version
+          fi
+      - id: version
+        name: Read the version and check if it is released already
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          if git rev-parse -q --verify "refs/tags/v$VERSION" > /dev/null; then
+            if [ "$BUMP" != "none" ]; then
+              echo "v$VERSION is already released; pick patch, minor or major." >&2
+              exit 1
+            fi
+            echo "v$VERSION is already tagged; resuming: the tag and push are skipped."
+            echo "IS_TAGGED=true" >> "$GITHUB_ENV"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Set the version and the date on the landing page
+        if: env.IS_TAGGED != 'true'
+        run: node scripts/site-version.mjs "$VERSION"
+      - name: Check everything the release ships
+        run: pnpm check
+      - name: Commit, tag and push
+        if: env.IS_TAGGED != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json site/
+          if ! git diff --cached --quiet; then
+            git commit -m "release: v$VERSION [skip ci]"
+          fi
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin HEAD:master "v$VERSION"
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            echo "The GitHub Release v$VERSION already exists; skipping."
+          else
+            gh release create "v$VERSION" --title "v$VERSION" --generate-notes --verify-tag
+          fi
+      # Why: a push made with the workflow token does not start other workflows, so the landing page is published on purpose.
+      - name: Publish the landing page with the new version
+        if: env.IS_TAGGED != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref master
+
+  image:
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/guilhermebkel/antigravity-connector
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.release.outputs.version }}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

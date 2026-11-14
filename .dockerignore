@@ -9,3 +9,5 @@
 **/*.tsbuildinfo
 .eslintcache
 spike
+site
+design

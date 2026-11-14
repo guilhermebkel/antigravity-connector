@@ -1,6 +1,6 @@
 # antigravity-connector
 
-A personal, localhost-only Docker server that exposes the owner's Google AI Pro subscription through two doors in one Node process: an OpenAI-compatible API under `/v1` and an MCP server (Streamable HTTP) under `/mcp`. Every call spawns the official Antigravity CLI, `agy`. There is no web page. Vocabulary is in `GLOSSARY.md`; decisions are in `docs/adr/`; planned work is in GitHub issues (the execution order is the roadmap issue; the project brief is issue #1).
+A personal, localhost-only Docker server that exposes the owner's Google AI Pro subscription through two doors in one Node process: an OpenAI-compatible API under `/v1` and an MCP server (Streamable HTTP) under `/mcp`. Every call spawns the official Antigravity CLI, `agy`. The server has no web page; the landing page is a separate static folder (`site/`, ADR 0011). Vocabulary is in `GLOSSARY.md`; decisions are in `docs/adr/`; planned work is in GitHub issues (the execution order is the roadmap issue; the project brief is issue #1).
 
 ## Layout
 
@@ -14,6 +14,8 @@ pnpm workspaces and Turborepo. Each package imports its own files through its pa
 - `packages/protocol/`: shared types and Zod schemas. Imports no other package.
 - `packages/tooling/`: the shared tsconfig and our local lint rules (`eslint-local-rules.mjs`).
 - `scripts/`: harness scripts and their tests (lint, `check:changed`, architecture and doc-path tests).
+- `site/`: the landing page, a static folder published to GitHub Pages. Not part of the server or the image. `scripts/site-version.mjs` sets its version and date on a release.
+- `design/`: the logo kit and the scripts that generate it (`design/README.md`). Not part of the image or of `pnpm check`.
 - Layers inside a package, from the bottom: `Errors`, `Protocols` (types only), `Schemas` (Zod), `Utils` (static helpers), `Services` (rules; dependencies through the constructor), `Adapters`, `Setup`; `Tools` (MCP tools) and `Routes` (HTTP routes) are the top layers of their packages. `Testing` holds doubles and fixtures; only tests import it. Folders are created when the first file needs them.
 - Every file in a mapped folder ends its name with the folder's name, singular (`QueueService.ts`; lint `local/file-suffix`). One class per file. Tests sit next to the file they test (`*.test.ts`).
 
@@ -47,6 +49,7 @@ pnpm workspaces and Turborepo. Each package imports its own files through its pa
 | Before committing | `docs/code-standards.md` ("Before committing"), `.github/PULL_REQUEST_TEMPLATE.md` | `pnpm check:changed` |
 | Full verification (CI gate) | `.github/PULL_REQUEST_TEMPLATE.md` | `pnpm check` |
 | Changing the harness | `docs/harness-standards.md` | `pnpm check:changed` |
+| Changing the landing page or the logo | `design/README.md`, `docs/adr/0011-landing-page-and-logo-in-the-repository.md` | `pnpm test` |
 | Writing or moving docs | `docs/docs-standards.md` | — |
 
 ## Rules

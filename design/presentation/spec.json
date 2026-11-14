@@ -1,0 +1,26 @@
+{
+  "brand": "antigravity-connector",
+  "tagline": "One subscription, two doors",
+  "brief": "A personal, localhost-only Docker server that exposes a Google AI Pro subscription as an OpenAI-compatible API and an MCP server, in one process. Precise, small and honest about its limits.",
+  "adjectives": ["precise", "small", "honest", "local"],
+  "criteria": "Recognisable at 16 px, works in one colour, and says one thing: two inputs, one queue, one output.",
+  "industry": "developer-tool",
+  "nav": ["Docs", "Install", "GitHub"],
+  "brand_color": "#41D2EF",
+  "greyscale": false,
+  "designer": "Claude",
+  "round": 1,
+  "concepts": [
+    {
+      "name": "Funnel",
+      "symbol": "../svg/symbol-light.svg",
+      "lockup": "../svg/horizontal-light.svg",
+      "idea": "Two inputs, the API and the MCP server, merge into one output: the single queue in front of the agy CLI.",
+      "rationale": [
+        "The cyan output is the one thing that runs at a time",
+        "Two strokes in, one stroke out: readable at 16 px and in one colour",
+        "Built on the two bars of the landing page mark, now joined"
+      ]
+    }
+  ]
+}
