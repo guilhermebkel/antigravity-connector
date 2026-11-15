@@ -99,7 +99,7 @@ describe("the two doors on the server", () => {
     expect(wrong.status).toBe(401);
   });
 
-  it("AC5 of issue 16: an MCP call and an API chat call never overlap in agy", async () => {
+  it("AC5 of issue 16: with QUEUE_CONCURRENCY=1, an MCP call and an API chat call never overlap in agy", async () => {
     const scratchRoot = join(tmpdir(), "agy-order-test-");
     scratchDirectory = mkdtempSync(scratchRoot);
     const logPath = join(scratchDirectory, "runs.log");
@@ -113,7 +113,7 @@ describe("the two doors on the server", () => {
       "",
     ].join("\n"));
     chmodSync(wrapperPath, WRAPPER_MODE);
-    const started = await startServer(buildEnv({ AGY_BIN: wrapperPath }));
+    const started = await startServer(buildEnv({ AGY_BIN: wrapperPath, QUEUE_CONCURRENCY: "1" }));
     running = started.server;
     const initialized = await postJson(
       `${started.address}/mcp`,

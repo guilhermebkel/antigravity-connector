@@ -1,6 +1,7 @@
 import { AgyOutputError } from "@antigravity-connector/agy";
 import type { RunDoor } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { RunObserver } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
+import type { RunAttachment } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
 import { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
@@ -9,6 +10,7 @@ export type ImageRunInput = {
   door: RunDoor;
   model: string;
   prompt: string;
+  attachments?: readonly RunAttachment[];
 };
 
 export type ImageRunOutcome = {
@@ -49,7 +51,8 @@ export class ImageRunService {
   private async runImage(input: ImageRunInput, signal: AbortSignal | undefined, observer: RunObserver | undefined) {
     try {
       const messages = [{ role: "user" as const, content: input.prompt }];
-      return await this.runService.run("image", { door: input.door, model: input.model, messages }, signal, observer);
+      const attachments = input.attachments ?? [];
+      return await this.runService.run("image", { door: input.door, model: input.model, messages, attachments }, signal, observer);
     } catch (error: unknown) {
       if (error instanceof AgyOutputError) {
         throw new ImageNotProducedError();

@@ -18,12 +18,15 @@ export class RunPromptUtil {
     }
     const instructions: OpenAiMessage[] = [{ role: "system", content: RunPromptUtil.RUN_KIND_TO_INSTRUCTION[kind] }];
     if (attachmentNames.length > 0) {
-      instructions.push({ role: "system", content: RunPromptUtil.buildAttachmentInstruction(attachmentNames) });
+      instructions.push({ role: "system", content: RunPromptUtil.buildAttachmentInstruction(attachmentNames, kind) });
     }
     return PromptUtil.build([...instructions, ...messages]);
   }
 
-  static buildAttachmentInstruction(attachmentNames: readonly string[]): string {
+  static buildAttachmentInstruction(attachmentNames: readonly string[], kind: RunKind = "chat"): string {
+    if (kind === "image") {
+      return `The user attached these reference images, saved in the current directory: ${attachmentNames.join(", ")}. Read each one with the read_file tool, then make the picture from the request, using them as the reference.`;
+    }
     return `The user attached these files, saved in the current directory: ${attachmentNames.join(", ")}. Read each one with the read_file tool before you answer.`;
   }
 }

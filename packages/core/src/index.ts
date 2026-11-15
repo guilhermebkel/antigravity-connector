@@ -32,6 +32,8 @@ export type {
 export { ImageRunService } from "@antigravity-connector/core/Services/ImageRunService.ts";
 export type { ImageRunInput, ImageRunOutcome } from "@antigravity-connector/core/Services/ImageRunService.ts";
 export { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
+export { ImageInputUtil } from "@antigravity-connector/core/Utils/ImageInputUtil.ts";
+export type { ImageInputReason, ImageInputResult, ImageMime } from "@antigravity-connector/core/Protocols/ImageInputProtocol.ts";
 export { ImageInvalidError } from "@antigravity-connector/core/Errors/ImageInvalidError.ts";
 export { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
 export { RunIncompleteError } from "@antigravity-connector/core/Errors/RunIncompleteError.ts";

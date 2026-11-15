@@ -9,6 +9,7 @@ export type Env = {
   AGY_BIN: string;
   AGY_TIMEOUT_MS: number;
   QUEUE_MAX_WAIT_MS: number;
+  QUEUE_CONCURRENCY: number;
   DAILY_LIMIT_CHAT: number;
   DAILY_LIMIT_SEARCH: number;
   DAILY_LIMIT_IMAGE: number;

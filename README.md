@@ -47,7 +47,7 @@ An OpenAI-compatible API under `/v1` (chat with and without streaming, models, l
 
 **One call at a time**
 
-Both doors share one global queue with concurrency 1, plus a daily limit per kind of run. That is the cost control for a subscription, and the reason MCP over stdio is out of scope ([ADR 0006](docs/adr/0006-api-and-mcp-in-one-process-with-one-queue.md)).
+Both doors share one global queue, which runs up to `QUEUE_CONCURRENCY` agy calls at once (4 by default; [ADR 0013](docs/adr/0013-queue-concurrency-of-four.md)), plus a daily limit per kind of run. The daily limits are the cost control for a subscription. MCP over stdio is out of scope ([ADR 0006](docs/adr/0006-api-and-mcp-in-one-process-with-one-queue.md)).
 
 </td>
 </tr>
@@ -208,7 +208,7 @@ claude mcp add --transport http antigravity https://connector.your-domain.com/mc
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
-The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`.
+The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`. It can take up to four reference images in `images`, as base64 `data:` URLs of PNG, JPEG or WebP files of up to 4 MiB each; a remote URL is refused.
 
 The long MCP tools (`web_search`, `generate_image`, `research` and `browse`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
 
@@ -229,6 +229,7 @@ When the client sends a progress token, the server reports progress while a call
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
 | `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue is refused. |
+| `QUEUE_CONCURRENCY` | `4` | Agy runs in flight at once, from `1` to `8`. Calls past this wait in the queue. |
 | `DAILY_LIMIT_CHAT` / `_SEARCH` / `_IMAGE` / `_RESEARCH` / `_BROWSE` | `200` / `50` / `20` / `5` / `20` | Calls per UTC day, per kind. `0` refuses that kind. |
 | `HTTP_MAX_REQUESTS_PER_MINUTE` | `120` | Requests per minute, counted separately for failed and valid authentications. |
 | `DATA_DIR` | `data` (`/data` in the image) | Where the SQLite call log (`calls.sqlite`) is kept. It holds metadata only: no prompts, responses, queries, URLs or images. Rows older than 90 days are deleted at startup. |

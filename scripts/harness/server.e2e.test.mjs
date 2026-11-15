@@ -90,7 +90,7 @@ describe("the built server, cross-door ordering", () => {
       "",
     ].join("\n"));
     chmodSync(wrapper, 0o755);
-    server = await startServer({ env: { AGY_BIN: wrapper } });
+    server = await startServer({ env: { AGY_BIN: wrapper, QUEUE_CONCURRENCY: "1" } });
   });
 
   afterAll(async () => {
@@ -98,7 +98,7 @@ describe("the built server, cross-door ordering", () => {
     rmSync(scratch, { recursive: true, force: true });
   });
 
-  it("a chat call and a tool call sent together never overlap in agy", async () => {
+  it("with QUEUE_CONCURRENCY=1, a chat call and a tool call sent together never overlap in agy", async () => {
     const client = new Client({ name: "e2e", version: "0.0.0" });
     await client.connect(new StreamableHTTPClientTransport(new URL(`${server.baseUrl}/mcp`), {
       requestInit: { headers: { authorization: AUTHORIZATION } },
