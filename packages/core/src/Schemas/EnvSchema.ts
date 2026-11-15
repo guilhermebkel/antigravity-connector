@@ -15,9 +15,12 @@ const DEFAULT_HTTP_MAX_REQUESTS_PER_MINUTE = 120;
 const DEFAULT_MCP_MAX_SESSIONS = 8;
 const DEFAULT_MCP_SESSION_TTL_MS = 1800000;
 const DEFAULT_DATA_DIR = "data";
+const LOG_LEVELS = ["error", "warn", "info", "debug"] as const;
+const DEFAULT_LOG_LEVEL = "info";
 
 export const EnvSchema: z.ZodType<Env> = z.object({
   API_KEY: z.string().min(MIN_API_KEY_LENGTH),
+  LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   HOST: z.string().default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(MAX_PORT).default(DEFAULT_PORT),
   ALLOW_NON_LOOPBACK_BIND: z.stringbool().default(false),

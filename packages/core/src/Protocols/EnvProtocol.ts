@@ -1,5 +1,8 @@
+import type { LogLevel } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
+
 export type Env = {
   API_KEY: string;
+  LOG_LEVEL: LogLevel;
   HOST: string;
   PORT: number;
   ALLOW_NON_LOOPBACK_BIND: boolean;

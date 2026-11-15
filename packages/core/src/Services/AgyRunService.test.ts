@@ -147,7 +147,7 @@ describe("AgyRunService.run", () => {
 
     harness.clock.now = 0;
     await harness.service.run("chat", buildChatInput(`question ${PRIVATE_MARKER}`));
-    const callLines = harness.lines.filter((line) => line.includes("agy_call"));
+    const callLines = harness.lines.filter((line) => line.includes("agy.call.finished"));
 
     expect(callLines).toHaveLength(1);
     expect(callLines[0]).toContain("\"kind\":\"chat\"");

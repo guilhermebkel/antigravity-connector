@@ -32,22 +32,29 @@ export class ServerSetup {
 
   static readonly SHUTDOWN_GRACE_MS = 10000;
 
-  static readonly LISTENING_EVENT = "server_listening";
+  static readonly LISTENING_EVENT = "server.started";
+
+  static readonly STOPPED_EVENT = "server.stopped";
 
   static async run(): Promise<void> {
     const parentEnv = EnvUtil.readProcessEnv();
     const env = EnvUtil.load(parentEnv);
+    const logSink = (line: string): void => {
+      process.stdout.write(`${line}\n`);
+    };
     const server = await ServerSetup.start({
       env,
       parentEnv,
-      logSink: (line: string) => {
-        process.stdout.write(`${line}\n`);
-      },
+      logSink,
       clock: Date.now,
       createRoutePlugins: (runtime) => ServerSetup.buildDoors(runtime, env, Date.now),
     });
     for (const signal of ServerSetup.SHUTDOWN_SIGNALS) {
       process.once(signal, () => {
+        LogUtil.write(
+          { level: "info", event: ServerSetup.STOPPED_EVENT, metadata: { signal } },
+          { now: new Date(Date.now()), secrets: [env.API_KEY], sink: logSink },
+        );
         void ServerSetup.stopServer(server, ServerSetup.SHUTDOWN_GRACE_MS).then(() => {
           process.exit(0);
         });
@@ -91,6 +98,7 @@ export class ServerSetup {
   }
 
   static async start(options: ServerSetupOptions): Promise<RunningServer> {
+    LogUtil.setMinLevel(options.env.LOG_LEVEL);
     NetworkBindUtil.assertBindAllowed(options.env.HOST, options.env.ALLOW_NON_LOOPBACK_BIND);
     const server = await ServerSetup.build(options);
     await server.app.listen({ host: options.env.HOST, port: options.env.PORT });

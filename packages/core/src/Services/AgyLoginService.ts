@@ -19,11 +19,13 @@ export type AgyLoginServiceOptions = {
 export class AgyLoginService {
   static readonly LOGIN_WINDOW_SECONDS = 60;
 
-  static readonly LOGIN_STARTED_EVENT = "agy_login_started";
+  static readonly LOGIN_STARTED_EVENT = "agy.login.started";
 
-  static readonly LOGIN_SUBMITTED_EVENT = "agy_login_submitted";
+  static readonly LOGIN_SUBMITTED_EVENT = "agy.login.submitted";
 
   static readonly UNKNOWN_REASON = "unknown";
+
+  static readonly NORMAL_RESULTS: readonly ("connected" | "started")[] = ["connected", "started"];
 
   static readonly SUBMIT_RESULT_TO_ERROR: Partial<Record<AgyLoginSubmitResult["kind"], () => Error>> = {
     no_attempt: () => new AuthAttemptMissingError(),
@@ -96,6 +98,7 @@ export class AgyLoginService {
 
   private log(event: string, result: string): void {
     const context: LogContext = { now: new Date(this.clock()), sink: this.logSink, secrets: this.secrets };
-    LogUtil.write({ event, level: "info", metadata: { result } }, context);
+    const isNormal = AgyLoginService.NORMAL_RESULTS.some((normal) => normal === result);
+    LogUtil.write({ event, level: isNormal ? "info" : "warn", metadata: { result } }, context);
   }
 }

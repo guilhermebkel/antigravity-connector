@@ -28,6 +28,12 @@ export type AgyRunServiceOptions = {
 
 export type CallResult = "success" | "error" | "stopped";
 
+export type DetailFields = {
+  exitCode?: number;
+  envelopeStatus?: string;
+  envelopeError?: string;
+};
+
 export type CallOutcome = {
   result: CallResult;
   usage?: AgyUsage;
@@ -36,17 +42,13 @@ export type CallOutcome = {
 };
 
 export class AgyRunService {
-  static readonly CALL_EVENT = "agy_call";
+  static readonly CALL_EVENT = "agy.call.finished";
 
   static readonly UNKNOWN_ERROR_CODE = "unknown";
 
-  static readonly NO_EXIT_CODE_LABEL = "none";
-
-  static readonly NO_ENVELOPE_LABEL = "none";
-
-  static readonly RESULT_TO_LEVEL: Readonly<Record<CallResult, "info" | "warn">> = {
+  static readonly RESULT_TO_LEVEL: Readonly<Record<CallResult, "info" | "warn" | "error">> = {
     success: "info",
-    error: "warn",
+    error: "error",
     stopped: "warn",
   };
 
@@ -317,11 +319,17 @@ export class AgyRunService {
     if (!(error instanceof AgyFailedError)) {
       return {};
     }
-    return {
-      exitCode: error.exitCode ?? AgyRunService.NO_EXIT_CODE_LABEL,
-      envelopeStatus: error.envelopeStatus ?? AgyRunService.NO_ENVELOPE_LABEL,
-      envelopeError: error.envelopeError ?? "",
-    };
+    const fields: DetailFields = {};
+    if (error.exitCode !== null) {
+      fields.exitCode = error.exitCode;
+    }
+    if (error.envelopeStatus !== undefined) {
+      fields.envelopeStatus = error.envelopeStatus;
+    }
+    if (error.envelopeError !== undefined) {
+      fields.envelopeError = error.envelopeError;
+    }
+    return fields;
   }
 
   static buildErrorFields(errorCode: string | undefined): LogFieldToValue {
