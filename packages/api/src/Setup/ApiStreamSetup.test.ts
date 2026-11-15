@@ -56,7 +56,12 @@ const readChunks = (body: string): SseChunk[] => readDataLines(body)
 
 const buildApp = async (runtime: StubRuntime, keepAliveMs = ApiSetup.KEEP_ALIVE_MS): Promise<FastifyInstance> => {
   const app = Fastify({ logger: false });
-  ApiSetup.register(app, { runService: runtime.runService, clock: () => 1700000000000, keepAliveMs });
+  ApiSetup.register(app, {
+    runService: runtime.runService,
+    loginService: runtime.loginService,
+    clock: () => 1700000000000,
+    keepAliveMs,
+  });
   await app.ready();
   return app;
 };
@@ -165,7 +170,12 @@ describe("ApiSetup streaming", () => {
       },
     });
     app = Fastify({ logger: false });
-    ApiSetup.register(app, { runService: runtime.runService, clock: () => 0, keepAliveMs: SHORT_KEEP_ALIVE_MS });
+    ApiSetup.register(app, {
+      runService: runtime.runService,
+      loginService: runtime.loginService,
+      clock: () => 0,
+      keepAliveMs: SHORT_KEEP_ALIVE_MS,
+    });
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
     const holder = fetch(`${address}${CHAT_PATH}`, { method: "POST", headers: API_KEY_HEADER, body: buildBody({ stream: false }) });
     await waitFor(() => runtime.requests.length === 1);

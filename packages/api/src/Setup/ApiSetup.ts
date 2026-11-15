@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { ImageRunService, type AgyRunService } from "@antigravity-connector/core";
+import { ImageRunService, type AgyLoginService, type AgyRunService } from "@antigravity-connector/core";
+import { AuthRoute } from "@antigravity-connector/api/Routes/AuthRoute.ts";
 import { ChatCompletionRoute } from "@antigravity-connector/api/Routes/ChatCompletionRoute.ts";
 import { ImagesRoute } from "@antigravity-connector/api/Routes/ImagesRoute.ts";
 import { ModelsRoute } from "@antigravity-connector/api/Routes/ModelsRoute.ts";
@@ -9,6 +10,7 @@ import { ImageGenerationService } from "@antigravity-connector/api/Services/Imag
 
 export type ApiSetupOptions = {
   runService: AgyRunService;
+  loginService: AgyLoginService;
   clock: () => number;
   keepAliveMs?: number;
 };
@@ -30,5 +32,6 @@ export class ApiSetup {
     ModelsRoute.register(app, options.clock);
     ChatCompletionRoute.register(app, service, { keepAliveMs: options.keepAliveMs ?? ApiSetup.KEEP_ALIVE_MS });
     ImagesRoute.register(app, imageService);
+    AuthRoute.register(app, options.loginService);
   }
 }

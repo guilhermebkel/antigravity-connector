@@ -1,6 +1,6 @@
 # 0009. No web page: the login link is in the logs and the code goes through docker exec
 
-Status: accepted (2026-11-14)
+Status: superseded by [0012](0012-login-through-the-http-api-and-mcp.md) (2026-11-14)
 
 ## Context
 

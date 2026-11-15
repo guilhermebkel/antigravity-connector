@@ -1,9 +1,14 @@
-<h1 align="center">antigravity-connector</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/svg/horizontal-dark.svg" />
+    <img src="design/svg/horizontal-light.svg" alt="antigravity-connector" width="420" />
+  </picture>
+</h1>
 
 <p align="center">
-  <strong>Use your Google AI Pro subscription as an OpenAI-compatible API and as MCP tools, from one Docker container on your own machine.</strong>
+  <strong>Use your Google AI Pro subscription as an OpenAI-compatible API and as MCP tools, from one Docker container on your own VPS, reached over HTTPS.</strong>
   <br />
-  <em>A personal, localhost-only server. Every call runs the official Antigravity CLI (<code>agy</code>); the app never touches your login token. Not affiliated with Google.</em>
+  <em>A personal server on a VPS, behind HTTPS. Every call runs the official Antigravity CLI (<code>agy</code>); the app never touches your login token. Not affiliated with Google.</em>
 </p>
 
 <p align="center">
@@ -51,14 +56,14 @@ Both doors share one global queue with concurrency 1, plus a daily limit per kin
 
 **Local by default**
 
-Listens on `127.0.0.1` and refuses to start on any other address unless you allow it. Every route but `/health` needs the bearer `API_KEY`.
+Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces so the published port works, and the install publishes it on `127.0.0.1` only, behind the HTTPS proxy. Every route but `/health` needs the bearer `API_KEY`.
 
 </td>
 <td valign="top">
 
 **No web page, almost no state**
 
-The login link appears in the container logs and the code goes in through `docker exec` ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The only stored data is a small SQLite call log with metadata, so the daily limits survive a restart ([ADR 0010](docs/adr/0010-sqlite-call-log-and-daily-counters.md)).
+The login is done over HTTP: `GET /v1/auth` returns a link and `POST /v1/auth` takes the code ([ADR 0012](docs/adr/0012-login-through-the-http-api-and-mcp.md)). The only stored data is a small SQLite call log with metadata, so the daily limits survive a restart ([ADR 0010](docs/adr/0010-sqlite-call-log-and-daily-counters.md)).
 
 </td>
 </tr>
@@ -78,7 +83,7 @@ Video, Google Flow, Deep Research from the Gemini app, workflows, swarms, MCP ov
 
 ## Risk note
 
-Running a subscription through a local tool is not something Google documents for the CLI. Its terms, its limits and the CLI itself can change at any time, and a call can fail or be refused. Use it for yourself, on your own machine, at a low volume. Keep the API key secret: anyone who has it can spend your daily limits.
+Running a subscription through a server you expose to the internet is not something Google documents for the CLI. Its terms, its limits and the CLI itself can change at any time, and a call can fail or be refused. Use it for yourself, on your own machine, at a low volume. Keep the API key secret: anyone who has it can spend your daily limits.
 
 ## Requirements
 
@@ -90,18 +95,61 @@ Running a subscription through a local tool is not something Google documents fo
 ```bash
 cp .env.example .env                 # then set API_KEY to a random value of at least 24 characters
 docker compose up -d --build
-docker logs antigravity-connector    # shows the login block if agy is not logged in yet
-curl http://127.0.0.1:8787/health
+curl -H "Authorization: Bearer $API_KEY" http://127.0.0.1:8787/v1/auth    # login link, if agy is not logged in yet
+curl -s http://127.0.0.1:8787/health
 ```
+
+## Install on a VPS with Docker
+
+Like the better-caprover-mcp install: one `docker run` command, no clone and no files. The image is `ghcr.io/guilhermebkel/antigravity-connector`, public on GitHub Container Registry.
+
+The container publishes its port on `127.0.0.1` only, so the internet reaches it only through the HTTPS proxy your server already uses for your other apps.
+
+1. Point a host name at the VPS (an A record, such as `connector.your-domain.com`).
+
+2. Start the container:
+
+   ```bash
+   docker run -d --name antigravity-connector --restart unless-stopped \
+     -p 127.0.0.1:8787:8787 \
+     -e API_KEY='your-random-api-key-at-least-24-chars' \
+     -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
+     ghcr.io/guilhermebkel/antigravity-connector:latest
+   ```
+
+3. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)). Ask for the link, open it, copy the code, and send it back within 60 seconds:
+
+   ```bash
+   curl -H "Authorization: Bearer your-random-api-key-at-least-24-chars" https://connector.your-domain.com/v1/auth
+   curl -X POST -H "Authorization: Bearer your-random-api-key-at-least-24-chars" -H "Content-Type: application/json" \
+     -d '{"code":"the code from the login page"}' https://connector.your-domain.com/v1/auth
+   ```
+
+4. Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}`:
+
+   ```bash
+   curl https://connector.your-domain.com/health
+   ```
+
+5. Connect Claude Code on your computer:
+
+   ```bash
+   claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
+     --header "Authorization: Bearer your-random-api-key-at-least-24-chars"
+   ```
+
+The API key must be at least 24 characters, and it is the only access control: anyone who has it can spend your daily limits. `docker inspect` shows the value of `-e API_KEY`, so keep the VPS to yourself.
+
+To update, pull the new image and run the `docker run` command again after removing the old container (`docker rm -f antigravity-connector`); the login and the call log stay in their volumes.
 
 ## Logging in
 
-The first start has no session, so the server logs a login block with a URL and a command:
+The first start has no session. The login is done over HTTP with the API key, so no shell into the container is needed:
 
-1. Read the link: `docker logs antigravity-connector`.
-2. Open the URL in a browser, sign in, and copy the code it shows.
-3. Run `docker exec -it antigravity-connector agy` and paste the code.
-4. Check: `curl http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`.
+1. Ask for the link: `GET /v1/auth` returns `{"status":"login_required","login_url":"https://accounts.google.com/...","expires_in_seconds":60}`. The MCP tool is `check_auth`.
+2. Open `login_url` in a browser, sign in with the Google account that has the AI Pro plan, and copy the code the page shows.
+3. Send the code within 60 seconds: `POST /v1/auth` with `{"code":"..."}` returns `{"status":"connected"}`. The MCP tool is `set_auth`. A wrong or expired code is refused; ask for a new link and try again.
+4. Check: `GET /v1/auth` returns `{"status":"connected"}`, and `/health` returns `{"status":"ok","agy":"connected"}`.
 
 The login is kept in the named volume `agy-gemini`. `docker compose down` keeps it; `docker compose down -v` removes it, and you must log in again.
 
@@ -110,7 +158,7 @@ The login is kept in the named volume `agy-gemini`. `docker compose down` keeps 
 With `curl`:
 
 ```bash
-curl http://127.0.0.1:8787/v1/chat/completions \
+curl https://connector.your-domain.com/v1/chat/completions \
   -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \
   -d '{"model":"gemini-3.8-flash","reasoning_effort":"low","messages":[{"role":"user","content":"Say hello in one word."}]}'
 ```
@@ -123,7 +171,7 @@ import { generateText } from "ai";
 
 const provider = createOpenAICompatible({
   name: "antigravity",
-  baseURL: "http://127.0.0.1:8787/v1",
+  baseURL: "https://connector.your-domain.com/v1",
   apiKey: process.env.API_KEY,
 });
 const { text } = await generateText({ model: provider("gemini-3.8-flash"), prompt: "Say hello in one word." });
@@ -139,7 +187,7 @@ More endpoints and options:
 ## Connecting Claude Code to `/mcp`
 
 ```bash
-claude mcp add --transport http antigravity http://127.0.0.1:8787/mcp \
+claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
   --header "Authorization: Bearer <API_KEY>"
 ```
 
@@ -159,7 +207,7 @@ When the client sends a progress token, the server reports progress while a call
 | --- | --- | --- |
 | `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
-| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. Only for Docker, with the port published on `127.0.0.1`. |
+| `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the port can be published on the host. Publish it on `127.0.0.1` only and put an HTTPS proxy in front. |
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
@@ -223,21 +271,21 @@ Found a way around any of this? Open an issue without secrets in it.
 ## How it compares
 
 - **Using the token directly (a proxy that calls Google's internal API)** is what got accounts banned. Here the token never leaves the CLI.
-- **A generic OpenAI proxy** gives every client the whole subscription with no queue and no limits. Here there is one queue, a daily limit per kind of run and a loopback-only bind.
+- **A generic OpenAI proxy** gives every client the whole subscription with no queue and no limits. Here there is one queue, a daily limit per kind of run, an API key and HTTPS in front.
 
 ## FAQ
 
 <details>
 <summary><b>Can I expose it to the internet or share it with other people?</b></summary>
 
-No. It is a single-user, localhost-only server, and the subscription is yours. Binding another address needs `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets, and the compose file publishes the port on `127.0.0.1` only.
+No. It is a single-user server, reachable over HTTPS with an API key, and the subscription is yours. The bind guard refuses another address unless `ALLOW_NON_LOOPBACK_BIND=true`, which only the Docker image sets; the install and an HTTPS proxy is the public entry.
 
 </details>
 
 <details>
 <summary><b>Why is the first login done in a terminal?</b></summary>
 
-There is no web page on purpose. When there is no session, `agy` prints a login link; you open it, sign in and paste the code with `docker exec`. `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The landing page is a separate static folder, `site/` ([ADR 0011](docs/adr/0011-landing-page-and-logo-in-the-repository.md)).
+There is no web page on purpose. When there is no session, `GET /v1/auth` (or the `check_auth` tool) returns a login link; you open it, sign in, and send the code to `POST /v1/auth` (or `set_auth`). `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The landing page is a separate static folder, `site/` ([ADR 0011](docs/adr/0011-landing-page-and-logo-in-the-repository.md)).
 
 </details>
 

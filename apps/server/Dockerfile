@@ -15,7 +15,7 @@ FROM debian:bookworm-slim AS agy
 ARG AGY_URL=https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.9-4515810895593472/linux-x64/cli_linux_x64.tar.gz
 ARG AGY_SHA512=d01eb13ba7750eed18907f1ae8860864371e0ad9064415e8d033d22b4bd7b9b4e4c7f962058520b452d67db1c33163d9a889d55a7dffa159596ec6cd91a87b79
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
+ && apt-get install -y --no-install-recommends ca-certificates curl util-linux \
  && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL -o /tmp/agy.tar.gz "${AGY_URL}" \
  && echo "${AGY_SHA512}  /tmp/agy.tar.gz" | sha512sum -c - \
@@ -38,7 +38,7 @@ COPY --from=agy /usr/local/bin/agy /usr/local/bin/agy
 WORKDIR /app
 COPY --from=build /deploy/node_modules ./node_modules
 COPY --from=build /repo/apps/server/dist/main.mjs ./main.mjs
-# Why: the bind guard refuses 0.0.0.0 unless ALLOW_NON_LOOPBACK_BIND is set; the container must listen on all interfaces so Docker can forward the port, and compose publishes it on 127.0.0.1 only.
+# Why: the bind guard refuses 0.0.0.0 unless ALLOW_NON_LOOPBACK_BIND is set; the container must listen on all interfaces so the Caddy proxy in compose can reach it. Only Caddy publishes ports.
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     ALLOW_NON_LOOPBACK_BIND=true \

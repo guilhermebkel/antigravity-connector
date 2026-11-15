@@ -77,7 +77,7 @@ const sendRawChat = (port: number): RawChatState => {
 
 const buildApp = async (runtime: StubRuntime): Promise<FastifyInstance> => {
   const app = Fastify({ logger: false });
-  ApiSetup.register(app, { runService: runtime.runService, clock: () => CLOCK_MS });
+  ApiSetup.register(app, { runService: runtime.runService, loginService: runtime.loginService, clock: () => CLOCK_MS });
   await app.ready();
   return app;
 };
@@ -193,7 +193,11 @@ describe("ApiSetup", () => {
       },
     });
     app = Fastify({ logger: false });
-    ApiSetup.register(app, { runService: runtime.runService, clock: () => CLOCK_MS });
+    ApiSetup.register(app, {
+      runService: runtime.runService,
+      loginService: runtime.loginService,
+      clock: () => CLOCK_MS,
+    });
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
     const port = Number(new URL(address).port);
     const first = fetch(`${address}${CHAT_PATH}`, { method: "POST", headers: API_KEY_HEADER, body: buildChatBody() });

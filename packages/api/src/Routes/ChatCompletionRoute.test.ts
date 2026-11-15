@@ -15,7 +15,12 @@ const buildApp = (respond?: () => Promise<StubRunResult>): {
 } => {
   const stub = StubRuntimeUtil.build(respond === undefined ? {} : { respond });
   const server = Fastify({ logger: false });
-  ApiSetup.register(server, { runService: stub.runService, clock: () => CLOCK_MS, keepAliveMs: 60000 });
+  ApiSetup.register(server, {
+    runService: stub.runService,
+    loginService: stub.loginService,
+    clock: () => CLOCK_MS,
+    keepAliveMs: 60000,
+  });
   app = server;
   return { server, stub };
 };

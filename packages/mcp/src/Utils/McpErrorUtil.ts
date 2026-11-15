@@ -5,7 +5,7 @@ export class McpErrorUtil {
     = "The call did not run because of an unexpected error. What to do: check the container logs, then retry.";
 
   static readonly CODE_TO_TEXT: Readonly<Partial<Record<OpenAiErrorCode, string>>> = {
-    agy_session_required: "The call did not run: agy is not logged in. What to do: check the container logs for the login block, log in with docker exec, then retry.",
+    agy_session_required: "The call did not run: agy is not logged in. What to do: call check_auth for a login link, then set_auth with the code, then retry.",
     queue_timeout: "The call did not run: it waited too long in the agy queue. What to do: retry in a moment.",
     agy_timeout: "The call was stopped: agy did not finish in time. What to do: retry with a narrower query.",
     agy_failed: "The call failed: agy could not answer. What to do: check the container logs, then retry.",

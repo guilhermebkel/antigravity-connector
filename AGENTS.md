@@ -1,6 +1,6 @@
 # antigravity-connector
 
-A personal, localhost-only Docker server that exposes the owner's Google AI Pro subscription through two doors in one Node process: an OpenAI-compatible API under `/v1` and an MCP server (Streamable HTTP) under `/mcp`. Every call spawns the official Antigravity CLI, `agy`. The server has no web page; the landing page is a separate static folder (`site/`, ADR 0011). Vocabulary is in `GLOSSARY.md`; decisions are in `docs/adr/`; planned work is in GitHub issues (the execution order is the roadmap issue; the project brief is issue #1).
+A personal Docker server, run on the owner's VPS behind HTTPS (Caddy), that exposes the owner's Google AI Pro subscription through two doors in one Node process: an OpenAI-compatible API under `/v1` and an MCP server (Streamable HTTP) under `/mcp`. Every call spawns the official Antigravity CLI, `agy`. The server has no web page; the landing page is a separate static folder (`site/`, ADR 0011). Vocabulary is in `GLOSSARY.md`; decisions are in `docs/adr/`; planned work is in GitHub issues (the execution order is the roadmap issue; the project brief is issue #1).
 
 ## Layout
 

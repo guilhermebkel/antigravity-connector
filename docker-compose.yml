@@ -1,5 +1,6 @@
-# One container for the server. The API and MCP ports are published on 127.0.0.1 only.
-# The named volumes keep the agy login (agy-gemini) and the call log (agy-data) across restarts and recreates (keep them: `docker compose down` without -v).
+# Local run from this repository: builds the image and publishes the API and MCP port on 127.0.0.1 only.
+# The named volumes keep the agy login (agy-gemini) and the call log (agy-data) across restarts and recreates.
+# Keep them: `docker compose down` without -v. The VPS install does not use this file (see the README).
 services:
   antigravity-connector:
     build:

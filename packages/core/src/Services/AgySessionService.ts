@@ -14,9 +14,9 @@ export type AgySessionOptions = {
 };
 
 export class AgySessionService {
-  static readonly LOGIN_COMMAND = "docker exec -it antigravity-connector agy";
+  static readonly LOGIN_COMMAND = "GET /v1/auth, then POST /v1/auth with the code";
 
-  static readonly LOGIN_MESSAGE = "agy is not logged in: open loginUrl in a browser, then enter the code with command";
+  static readonly LOGIN_MESSAGE = "agy is not logged in: open loginUrl in a browser, then send the code to the auth route";
 
   static readonly UNKNOWN_REASON = "unknown";
 
