@@ -1,13 +1,16 @@
 import type { McpToolContext, McpToolPort, McpToolRun } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
-import type { ResearchInput, ResearchOutput } from "@antigravity-connector/mcp/Protocols/ResearchProtocol.ts";
-import { ResearchInputSchema, ResearchOutputSchema } from "@antigravity-connector/mcp/Schemas/ResearchSchema.ts";
+import type { ResearchInput } from "@antigravity-connector/mcp/Protocols/ResearchProtocol.ts";
+import type { ToolJobOutput, ToolRunOutput } from "@antigravity-connector/mcp/Protocols/ToolJobProtocol.ts";
+import { ResearchInputSchema } from "@antigravity-connector/mcp/Schemas/ResearchSchema.ts";
+import { ToolJobOutputSchema } from "@antigravity-connector/mcp/Schemas/ToolJobSchema.ts";
 import { RunEnvelopeUtil } from "@antigravity-connector/mcp/Utils/RunEnvelopeUtil.ts";
 import { ReportUtil } from "@antigravity-connector/mcp/Utils/ReportUtil.ts";
 import { SourceUtil } from "@antigravity-connector/mcp/Utils/SourceUtil.ts";
+import { ToolJobUtil } from "@antigravity-connector/mcp/Utils/ToolJobUtil.ts";
 
 export type ResearchToolOptions = { dailyLimit: number };
 
-export class ResearchTool implements McpToolPort<ResearchInput, ResearchOutput> {
+export class ResearchTool implements McpToolPort<ResearchInput, ToolJobOutput> {
   static readonly DEFAULT_MODEL = "gemini-3.8-flash";
 
   static readonly MS_PER_SECOND = 1000;
@@ -20,7 +23,7 @@ export class ResearchTool implements McpToolPort<ResearchInput, ResearchOutput> 
 
   readonly inputSchema = ResearchInputSchema;
 
-  readonly outputSchema = ResearchOutputSchema;
+  readonly outputSchema = ToolJobOutputSchema;
 
   readonly annotations = { readOnlyHint: true, openWorldHint: true };
 
@@ -31,10 +34,17 @@ export class ResearchTool implements McpToolPort<ResearchInput, ResearchOutput> 
       `It is limited to ${options.dailyLimit} calls per day.`,
       "For a quick question, use web_search instead.",
       `The report is capped at ${ReportUtil.MAX_CHARS} characters; truncated is true when it was cut.`,
+      "It returns status running and a job_id when the report is not ready within about 20 seconds: call get_result with that job_id after retry_after_seconds, until it returns the report.",
     ].join(" ");
   }
 
-  async run(input: ResearchInput, context: McpToolContext): Promise<McpToolRun<ResearchOutput>> {
+  async run(input: ResearchInput, context: McpToolContext): Promise<McpToolRun<ToolJobOutput>> {
+    const job = context.toolJobs.start("research", (signal) => this.execute(input, ToolJobUtil.buildWithSignal(context, signal)));
+    await context.toolJobs.waitUpTo(job, context.signal);
+    return ToolJobUtil.buildRun(job, context.toolJobs.retryAfterSeconds);
+  }
+
+  async execute(input: ResearchInput, context: McpToolContext): Promise<McpToolRun<ToolRunOutput>> {
     const model = input.model ?? ResearchTool.DEFAULT_MODEL;
     const envelope = await RunEnvelopeUtil.read(
       context.runService,
@@ -55,8 +65,7 @@ export class ResearchTool implements McpToolPort<ResearchInput, ResearchOutput> 
     };
   }
 
-  summarize(output: ResearchOutput): string {
-    const truncation = output.truncated ? " The report was truncated." : "";
-    return `Wrote a research report with ${output.sources.length} source link(s) in ${output.durationMs} ms.${truncation}`;
+  summarize(output: ToolJobOutput): string {
+    return ToolJobUtil.summarize(output);
   }
 }

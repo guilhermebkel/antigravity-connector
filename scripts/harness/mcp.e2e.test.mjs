@@ -26,7 +26,7 @@ describe("the built server, MCP door", () => {
     expect(client.getInstructions()).toContain("subscription");
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
-    expect(names).toStrictEqual(["browse", "check_auth", "generate_image", "research", "set_auth", "web_search"]);
+    expect(names).toStrictEqual(["browse", "check_auth", "generate_image", "get_result", "research", "set_auth", "web_search"]);
     for (const tool of tools) {
       expect(typeof tool.inputSchema).toBe("object");
       expect(typeof tool.outputSchema).toBe("object");

@@ -1,8 +1,11 @@
 import type { McpToolContext, McpToolPort, McpToolRun } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
-import type { GenerateImageInput, GenerateImageOutput } from "@antigravity-connector/mcp/Protocols/GenerateImageProtocol.ts";
-import { GenerateImageInputSchema, GenerateImageOutputSchema } from "@antigravity-connector/mcp/Schemas/GenerateImageSchema.ts";
+import type { GenerateImageInput } from "@antigravity-connector/mcp/Protocols/GenerateImageProtocol.ts";
+import type { ToolJobOutput, ToolRunOutput } from "@antigravity-connector/mcp/Protocols/ToolJobProtocol.ts";
+import { GenerateImageInputSchema } from "@antigravity-connector/mcp/Schemas/GenerateImageSchema.ts";
+import { ToolJobOutputSchema } from "@antigravity-connector/mcp/Schemas/ToolJobSchema.ts";
+import { ToolJobUtil } from "@antigravity-connector/mcp/Utils/ToolJobUtil.ts";
 
-export class GenerateImageTool implements McpToolPort<GenerateImageInput, GenerateImageOutput> {
+export class GenerateImageTool implements McpToolPort<GenerateImageInput, ToolJobOutput> {
   static readonly DEFAULT_MODEL = "gemini-3.8-flash";
 
   readonly name = "generate_image";
@@ -13,17 +16,24 @@ export class GenerateImageTool implements McpToolPort<GenerateImageInput, Genera
     "Generates one PNG image from a text prompt with agy's image generator.",
     "Use it when the user asks for a picture, not for text.",
     "Do not use it to describe an existing image.",
-    "Returns the image and its size.",
-    "A call takes about a minute and spends subscription quota; it counts against the daily image limit.",
+    "Returns the image and its size when it is ready within about 20 seconds.",
+    "Otherwise returns status running and a job_id: call get_result with that job_id after retry_after_seconds, until it returns the image.",
+    "A job takes about a minute and spends subscription quota; it counts against the daily image limit.",
   ].join(" ");
 
   readonly inputSchema = GenerateImageInputSchema;
 
-  readonly outputSchema = GenerateImageOutputSchema;
+  readonly outputSchema = ToolJobOutputSchema;
 
   readonly annotations = { readOnlyHint: true, openWorldHint: false };
 
-  async run(input: GenerateImageInput, context: McpToolContext): Promise<McpToolRun<GenerateImageOutput>> {
+  async run(input: GenerateImageInput, context: McpToolContext): Promise<McpToolRun<ToolJobOutput>> {
+    const job = context.toolJobs.start("image", (signal) => this.execute(input, ToolJobUtil.buildWithSignal(context, signal)));
+    await context.toolJobs.waitUpTo(job, context.signal);
+    return ToolJobUtil.buildRun(job, context.toolJobs.retryAfterSeconds);
+  }
+
+  async execute(input: GenerateImageInput, context: McpToolContext): Promise<McpToolRun<ToolRunOutput>> {
     const model = input.model ?? GenerateImageTool.DEFAULT_MODEL;
     const outcome = await context.imageService.generate(
       { model, door: "mcp", prompt: input.prompt },
@@ -46,7 +56,7 @@ export class GenerateImageTool implements McpToolPort<GenerateImageInput, Genera
     };
   }
 
-  summarize(output: GenerateImageOutput): string {
-    return `Generated a PNG image of ${output.sizeBytes} bytes in ${output.durationMs} ms.`;
+  summarize(output: ToolJobOutput): string {
+    return ToolJobUtil.summarize(output);
   }
 }

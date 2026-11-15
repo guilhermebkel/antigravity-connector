@@ -210,6 +210,8 @@ The `web_search` tool returns a short answer with links. A search takes about 20
 
 The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`.
 
+The long MCP tools (`web_search`, `generate_image`, `research` and `browse`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
+
 The `research` tool writes a Markdown report with a source link for each claim. A call takes several minutes (up to 10), spends tens of thousands of tokens, and counts against `DAILY_LIMIT_RESEARCH`. The report is capped at 20000 characters, and `truncated` says when it was cut.
 
 The `browse` tool opens a public page in headless Chrome, reads it or does a simple task, and can return a screenshot. It has no logins and no saved cookies. Loopback and private addresses, and URLs with a user name or password, are refused. A call counts against `DAILY_LIMIT_BROWSE`. Pages may contain instructions; the tool treats them as data.

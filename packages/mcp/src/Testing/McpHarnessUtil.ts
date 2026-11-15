@@ -12,6 +12,7 @@ export type McpHarnessOptions = StubRunOptions & {
   maxSessions?: number;
   researchDailyLimit?: number;
   sessionTtlMs?: number;
+  jobWaitMs?: number;
 };
 
 export type McpHarness = {
@@ -37,6 +38,7 @@ export class McpHarnessUtil {
       maxSessions: options.maxSessions ?? McpHarnessUtil.MAX_SESSIONS,
       researchDailyLimit: options.researchDailyLimit ?? McpHarnessUtil.RESEARCH_DAILY_LIMIT,
       loginService: stub.loginService,
+      jobWaitMs: options.jobWaitMs,
     });
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
     return { app, address, clock, requests: stub.requests };

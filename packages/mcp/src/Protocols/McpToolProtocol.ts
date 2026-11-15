@@ -1,12 +1,14 @@
 import type { z } from "zod";
 import type { ContentBlock, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { AgyLoginService, AgyRunService, ImageRunService, RunObserver } from "@antigravity-connector/core";
+import type { ToolJobService } from "@antigravity-connector/mcp/Services/ToolJobService.ts";
 
 export type McpToolAnnotations = ToolAnnotations;
 
 export type McpToolContext = {
   runService: AgyRunService;
   imageService: ImageRunService;
+  toolJobs: ToolJobService;
   loginService: AgyLoginService;
   signal: AbortSignal | undefined;
   observer: RunObserver;

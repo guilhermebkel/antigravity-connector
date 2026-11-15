@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { StubRuntimeUtil, type StubRunResult } from "@antigravity-connector/core";
 import { McpHarnessUtil } from "@antigravity-connector/mcp/Testing/McpHarnessUtil.ts";
@@ -29,7 +30,56 @@ const readImageBlock = (result: unknown): {
   return block?.data === undefined ? undefined : { data: block.data, mimeType: block.mimeType ?? "" };
 };
 
-describe("generate_image over MCP", () => {
+type StructuredJobOutput = {
+  status: "done" | "running";
+  jobId: string;
+  retryAfterSeconds?: number;
+  sizeBytes?: number;
+};
+
+const readStructured = (result: unknown): StructuredJobOutput => {
+  return (result as { structuredContent: StructuredJobOutput }).structuredContent;
+};
+
+describe("generate_image and get_result over MCP", () => {
+  it("AC7: an image slower than the wait returns a job id, and get_result returns the image once it is ready", async () => {
+    let finish: () => void = () => undefined;
+    const harness = await McpHarnessUtil.start({
+      jobWaitMs: 20,
+      respond: () => new Promise((resolve) => {
+        finish = () => {
+          resolve(buildImageResult({ "output.png": readPngBytes() }));
+        };
+      }),
+    });
+    const client = await McpHarnessUtil.connect(harness.address);
+    const started = await client.callTool({ name: "generate_image", arguments: { prompt: PROMPT } });
+    expect(started.isError).not.toBe(true);
+    expect(readImageBlock(started)).toBeUndefined();
+    const job = readStructured(started);
+    expect(job.status).toBe("running");
+    expect(job.retryAfterSeconds).toBe(15);
+    const stillRunning = await client.callTool({ name: "get_result", arguments: { job_id: job.jobId } });
+    expect(readStructured(stillRunning).status).toBe("running");
+    finish();
+    const ready = await client.callTool({ name: "get_result", arguments: { job_id: job.jobId } });
+    expect(readStructured(ready).status).toBe("done");
+    expect(readStructured(ready).sizeBytes).toBe(readPngBytes().byteLength);
+    expect(readImageBlock(ready)?.mimeType).toBe("image/png");
+    await client.close();
+    await harness.app.close();
+  });
+
+  it("AC8: get_result with an unknown job id is a tool error that says what to do", async () => {
+    const harness = await McpHarnessUtil.start();
+    const client = await McpHarnessUtil.connect(harness.address);
+    const result = await client.callTool({ name: "get_result", arguments: { job_id: randomUUID() } });
+    expect(result.isError).toBe(true);
+    expect(McpHarnessUtil.readFirstText(result)).toContain("no job has this job_id");
+    await client.close();
+    await harness.app.close();
+  });
+
   it("AC1: one image block holds PNG bytes, and sizeBytes equals their length", async () => {
     const harness = await McpHarnessUtil.start({
       respond: () => Promise.resolve(buildImageResult({ "output.png": readPngBytes() })),

@@ -6,11 +6,3 @@ export type BrowseInput = {
   screenshot?: boolean;
   model?: ModelId;
 };
-
-export type BrowseOutput = {
-  text: string;
-  hasScreenshot: boolean;
-  model: string;
-  durationMs: number;
-  totalTokens: number;
-};

@@ -1,4 +1,5 @@
 import type { OpenAiErrorCode } from "@antigravity-connector/protocol";
+import { JobNotFoundError } from "@antigravity-connector/mcp/Errors/JobNotFoundError.ts";
 
 export class McpErrorUtil {
   static readonly UNKNOWN_TEXT
@@ -19,6 +20,9 @@ export class McpErrorUtil {
   ]);
 
   static describe(error: unknown): string {
+    if (error instanceof JobNotFoundError) {
+      return JobNotFoundError.MESSAGE;
+    }
     const code = McpErrorUtil.readCode(error);
     if (code === undefined) {
       return McpErrorUtil.UNKNOWN_TEXT;

@@ -6,7 +6,7 @@ The server speaks MCP over Streamable HTTP only, on `/mcp`, in the same process 
 
 ## Scope
 
-- **One tool per thing a client does (review).** A tool is a task, not a copy of an `agy` capability. The tools are `web_search`, `generate_image` and, later, `research` and `browse`.
+- **One tool per thing a client does (review).** A tool is a task, not a copy of an `agy` capability. The tools are `web_search`, `generate_image`, `research`, `browse`, `get_result` (the job result) and the login pair `check_auth` and `set_auth`.
 - **Names are a verb and an object, in `snake_case` (test).** No service prefix: the client already shows the server name.
 - **Filtering and shaping happen in the server (review).** A tool returns what the model needs, not the raw `agy` output.
 
@@ -46,7 +46,8 @@ The server speaks MCP over Streamable HTTP only, on `/mcp`, in the same process 
 
 ## Long calls
 
-- **A long call reports progress (test).** While a call waits in the queue or runs, the server sends MCP progress notifications when the client asks for them, so the client does not time out.
+- **A long call is a job (test).** A call that is still running after about 20 seconds returns `status` `running` and a `job_id`; `get_result` returns the result later. The client gives up at about 60 seconds, so a call never waits longer than the wait. A cancel during the wait stops the run, as a synchronous call would; after the wait the run is not tied to the request, so a client that stops asking does not cancel it. `get_result` never cancels a run. The API is not affected: its calls wait.
+- **While a call waits, the server reports progress (test).** Before the wait ends, the server sends MCP progress notifications when the client asks for them.
 - **MCP sessions are stateful, capped and expire (test).** The cap and the idle expiry are configuration (`MCP_MAX_SESSIONS`, `MCP_SESSION_TTL_MS`).
 
 ## Before merging a tool

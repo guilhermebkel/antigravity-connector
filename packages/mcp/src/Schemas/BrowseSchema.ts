@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { BrowseInput, BrowseOutput } from "@antigravity-connector/mcp/Protocols/BrowseProtocol.ts";
+import type { BrowseInput } from "@antigravity-connector/mcp/Protocols/BrowseProtocol.ts";
 import { BrowseUrlUtil } from "@antigravity-connector/mcp/Utils/BrowseUrlUtil.ts";
 
 const BROWSE_TASK_MAX_LENGTH = 2000;
@@ -15,12 +15,4 @@ export const BrowseInputSchema: z.ZodType<BrowseInput> = z.strictObject({
     .optional(),
   screenshot: z.boolean().optional(),
   model: z.enum(["gemini-4-argon", "gemini-3.8-flash"]).optional(),
-});
-
-export const BrowseOutputSchema: z.ZodType<BrowseOutput> = z.object({
-  text: z.string(),
-  hasScreenshot: z.boolean(),
-  model: z.string(),
-  durationMs: z.number(),
-  totalTokens: z.number(),
 });
