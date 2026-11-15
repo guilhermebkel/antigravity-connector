@@ -76,14 +76,14 @@ cleanup
 WORK="$(mktemp -d)"
 trap cleanup EXIT
 
-# AC2: without a session, the logs show the login block and /health reports login_required.
+# AC2: without a session, the logs show the login link and the auth route, and /health reports login_required.
 start_container /opt/fake-agy/FakeAgyNoSession.mjs
 wait_for_health
 [[ "$(curl -s "http://127.0.0.1:${PORT}/health")" == '{"status":"ok","agy":"login_required"}' ]] \
   || fail "AC2: /health does not report login_required"
 logs="$(docker logs "${CONTAINER}" 2>&1)"
-[[ "${logs}" == *"docker exec -it antigravity-connector agy"* && "${logs}" == *"loginUrl"* ]] \
+[[ "${logs}" == *"GET /v1/auth"* && "${logs}" == *"loginUrl"* ]] \
   || fail "AC2: the logs do not show the login block"
-echo "AC2 ok: login block in the logs, /health reports login_required"
+echo "AC2 ok: login link and auth route in the logs, /health reports login_required"
 
 echo "image-smoke: all checks passed"
