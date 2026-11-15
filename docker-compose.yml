@@ -1,6 +1,6 @@
-# The app and a Caddy proxy. Caddy publishes 80 and 443 and gets the HTTPS certificate for DOMAIN;
-# the app's port is not published on the host. The named volumes keep the agy login (agy-gemini), the call log (agy-data)
-# and the certificates (caddy-data) across restarts and recreates. Keep them: `docker compose down` without -v.
+# Local run from this repository: builds the image and publishes the API and MCP port on 127.0.0.1 only.
+# The named volumes keep the agy login (agy-gemini) and the call log (agy-data) across restarts and recreates.
+# Keep them: `docker compose down` without -v. The VPS install does not use this file (see the README).
 services:
   antigravity-connector:
     build:
@@ -9,31 +9,13 @@ services:
     image: antigravity-connector:local
     container_name: antigravity-connector
     env_file: .env
-    expose:
-      - "8787"
+    ports:
+      - "127.0.0.1:8787:8787"
     volumes:
       - agy-gemini:/home/agy/.gemini
       - agy-data:/data
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2
-    container_name: antigravity-connector-caddy
-    environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env to the host name that points to this server}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - antigravity-connector
-    restart: unless-stopped
-
 volumes:
   agy-gemini:
   agy-data:
-  caddy-data:
-  caddy-config:

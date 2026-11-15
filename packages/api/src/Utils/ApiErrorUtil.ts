@@ -18,7 +18,7 @@ export class ApiErrorUtil {
     agy_session_required: {
       statusCode: 503,
       type: "server_error",
-      message: "agy is not logged in. Run docker logs antigravity-connector to find the login block, then log in with docker exec.",
+      message: "agy is not logged in. Call GET /v1/auth for a login link, then send the code with POST /v1/auth.",
     },
     agy_failed: { statusCode: 502, type: "server_error", message: "agy failed to answer. Check the container logs and retry." },
     image_not_produced: { statusCode: 502, type: "server_error", message: undefined },

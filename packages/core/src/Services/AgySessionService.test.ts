@@ -40,7 +40,7 @@ const createService = (check: ScriptedCheck, clock: { now: number }, lines: stri
   });
 
 describe("AgySessionService", () => {
-  it("logs one block with the login URL and the docker exec command when login is required at startup", async () => {
+  it("logs one block with the login URL and the auth route when login is required at startup", async () => {
     const lines: string[] = [];
     const check = buildScriptedCheck({ kind: "login_required", loginUrl: LOGIN_URL });
     const service = createService(check, { now: 0 }, lines);
@@ -49,7 +49,7 @@ describe("AgySessionService", () => {
     const loginLines = lines.filter((line) => line.includes(LOGIN_URL));
 
     expect(loginLines).toHaveLength(1);
-    expect(loginLines[0]).toContain("docker exec -it antigravity-connector agy");
+    expect(loginLines[0]).toContain("POST /v1/auth");
   });
 
   it("moves from connected to login_required when a run reports the session is missing", async () => {

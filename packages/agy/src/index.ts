@@ -6,6 +6,9 @@ export { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError
 export { AgySessionRequiredError } from "@antigravity-connector/agy/Errors/AgySessionRequiredError.ts";
 export { AgyTimeoutError } from "@antigravity-connector/agy/Errors/AgyTimeoutError.ts";
 export { PromptUtil } from "@antigravity-connector/agy/Utils/PromptUtil.ts";
+export { AgyLoginAdapter } from "@antigravity-connector/agy/Adapters/AgyLoginAdapter.ts";
+export type { AgyLoginAdapterOptions } from "@antigravity-connector/agy/Adapters/AgyLoginAdapter.ts";
+export type { AgyLoginBeginResult, AgyLoginPort, AgyLoginSubmitResult } from "@antigravity-connector/agy/Protocols/AgyLoginProtocol.ts";
 export type {
   AgyAttachment,
   AgyCliAdapterOptions,

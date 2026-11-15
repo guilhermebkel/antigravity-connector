@@ -7,11 +7,9 @@ const DOCKERFILE = "apps/server/Dockerfile";
 const read = (relativePath) => readFileSync(join(ROOT, relativePath), "utf8");
 
 describe("the container files", () => {
-  it("AC3: the app port is not published, only Caddy publishes 443, and the volume holds no secret", () => {
+  it("AC3: the compose port starts with 127.0.0.1 and the volume holds no secret", () => {
     const compose = read("docker-compose.yml");
-    expect(compose).not.toMatch(/"127\.0\.0\.1:8787:8787"|"8787:8787"/);
-    expect(compose).toMatch(/"443:443"/);
-    expect(read("deploy/Caddyfile")).toMatch(/reverse_proxy antigravity-connector:8787/);
+    expect(compose).toMatch(/- "127\.0\.0\.1:8787:8787"/);
     expect(compose).toMatch(/- agy-gemini:\/home\/agy\/\.gemini/);
     expect(compose).not.toMatch(/API_KEY|token|secret/i);
   });

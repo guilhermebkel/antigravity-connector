@@ -15,7 +15,7 @@ FROM debian:bookworm-slim AS agy
 ARG AGY_URL=https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.9-4515810895593472/linux-x64/cli_linux_x64.tar.gz
 ARG AGY_SHA512=d01eb13ba7750eed18907f1ae8860864371e0ad9064415e8d033d22b4bd7b9b4e4c7f962058520b452d67db1c33163d9a889d55a7dffa159596ec6cd91a87b79
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
+ && apt-get install -y --no-install-recommends ca-certificates curl util-linux \
  && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL -o /tmp/agy.tar.gz "${AGY_URL}" \
  && echo "${AGY_SHA512}  /tmp/agy.tar.gz" | sha512sum -c - \

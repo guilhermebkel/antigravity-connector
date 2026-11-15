@@ -45,6 +45,7 @@ const startHarness = async (options: HarnessOptions = {}): Promise<Harness> => {
     sessionTtlMs: options.sessionTtlMs ?? DAY_MS,
     maxSessions: options.maxSessions ?? 8,
     researchDailyLimit: 5,
+    loginService: stub.loginService,
   });
   const address = await app.listen({ host: "127.0.0.1", port: 0 });
   return { app, address, clock, requests: stub.requests };
@@ -154,7 +155,7 @@ describe("McpSetup", () => {
     const result = await client.callTool({ name: "web_search", arguments: { query: "anything" } });
     expect(result.isError).toBe(true);
     const text = readFirstText(result);
-    expect(text).toContain("container logs");
+    expect(text).toContain("check_auth");
     expect(text).not.toContain("accounts.google.com");
   });
 });

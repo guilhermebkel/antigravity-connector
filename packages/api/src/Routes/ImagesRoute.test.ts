@@ -29,7 +29,7 @@ type BuiltApp = {
 const buildApp = (options: AppOptions = {}): BuiltApp => {
   const stub = StubRuntimeUtil.build({ respond: options.respond ?? buildPngResult, limits: options.limits });
   const server = Fastify({ logger: false });
-  ApiSetup.register(server, { runService: stub.runService, clock: () => CLOCK_MS });
+  ApiSetup.register(server, { runService: stub.runService, loginService: stub.loginService, clock: () => CLOCK_MS });
   app = server;
   return { server, stub };
 };

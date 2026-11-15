@@ -2,6 +2,8 @@
 
 Status: accepted (2026-11-14). Supersedes the localhost-only rule of the MVP brief (issue #1) and the README and site wording built on it.
 
+Amended (2026-11-14): the HTTPS proxy is the server's own, outside this repository (the install publishes the port on 127.0.0.1 and the owner's proxy serves the domain). The Caddy service and `DOMAIN` described below were removed; `docker-compose.yml` is the local run again. The login is now done over HTTP, see [0012](0012-login-through-the-http-api-and-mcp.md).
+
 ## Context
 
 The owner wants to use the subscription from the local Claude Code on other machines, such as generating images from the MCP tool, without keeping a computer on at home. A local-only bind cannot serve that: the server has to be reachable from the owner's machines over the internet.

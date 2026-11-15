@@ -5,6 +5,8 @@ import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLim
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
 import { RecordingCallLog } from "@antigravity-connector/core/Testing/RecordingCallLog.ts";
 import type { AgyRunRequest } from "@antigravity-connector/agy";
+import { AgyLoginService } from "@antigravity-connector/core/Services/AgyLoginService.ts";
+import { StubLoginPort } from "@antigravity-connector/core/Testing/StubLoginPort.ts";
 
 export type StubRunRequest = {
   prompt: string;
@@ -39,7 +41,7 @@ export type StubRunResult = {
   outputFiles: StubOutputFileNameToBytes;
 };
 
-export type StubSessionKind = "connected" | "login_required";
+export type StubSessionKind = "connected" | "login_required" | "unavailable";
 
 export type StubConnectedCheck = { kind: "connected" };
 
@@ -48,7 +50,12 @@ export type StubLoginRequiredCheck = {
   loginUrl: string;
 };
 
-export type StubCheckResult = StubConnectedCheck | StubLoginRequiredCheck;
+export type StubUnavailableCheck = {
+  kind: "unavailable";
+  reason: string;
+};
+
+export type StubCheckResult = StubConnectedCheck | StubLoginRequiredCheck | StubUnavailableCheck;
 
 export type StubRunOptions = {
   answer?: string;
@@ -80,6 +87,7 @@ export type StubRuntime = {
   runService: AgyRunService;
   requests: StubRunRequest[];
   callLog: RecordingCallLog;
+  loginService: AgyLoginService;
 };
 
 export class StubRuntimeUtil {
@@ -98,6 +106,7 @@ export class StubRuntimeUtil {
   static readonly SESSION_KIND_TO_CHECK: Readonly<Record<StubSessionKind, StubCheckResult>> = {
     connected: { kind: "connected" },
     login_required: { kind: "login_required", loginUrl: StubRuntimeUtil.LOGIN_URL },
+    unavailable: { kind: "unavailable", reason: "agy did not answer the session check" },
   };
 
   static readonly USAGE: StubUsage = {
@@ -139,8 +148,8 @@ export class StubRuntimeUtil {
         options.failAfterDeltas,
       ),
     };
-    const sessionKind = options.sessionKind ?? "connected";
-    const checkPort = { check: () => Promise.resolve(StubRuntimeUtil.SESSION_KIND_TO_CHECK[sessionKind]) };
+    const sessionState: { kind: StubSessionKind } = { kind: options.sessionKind ?? "connected" };
+    const checkPort = { check: () => Promise.resolve(StubRuntimeUtil.SESSION_KIND_TO_CHECK[sessionState.kind]) };
     const session = new AgySessionService({
       checkPort,
       minRecheckIntervalMs: StubRuntimeUtil.RECHECK_MS,
@@ -148,11 +157,12 @@ export class StubRuntimeUtil {
       logSink: () => undefined,
       secrets: [],
     });
+    const queue = new QueueService({ maxWaitMs: options.maxWaitMs ?? StubRuntimeUtil.MAX_WAIT_MS });
     const runService = new AgyRunService({
       runner,
       session,
       callLog,
-      queue: new QueueService({ maxWaitMs: options.maxWaitMs ?? StubRuntimeUtil.MAX_WAIT_MS }),
+      queue,
       limits: new DailyLimitService({
         runKindToLimit: StubRuntimeUtil.buildLimits(options.limits ?? {}),
         clock: () => new Date(0),
@@ -162,7 +172,20 @@ export class StubRuntimeUtil {
       logSink: () => undefined,
       secrets: [],
     });
-    return { runService, requests, callLog };
+    const loginService = new AgyLoginService({
+      queue,
+      loginPort: new StubLoginPort(
+        () => sessionState.kind === "connected",
+        () => {
+          sessionState.kind = "connected";
+        },
+      ),
+      sessionService: session,
+      clock: () => 0,
+      logSink: () => undefined,
+      secrets: [],
+    });
+    return { runService, requests, callLog, loginService };
   }
 
   static buildRecord(request: AgyRunRequest): StubRunRequest {

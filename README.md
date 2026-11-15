@@ -63,7 +63,7 @@ Listens on `127.0.0.1` by default and refuses to start on any other address unle
 
 **No web page, almost no state**
 
-The login link appears in the container logs and the code goes in through `docker exec` ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The only stored data is a small SQLite call log with metadata, so the daily limits survive a restart ([ADR 0010](docs/adr/0010-sqlite-call-log-and-daily-counters.md)).
+The login is done over HTTP: `GET /v1/auth` returns a link and `POST /v1/auth` takes the code ([ADR 0012](docs/adr/0012-login-through-the-http-api-and-mcp.md)). The only stored data is a small SQLite call log with metadata, so the daily limits survive a restart ([ADR 0010](docs/adr/0010-sqlite-call-log-and-daily-counters.md)).
 
 </td>
 </tr>
@@ -95,8 +95,8 @@ Running a subscription through a server you expose to the internet is not someth
 ```bash
 cp .env.example .env                 # then set API_KEY to a random value of at least 24 characters
 docker compose up -d --build
-docker logs antigravity-connector    # shows the login block if agy is not logged in yet
-docker exec antigravity-connector curl -s http://127.0.0.1:8787/health
+curl -H "Authorization: Bearer $API_KEY" http://127.0.0.1:8787/v1/auth    # login link, if agy is not logged in yet
+curl -s http://127.0.0.1:8787/health
 ```
 
 ## Install on a VPS with Docker
@@ -117,11 +117,12 @@ The container publishes its port on `127.0.0.1` only, so the internet reaches it
      ghcr.io/guilhermebkel/antigravity-connector:latest
    ```
 
-3. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)):
+3. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)). Ask for the link, open it, copy the code, and send it back within 60 seconds:
 
    ```bash
-   docker logs antigravity-connector                 # shows the login block the first time
-   docker exec -it antigravity-connector agy
+   curl -H "Authorization: Bearer your-random-api-key-at-least-24-chars" https://connector.your-domain.com/v1/auth
+   curl -X POST -H "Authorization: Bearer your-random-api-key-at-least-24-chars" -H "Content-Type: application/json" \
+     -d '{"code":"the code from the login page"}' https://connector.your-domain.com/v1/auth
    ```
 
 4. Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}`:
@@ -143,12 +144,12 @@ To update, pull the new image and run the `docker run` command again after remov
 
 ## Logging in
 
-The first start has no session, so the server logs a login block with a URL and a command:
+The first start has no session. The login is done over HTTP with the API key, so no shell into the container is needed:
 
-1. Read the link: `docker logs antigravity-connector`.
-2. Open the URL in a browser, sign in, and copy the code it shows.
-3. Run `docker exec -it antigravity-connector agy` and paste the code.
-4. Check: `docker exec antigravity-connector curl -s http://127.0.0.1:8787/health` returns `{"status":"ok","agy":"connected"}`, and `https://connector.your-domain.com/health` answers the same through the HTTPS proxy.
+1. Ask for the link: `GET /v1/auth` returns `{"status":"login_required","login_url":"https://accounts.google.com/...","expires_in_seconds":60}`. The MCP tool is `check_auth`.
+2. Open `login_url` in a browser, sign in with the Google account that has the AI Pro plan, and copy the code the page shows.
+3. Send the code within 60 seconds: `POST /v1/auth` with `{"code":"..."}` returns `{"status":"connected"}`. The MCP tool is `set_auth`. A wrong or expired code is refused; ask for a new link and try again.
+4. Check: `GET /v1/auth` returns `{"status":"connected"}`, and `/health` returns `{"status":"ok","agy":"connected"}`.
 
 The login is kept in the named volume `agy-gemini`. `docker compose down` keeps it; `docker compose down -v` removes it, and you must log in again.
 
@@ -284,7 +285,7 @@ No. It is a single-user server, reachable over HTTPS with an API key, and the su
 <details>
 <summary><b>Why is the first login done in a terminal?</b></summary>
 
-There is no web page on purpose. When there is no session, `agy` prints a login link; you open it, sign in and paste the code with `docker exec`. `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The landing page is a separate static folder, `site/` ([ADR 0011](docs/adr/0011-landing-page-and-logo-in-the-repository.md)).
+There is no web page on purpose. When there is no session, `GET /v1/auth` (or the `check_auth` tool) returns a login link; you open it, sign in, and send the code to `POST /v1/auth` (or `set_auth`). `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The landing page is a separate static folder, `site/` ([ADR 0011](docs/adr/0011-landing-page-and-logo-in-the-repository.md)).
 
 </details>
 
