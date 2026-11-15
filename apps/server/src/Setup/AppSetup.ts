@@ -16,7 +16,8 @@ export type AppSetupOptions = {
 };
 
 export class AppSetup {
-  static readonly MAX_BODY_BYTES = 1048576;
+  // Why: four reference images of 4 MiB each, base64 encoded, plus the JSON around them, come to about 22 MiB.
+  static readonly MAX_BODY_BYTES = 25165824;
 
   static async build(options: AppSetupOptions): Promise<FastifyInstance> {
     const app = Fastify({ bodyLimit: AppSetup.MAX_BODY_BYTES, logger: false });
