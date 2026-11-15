@@ -24,6 +24,7 @@ describe("EnvSchema", () => {
       MCP_MAX_SESSIONS: 8,
       MCP_SESSION_TTL_MS: 1800000,
       DATA_DIR: "data",
+      LOG_LEVEL: "info",
     });
   });
 

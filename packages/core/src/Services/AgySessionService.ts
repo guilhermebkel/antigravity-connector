@@ -30,7 +30,7 @@ export class AgySessionService {
   static readonly KIND_TO_LOG_ENTRY: Readonly<Record<AgySessionKind, (status: AgySessionStatus) => LogEntry>> = {
     login_required: (status) => ({
       level: "warn",
-      event: "agy_login_required",
+      event: "agy.login.required",
       metadata: {
         loginUrl: status.loginUrl ?? "",
         command: AgySessionService.LOGIN_COMMAND,
@@ -39,11 +39,11 @@ export class AgySessionService {
     }),
     unavailable: (status) => ({
       level: "warn",
-      event: "agy_unavailable",
+      event: "agy.session.unavailable",
       metadata: { reason: status.reason ?? AgySessionService.UNKNOWN_REASON },
     }),
-    connected: () => ({ level: "info", event: "agy_connected", metadata: {} }),
-    unchecked: () => ({ level: "info", event: "agy_unchecked", metadata: {} }),
+    connected: () => ({ level: "info", event: "agy.session.connected", metadata: {} }),
+    unchecked: () => ({ level: "info", event: "agy.session.unchecked", metadata: {} }),
   };
 
   private readonly checkPort: AgySessionCheckPort;
