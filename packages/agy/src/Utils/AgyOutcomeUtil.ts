@@ -37,7 +37,9 @@ export class AgyOutcomeUtil {
     }
     const envelope = AgyOutcomeUtil.parseEnvelope(outcome.stdout);
     if (envelope.status !== "SUCCESS") {
-      throw new AgyFailedError(outcome.exitCode, RedactUtil.buildExcerpt(outcome.stderr, secrets));
+      const excerpt = RedactUtil.buildExcerpt(outcome.stderr, secrets);
+      const envelopeError = envelope.error === undefined ? undefined : RedactUtil.buildExcerpt(envelope.error, secrets);
+      throw new AgyFailedError(outcome.exitCode, excerpt, { status: envelope.status, error: envelopeError });
     }
     return envelope;
   }

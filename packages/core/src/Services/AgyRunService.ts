@@ -1,6 +1,6 @@
 import { AsyncEventBufferService, ModelCatalogueUtil, type AgyUsage, type RunKind } from "@antigravity-connector/protocol";
 import type { AgyRunRequest, AgyRunResult, AgyRunnerPort, AgyStreamOutputEvent } from "@antigravity-connector/agy";
-import { AgySessionRequiredError } from "@antigravity-connector/agy";
+import { AgyFailedError, AgySessionRequiredError } from "@antigravity-connector/agy";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { LogFieldToValue, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
 import type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
@@ -32,12 +32,17 @@ export type CallOutcome = {
   result: CallResult;
   usage?: AgyUsage;
   errorCode?: string;
+  detail?: LogFieldToValue;
 };
 
 export class AgyRunService {
   static readonly CALL_EVENT = "agy_call";
 
   static readonly UNKNOWN_ERROR_CODE = "unknown";
+
+  static readonly NO_EXIT_CODE_LABEL = "none";
+
+  static readonly NO_ENVELOPE_LABEL = "none";
 
   static readonly RESULT_TO_LEVEL: Readonly<Record<CallResult, "info" | "warn">> = {
     success: "info",
@@ -82,11 +87,19 @@ export class AgyRunService {
     try {
       const hooks = AgyRunService.buildHooks(observer);
       const result = await this.queue.run(() => this.runChecked(request, signal), signal, hooks);
-      this.logCall(kind, input, startedAtMs, { result: "success", usage: result.envelope.usage });
+      this.logCall(kind, input, startedAtMs, {
+        result: "success",
+        usage: result.envelope.usage,
+        detail: AgyRunService.buildSuccessDetail(result.envelope.num_turns, Object.keys(result.outputFiles).length),
+      });
       return result;
     } catch (error: unknown) {
       this.handleFailure(error);
-      this.logCall(kind, input, startedAtMs, { result: "error", errorCode: AgyRunService.readCode(error) });
+      this.logCall(kind, input, startedAtMs, {
+        result: "error",
+        errorCode: AgyRunService.readCode(error),
+        detail: AgyRunService.buildFailureDetail(error),
+      });
       throw error;
     }
   }
@@ -204,6 +217,7 @@ export class AgyRunService {
       result: outcome.result,
       ...AgyRunService.buildUsageFields(outcome.usage),
       ...AgyRunService.buildErrorFields(outcome.errorCode),
+      ...outcome.detail,
     };
     const record = AgyRunService.buildCallRecord(kind, input, startedAtMs, this.clock(), outcome);
     this.callLog.write(record);
@@ -292,6 +306,21 @@ export class AgyRunService {
       thinkingTokens: usage.thinking_tokens,
       cacheReadTokens: usage.cache_read_tokens,
       totalTokens: usage.total_tokens,
+    };
+  }
+
+  static buildSuccessDetail(numTurns: number | undefined, outputFileCount: number): LogFieldToValue {
+    return { numTurns: numTurns ?? 0, outputFileCount };
+  }
+
+  static buildFailureDetail(error: unknown): LogFieldToValue {
+    if (!(error instanceof AgyFailedError)) {
+      return {};
+    }
+    return {
+      exitCode: error.exitCode ?? AgyRunService.NO_EXIT_CODE_LABEL,
+      envelopeStatus: error.envelopeStatus ?? AgyRunService.NO_ENVELOPE_LABEL,
+      envelopeError: error.envelopeError ?? "",
     };
   }
 
