@@ -142,6 +142,21 @@ The API key must be at least 24 characters, and it is the only access control: a
 
 To update, pull the new image and run the `docker run` command again after removing the old container (`docker rm -f antigravity-connector`); the login and the call log stay in their volumes.
 
+## Deploy on CapRover
+
+Use the published image (a release, or a branch image such as `ghcr.io/guilhermebkel/antigravity-connector:<branch>`), and configure the app in the CapRover dashboard:
+
+1. **Image:** deploy `ghcr.io/guilhermebkel/antigravity-connector:<version>`.
+2. **Environment variables:** `API_KEY` (at least 24 characters).
+3. **HTTP settings:** the container HTTP port is `8787`, and enable HTTPS for the app's domain.
+4. **Persistent directories** (App Configs → Persistent Directories). This step is required, and it is not done by the `hasPersistentData` flag, which mounts nothing:
+   - `connector-gemini` → `/home/agy/.gemini` (the agy login)
+   - `connector-data` → `/data` (the call log and the daily counters)
+
+Without the persistent directories, every redeploy recreates the container and the login is lost: `GET /v1/auth` starts answering `login_required` again. At startup the server logs `storage.checked` with `isLoginDirMounted` and `isDataDirMounted`; a `warn` line means one of the directories is not mounted.
+
+After the directories are added, log in once more: the directories start empty. From then on, redeploys keep the login.
+
 ## Logging in
 
 The first start has no session. The login is done over HTTP with the API key, so no shell into the container is needed:
@@ -194,6 +209,8 @@ claude mcp add --transport http antigravity https://connector.your-domain.com/mc
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
 The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`.
+
+The long MCP tools (`web_search`, `generate_image`, `research` and `browse`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
 
 The `research` tool writes a Markdown report with a source link for each claim. A call takes several minutes (up to 10), spends tens of thousands of tokens, and counts against `DAILY_LIMIT_RESEARCH`. The report is capped at 20000 characters, and `truncated` says when it was cut.
 

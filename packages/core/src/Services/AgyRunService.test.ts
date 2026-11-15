@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgyRunnerPort, AgyRunRequest, AgyRunResult, AgyStreamOutputEvent } from "@antigravity-connector/agy";
-import { AgyFailedError, AgySessionRequiredError } from "@antigravity-connector/agy";
+import { AgyAbortedError, AgyFailedError, AgySessionRequiredError, AgyTimeoutError } from "@antigravity-connector/agy";
 import type { AgySessionCheckPort, AgySessionCheckResult } from "@antigravity-connector/agy";
 import { AsyncEventBufferService } from "@antigravity-connector/protocol";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
@@ -224,6 +224,11 @@ describe("AgyRunService call detail for the logs", () => {
       envelopeStatus: "ERROR",
       envelopeError: "boom",
     });
+  });
+
+  it("an abort by the client and an agy timeout each get a reason", () => {
+    expect(AgyRunService.buildFailureDetail(new AgyAbortedError())).toStrictEqual({ reason: "client_aborted" });
+    expect(AgyRunService.buildFailureDetail(new AgyTimeoutError(1000, ""))).toStrictEqual({ reason: "agy_timeout" });
   });
 
   it("success detail counts the turns and the output files without their content", () => {

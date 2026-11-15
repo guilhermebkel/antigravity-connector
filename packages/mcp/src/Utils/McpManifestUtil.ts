@@ -12,6 +12,7 @@ import { BrowseTool } from "@antigravity-connector/mcp/Tools/BrowseTool.ts";
 import { CheckAuthTool } from "@antigravity-connector/mcp/Tools/CheckAuthTool.ts";
 import { SetAuthTool } from "@antigravity-connector/mcp/Tools/SetAuthTool.ts";
 import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
+import { GetResultTool } from "@antigravity-connector/mcp/Tools/GetResultTool.ts";
 import { ResearchTool } from "@antigravity-connector/mcp/Tools/ResearchTool.ts";
 import { WebSearchTool } from "@antigravity-connector/mcp/Tools/WebSearchTool.ts";
 import { McpProgressService } from "@antigravity-connector/mcp/Services/McpProgressService.ts";
@@ -33,10 +34,12 @@ export class McpManifestUtil {
   static registerAll(server: McpServer, services: McpServices): void {
     const webSearch = new WebSearchTool();
     const generateImage = new GenerateImageTool();
+    const getResult = new GetResultTool();
     const research = new ResearchTool({ dailyLimit: services.researchDailyLimit });
     const browse = new BrowseTool();
     McpManifestUtil.registerTool(server, webSearch, services);
     McpManifestUtil.registerTool(server, generateImage, services);
+    McpManifestUtil.registerTool(server, getResult, services);
     McpManifestUtil.registerTool(server, research, services);
     McpManifestUtil.registerTool(server, browse, services);
     const checkAuth = new CheckAuthTool();
@@ -46,6 +49,7 @@ export class McpManifestUtil {
     const toolNameToRunner = new Map<string, ToolRunner>([
       McpManifestUtil.buildRunnerEntry(webSearch),
       McpManifestUtil.buildRunnerEntry(generateImage),
+      McpManifestUtil.buildRunnerEntry(getResult),
       McpManifestUtil.buildRunnerEntry(research),
       McpManifestUtil.buildRunnerEntry(browse),
       McpManifestUtil.buildRunnerEntry(checkAuth),
@@ -61,6 +65,7 @@ export class McpManifestUtil {
         return await runner(request.params.arguments, {
           runService: services.runService,
           imageService: services.imageService,
+          toolJobs: services.toolJobs,
           loginService: services.loginService,
           signal: extra.signal,
           observer: progress.observer,
@@ -92,6 +97,7 @@ export class McpManifestUtil {
       async (input, extra) => McpManifestUtil.invoke(tool, input, {
         runService: services.runService,
         imageService: services.imageService,
+        toolJobs: services.toolJobs,
         loginService: services.loginService,
         signal: extra.signal,
         observer: buildNoopObserver(),

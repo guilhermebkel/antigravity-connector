@@ -9,11 +9,3 @@ export type WebSearchSource = {
   title: string;
   url: string;
 };
-
-export type WebSearchOutput = {
-  answer: string;
-  sources: WebSearchSource[];
-  model: string;
-  durationMs: number;
-  totalTokens: number;
-};

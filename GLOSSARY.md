@@ -12,7 +12,8 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **Run profile** | The fixed set of flags, working directory rules and prompt shape that `core` asks `agy` to use for one run kind. |
 | **Envelope** | The single JSON object `agy` prints with `--output-format json`: `conversation_id`, `status`, `response`, `usage` and, with a JSON schema, `structured_output`. |
 | **Stream event** | One line of NDJSON that `agy` prints with `--output-format stream-json`: `init`, `step_update` (carrying `text_delta`) or `result`. |
-| **Tool** | One MCP tool a client can call on `/mcp` (`web_search`, `generate_image`, `research`, `browse`). Not an `agy` tool. |
+| **Tool** | One MCP tool a client can call on `/mcp` (`web_search`, `generate_image`, `research`, `browse`, `get_result`, `check_auth`, `set_auth`). Not an `agy` tool. |
+| **Job** | A long MCP call (`web_search`, `generate_image`, `research`, `browse`) that is still running after about 20 seconds. The call returns `status` `running` and a `job_id`; `get_result` returns the result when it is ready. The result is kept for 10 minutes after it finishes. The API has no jobs: its calls always wait. |
 | **Call log** | The SQLite table with one metadata row per call (door, route or tool, kind, model, duration, token counts, status). It never stores content. The daily counters are read from it at startup. |
 | **Conversation id** | The id `agy` returns for a conversation. The API keeps the ids it has seen for 24 hours, at most 256; a request that sends a known id resumes that conversation with only its last user message. |
 | **Attachment** | An image sent in a chat message as a `data:` URL. The server saves it in the run's temporary directory and names the file in the prompt, so agy can read it with its own tools. |

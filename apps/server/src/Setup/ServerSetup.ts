@@ -9,6 +9,7 @@ import {
   type LogSink,
 } from "@antigravity-connector/core";
 import { ApiSetup } from "@antigravity-connector/api";
+import { MountUtil } from "@antigravity-connector/server/Utils/MountUtil.ts";
 import { McpSetup } from "@antigravity-connector/mcp";
 import type { RoutePlugin } from "@antigravity-connector/server/Protocols/RoutePluginProtocol.ts";
 import { AppSetup } from "@antigravity-connector/server/Setup/AppSetup.ts";
@@ -35,6 +36,8 @@ export class ServerSetup {
   static readonly LISTENING_EVENT = "server.started";
 
   static readonly STOPPED_EVENT = "server.stopped";
+
+  static readonly STORAGE_EVENT = "storage.checked";
 
   static async run(): Promise<void> {
     const parentEnv = EnvUtil.readProcessEnv();
@@ -110,8 +113,28 @@ export class ServerSetup {
       },
       { now: new Date(options.clock()), secrets: [options.env.API_KEY], sink: options.logSink },
     );
+    ServerSetup.logStorage(options);
     void server.runtime.checkSession();
     return server;
+  }
+
+  static logStorage(options: ServerSetupOptions): void {
+    const mountPoints = MountUtil.readProcessMountPoints();
+    if (mountPoints === undefined) {
+      return;
+    }
+    const home = options.parentEnv.HOME ?? "";
+    const isLoginDirMounted = home !== "" && MountUtil.isMountedUnder(mountPoints, home);
+    const isDataDirMounted = MountUtil.isMountedAt(mountPoints, options.env.DATA_DIR);
+    const isPersistent = isLoginDirMounted && isDataDirMounted;
+    LogUtil.write(
+      {
+        level: isPersistent ? "info" : "warn",
+        event: ServerSetup.STORAGE_EVENT,
+        metadata: { isLoginDirMounted, isDataDirMounted },
+      },
+      { now: new Date(options.clock()), secrets: [options.env.API_KEY], sink: options.logSink },
+    );
   }
 
   static async stopServer(server: RunningServer, graceMs: number): Promise<void> {

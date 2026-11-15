@@ -1,6 +1,6 @@
 import { AsyncEventBufferService, ModelCatalogueUtil, type AgyUsage, type RunKind } from "@antigravity-connector/protocol";
 import type { AgyRunRequest, AgyRunResult, AgyRunnerPort, AgyStreamOutputEvent } from "@antigravity-connector/agy";
-import { AgyFailedError, AgySessionRequiredError } from "@antigravity-connector/agy";
+import { AgyAbortedError, AgyFailedError, AgySessionRequiredError, AgyTimeoutError } from "@antigravity-connector/agy";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { LogFieldToValue, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
 import type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
@@ -316,6 +316,12 @@ export class AgyRunService {
   }
 
   static buildFailureDetail(error: unknown): LogFieldToValue {
+    if (error instanceof AgyAbortedError) {
+      return { reason: "client_aborted" };
+    }
+    if (error instanceof AgyTimeoutError) {
+      return { reason: "agy_timeout" };
+    }
     if (!(error instanceof AgyFailedError)) {
       return {};
     }
