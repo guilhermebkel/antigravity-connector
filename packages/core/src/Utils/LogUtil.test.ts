@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { LogUtil } from "@antigravity-connector/core/Utils/LogUtil.ts";
 import type { LogFieldToValue } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
 
@@ -31,5 +31,31 @@ describe("LogUtil.write", () => {
     );
     expect(line).not.toContain(FAKE_API_KEY);
     expect(line).not.toContain("abc.def");
+  });
+});
+
+describe("LogUtil level threshold", () => {
+  afterEach(() => {
+    LogUtil.setMinLevel("info");
+  });
+
+  it("with warn, shows warn and error and hides info and debug", () => {
+    LogUtil.setMinLevel("warn");
+    const lines: string[] = [];
+    const context = { now: NOW, secrets: [FAKE_API_KEY], sink: (line: string) => lines.push(line) };
+    LogUtil.write({ level: "info", event: "a.b.info", metadata: {} }, context);
+    LogUtil.write({ level: "warn", event: "a.b.warn", metadata: {} }, context);
+    LogUtil.write({ level: "error", event: "a.b.error", metadata: {} }, context);
+    LogUtil.write({ level: "debug", event: "a.b.debug", metadata: {} }, context);
+
+    const events = lines.map((line) => (JSON.parse(line) as { event: string }).event);
+    expect(events).toStrictEqual(["a.b.warn", "a.b.error"]);
+  });
+
+  it("the default threshold is info: debug is hidden", () => {
+    const lines: string[] = [];
+    LogUtil.write({ level: "debug", event: "a.b.debug", metadata: {} }, { now: NOW, secrets: [], sink: (line) => lines.push(line) });
+
+    expect(lines).toStrictEqual([]);
   });
 });

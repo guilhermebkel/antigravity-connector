@@ -50,6 +50,7 @@ pnpm workspaces and Turborepo. Each package imports its own files through its pa
 | Full verification (CI gate) | `.github/PULL_REQUEST_TEMPLATE.md` | `pnpm check` |
 | Changing the harness | `docs/harness-standards.md` | `pnpm check:changed` |
 | Changing the landing page or the logo | `design/README.md`, `docs/adr/0011-landing-page-and-logo-in-the-repository.md` | `pnpm test` |
+| Writing or changing logs | `docs/log-standards.md` | `pnpm test` |
 | Writing or moving docs | `docs/docs-standards.md` | — |
 
 ## Rules
