@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgyRunnerPort, AgyRunRequest, AgyRunResult, AgyStreamOutputEvent } from "@antigravity-connector/agy";
-import { AgySessionRequiredError } from "@antigravity-connector/agy";
+import { AgyFailedError, AgySessionRequiredError } from "@antigravity-connector/agy";
 import type { AgySessionCheckPort, AgySessionCheckResult } from "@antigravity-connector/agy";
 import { AsyncEventBufferService } from "@antigravity-connector/protocol";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
@@ -212,5 +212,22 @@ describe("AgyRunService.stream", () => {
       { kind: "text", delta: "echo gemini-3.8-flash-low" },
       { kind: "finished", envelope: buildSuccessResult("done").envelope },
     ]);
+  });
+});
+
+describe("AgyRunService call detail for the logs", () => {
+  it("failure detail carries the exit code and the envelope status and error, never the prompt", () => {
+    const error = new AgyFailedError(1, "stderr excerpt", { status: "ERROR", error: "boom" });
+
+    expect(AgyRunService.buildFailureDetail(error)).toStrictEqual({
+      exitCode: 1,
+      envelopeStatus: "ERROR",
+      envelopeError: "boom",
+    });
+  });
+
+  it("success detail counts the turns and the output files without their content", () => {
+    expect(AgyRunService.buildSuccessDetail(1, 0)).toStrictEqual({ numTurns: 1, outputFileCount: 0 });
+    expect(AgyRunService.buildSuccessDetail(undefined, 2)).toStrictEqual({ numTurns: 0, outputFileCount: 2 });
   });
 });
