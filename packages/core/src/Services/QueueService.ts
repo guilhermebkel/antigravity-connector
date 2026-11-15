@@ -1,7 +1,10 @@
 import { QueueTimeoutError } from "@antigravity-connector/core/Errors/QueueTimeoutError.ts";
 import type { QueueHooks } from "@antigravity-connector/core/Protocols/QueueHooksProtocol.ts";
 
-export type QueueOptions = { maxWaitMs: number };
+export type QueueOptions = {
+  maxWaitMs: number;
+  concurrency: number;
+};
 
 type WaitingEntry = {
   startTask: () => void;
@@ -15,16 +18,20 @@ export class QueueService {
 
   private readonly maxWaitMs: number;
 
-  private isBusy = false;
+  private readonly concurrency: number;
+
+  // Why: the number of agy runs in flight. The daily limits count calls, not runs, so this only bounds how many run at once.
+  private runningCount = 0;
 
   private readonly waiting: WaitingEntry[] = [];
 
   constructor(options: QueueOptions) {
     this.maxWaitMs = options.maxWaitMs;
+    this.concurrency = options.concurrency;
   }
 
   getDepth(): number {
-    return this.waiting.length + (this.isBusy ? 1 : 0);
+    return this.waiting.length + this.runningCount;
   }
 
   run<T>(task: () => Promise<T>, signal?: AbortSignal, hooks?: QueueHooks): Promise<T> {
@@ -37,7 +44,7 @@ export class QueueService {
         hooks?.onStarted?.();
         this.startTask(task, resolve, reject);
       };
-      if (!this.isBusy) {
+      if (this.runningCount < this.concurrency) {
         start();
         return;
       }
@@ -47,7 +54,7 @@ export class QueueService {
   }
 
   private startTask<T>(task: () => Promise<T>, resolve: (value: T) => void, reject: (reason: Error) => void): void {
-    this.isBusy = true;
+    this.runningCount += 1;
     void this.settleTask(task, resolve, reject);
   }
 
@@ -66,7 +73,7 @@ export class QueueService {
   }
 
   private finishTask(): void {
-    this.isBusy = false;
+    this.runningCount -= 1;
     const next = this.waiting.shift();
     if (next !== undefined) {
       next.cleanup();

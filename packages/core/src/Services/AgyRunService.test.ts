@@ -81,7 +81,7 @@ const buildHarness = (
     secrets: [],
   });
   const runner = buildRunner(behavior);
-  const queue = new QueueService({ maxWaitMs: 60000 });
+  const queue = new QueueService({ maxWaitMs: 60000, concurrency: 1 });
   const dailyLimits = new DailyLimitService({
     runKindToLimit: limits as Record<"chat" | "search" | "research" | "image" | "browse", number>,
     clock: () => new Date(clock.now),

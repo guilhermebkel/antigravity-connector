@@ -157,7 +157,7 @@ export class StubRuntimeUtil {
       logSink: () => undefined,
       secrets: [],
     });
-    const queue = new QueueService({ maxWaitMs: options.maxWaitMs ?? StubRuntimeUtil.MAX_WAIT_MS });
+    const queue = new QueueService({ maxWaitMs: options.maxWaitMs ?? StubRuntimeUtil.MAX_WAIT_MS, concurrency: 1 });
     const runService = new AgyRunService({
       runner,
       session,

@@ -37,7 +37,7 @@ let queue: QueueService;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  queue = new QueueService({ maxWaitMs: MAX_WAIT_MS });
+  queue = new QueueService({ maxWaitMs: MAX_WAIT_MS, concurrency: 1 });
 });
 
 afterEach(() => {
@@ -123,7 +123,7 @@ describe("QueueService.run", () => {
 
 describe("QueueService hooks", () => {
   it("reports the position of a waiting call and the moment each call starts", async () => {
-    const queue = new QueueService({ maxWaitMs: 60000 });
+    const queue = new QueueService({ maxWaitMs: 60000, concurrency: 1 });
     const events: string[] = [];
     let release: () => void = () => undefined;
     const hold = new Promise<void>((resolve) => {
@@ -137,5 +137,27 @@ describe("QueueService hooks", () => {
     release();
     await Promise.all([first, second]);
     expect(events).toStrictEqual(["first started", "second waiting at 1", "second started"]);
+  });
+});
+
+describe("QueueService with concurrency above one", () => {
+  it("runs as many tasks as the concurrency at once, and starts a waiting task when a slot frees", async () => {
+    const queue = new QueueService({ maxWaitMs: 60000, concurrency: 2 });
+    const gates = [createDeferred(), createDeferred(), createDeferred()];
+    const started: number[] = [];
+    const runs = gates.map((gate, index) => queue.run(() => {
+      started.push(index);
+      return gate.promise;
+    }));
+    await Promise.resolve();
+    expect(started).toStrictEqual([0, 1]);
+    expect(queue.getDepth()).toBe(3);
+    settleFirstWith(gates[0] as Deferred, "resolves");
+    await runs[0];
+    await Promise.resolve();
+    expect(started).toStrictEqual([0, 1, 2]);
+    gates[1]?.resolve(SECOND_RESULT);
+    gates[2]?.resolve(SECOND_RESULT);
+    await Promise.all(runs);
   });
 });

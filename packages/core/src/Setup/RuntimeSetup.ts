@@ -41,7 +41,7 @@ export class RuntimeSetup {
       logSink: options.logSink,
       secrets: [env.API_KEY],
     });
-    const queue = new QueueService({ maxWaitMs: env.QUEUE_MAX_WAIT_MS });
+    const queue = new QueueService({ maxWaitMs: env.QUEUE_MAX_WAIT_MS, concurrency: env.QUEUE_CONCURRENCY });
     const loginAdapter = new AgyLoginAdapter({
       binaryPath: env.AGY_BIN,
       tempRoot: tmpdir(),

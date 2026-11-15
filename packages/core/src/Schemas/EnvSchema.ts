@@ -6,6 +6,8 @@ const MAX_PORT = 65535;
 const DEFAULT_PORT = 8787;
 const DEFAULT_AGY_TIMEOUT_MS = 300000;
 const DEFAULT_QUEUE_MAX_WAIT_MS = 120000;
+const DEFAULT_QUEUE_CONCURRENCY = 4;
+const MAX_QUEUE_CONCURRENCY = 8;
 const DEFAULT_DAILY_LIMIT_CHAT = 200;
 const DEFAULT_DAILY_LIMIT_SEARCH = 50;
 const DEFAULT_DAILY_LIMIT_IMAGE = 20;
@@ -27,6 +29,7 @@ export const EnvSchema: z.ZodType<Env> = z.object({
   AGY_BIN: z.string().min(1).default("agy"),
   AGY_TIMEOUT_MS: z.coerce.number().int().positive().default(DEFAULT_AGY_TIMEOUT_MS),
   QUEUE_MAX_WAIT_MS: z.coerce.number().int().positive().default(DEFAULT_QUEUE_MAX_WAIT_MS),
+  QUEUE_CONCURRENCY: z.coerce.number().int().min(1).max(MAX_QUEUE_CONCURRENCY).default(DEFAULT_QUEUE_CONCURRENCY),
   DAILY_LIMIT_CHAT: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_CHAT),
   DAILY_LIMIT_SEARCH: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_SEARCH),
   DAILY_LIMIT_IMAGE: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_IMAGE),

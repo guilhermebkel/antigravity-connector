@@ -15,6 +15,7 @@ describe("EnvSchema", () => {
       AGY_BIN: "agy",
       AGY_TIMEOUT_MS: 300000,
       QUEUE_MAX_WAIT_MS: 120000,
+      QUEUE_CONCURRENCY: 4,
       DAILY_LIMIT_CHAT: 200,
       DAILY_LIMIT_SEARCH: 50,
       DAILY_LIMIT_IMAGE: 20,
