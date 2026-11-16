@@ -1,5 +1,6 @@
 import Fastify, { type FastifyError, type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import type { AgySessionKind } from "@antigravity-connector/core";
+import { UploadPathUtil } from "@antigravity-connector/mcp";
 import { HttpAuthService } from "@antigravity-connector/server/Services/HttpAuthService.ts";
 import { HttpRateLimitService, type RateBucket } from "@antigravity-connector/server/Services/HttpRateLimitService.ts";
 import { HealthRoute } from "@antigravity-connector/server/Routes/HealthRoute.ts";
@@ -47,6 +48,10 @@ export class AppSetup {
     const path = HttpPathUtil.readPath(request.url);
     if (path === HttpPathUtil.HEALTH_PATH) {
       return undefined;
+    }
+    if (UploadPathUtil.isUploadPath(path)) {
+      // Why: an upload link is a one-time token that stands in for the key, so this path takes no bearer; its own bucket keeps it from using the budget of keyed calls.
+      return rateLimit.consume("upload") ? undefined : HttpErrorUtil.send(reply, path, "rate_limited");
     }
     const isAuthorized = auth.isAuthorized(request.headers.authorization);
     const bucket: RateBucket = isAuthorized ? "authenticated" : "failed";

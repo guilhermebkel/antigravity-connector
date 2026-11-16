@@ -9,6 +9,7 @@ import type { RunObserver } from "@antigravity-connector/core";
 import type { McpToolContext, McpToolPort } from "@antigravity-connector/mcp/Protocols/McpToolProtocol.ts";
 import type { McpServices } from "@antigravity-connector/mcp/Protocols/McpServicesProtocol.ts";
 import { BrowseTool } from "@antigravity-connector/mcp/Tools/BrowseTool.ts";
+import { CreateUploadLinkTool } from "@antigravity-connector/mcp/Tools/CreateUploadLinkTool.ts";
 import { CheckAuthTool } from "@antigravity-connector/mcp/Tools/CheckAuthTool.ts";
 import { SetAuthTool } from "@antigravity-connector/mcp/Tools/SetAuthTool.ts";
 import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
@@ -37,11 +38,13 @@ export class McpManifestUtil {
     const getResult = new GetResultTool();
     const research = new ResearchTool({ dailyLimit: services.researchDailyLimit });
     const browse = new BrowseTool();
+    const createUploadLink = new CreateUploadLinkTool({ publicUrl: services.publicUrl });
     McpManifestUtil.registerTool(server, webSearch, services);
     McpManifestUtil.registerTool(server, generateImage, services);
     McpManifestUtil.registerTool(server, getResult, services);
     McpManifestUtil.registerTool(server, research, services);
     McpManifestUtil.registerTool(server, browse, services);
+    McpManifestUtil.registerTool(server, createUploadLink, services);
     const checkAuth = new CheckAuthTool();
     const setAuth = new SetAuthTool();
     McpManifestUtil.registerTool(server, checkAuth, services);
@@ -52,6 +55,7 @@ export class McpManifestUtil {
       McpManifestUtil.buildRunnerEntry(getResult),
       McpManifestUtil.buildRunnerEntry(research),
       McpManifestUtil.buildRunnerEntry(browse),
+      McpManifestUtil.buildRunnerEntry(createUploadLink),
       McpManifestUtil.buildRunnerEntry(checkAuth),
       McpManifestUtil.buildRunnerEntry(setAuth),
     ]);
@@ -65,6 +69,8 @@ export class McpManifestUtil {
         return await runner(request.params.arguments, {
           runService: services.runService,
           imageService: services.imageService,
+          imageSourceService: services.imageSourceService,
+          imageUploadService: services.imageUploadService,
           toolJobs: services.toolJobs,
           loginService: services.loginService,
           signal: extra.signal,
@@ -97,6 +103,8 @@ export class McpManifestUtil {
       async (input, extra) => McpManifestUtil.invoke(tool, input, {
         runService: services.runService,
         imageService: services.imageService,
+        imageSourceService: services.imageSourceService,
+        imageUploadService: services.imageUploadService,
         toolJobs: services.toolJobs,
         loginService: services.loginService,
         signal: extra.signal,

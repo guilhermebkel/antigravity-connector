@@ -17,6 +17,9 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **Call log** | The SQLite table with one metadata row per call (door, route or tool, kind, model, duration, token counts, status). It never stores content. The daily counters are read from it at startup. |
 | **Conversation id** | The id `agy` returns for a conversation. The API keeps the ids it has seen for 24 hours, at most 256; a request that sends a known id resumes that conversation with only its last user message. |
 | **Attachment** | An image sent in a chat message as a `data:` URL. The server saves it in the run's temporary directory and names the file in the prompt, so agy can read it with its own tools. |
+| **Reference image** | A picture sent to `generate_image` in `images`, as a base64 `data:` URL, an `https://` URL that the server downloads, or an `upload:` value for a picture sent through an upload link. It reaches agy as an attachment, so the tool can edit or copy it. |
+| **Upload link** | The one-time path `/upload/<token>` that `create_upload_link` returns. The file goes as the raw body of a `POST`, with no bearer, because the token is the credential. A link works once and lasts 5 minutes. |
+| **Uploaded image** | A picture received through an upload link, named `upload:<id>` and kept in memory for 15 minutes. Any `generate_image` call can use it by that value. |
 | **Structured output** | The JSON that `agy` returns for a `response_format` with a schema, passed to agy as a schema file (`--json-schema`). The API returns it as the message content. |
 | **Queue** | The global queue with concurrency 1 that serializes every run from both doors. A call that waits longer than the maximum fails with a clear error. |
 | **Daily limit** | The number of runs of one kind allowed per UTC day. A call over the limit fails before the queue. |
@@ -25,6 +28,6 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **Loopback bind** | The default of listening on `127.0.0.1` only. A non-loopback `HOST` needs `ALLOW_NON_LOOPBACK_BIND=true`, which the Docker image sets so the published port can be reached. |
 | **Login link** | The Google URL that `GET /v1/auth` (or `check_auth`) returns when agy is not logged in. It is bound to one login attempt and lasts 60 seconds. |
 | **Authorization code** | The code the Google login page shows after sign-in. The client sends it once to `POST /v1/auth` (or `set_auth`); the server forwards it to agy and never stores or logs it. |
-| **API key** | The bearer secret (`API_KEY`) that every route except `/health` requires. |
+| **API key** | The bearer secret (`API_KEY`) that every route except `/health` and the upload links requires. |
 | **Public model id** | The model name a client sends, such as `gemini-4-argon` or `gemini-3.8-flash`. Each maps to one `agy` slug per reasoning effort; an unknown id or effort has no slug and is refused. |
 | **Reasoning effort** | The `low`, `medium` or `high` level a client asks for. It selects the `agy` slug of the public model id. |

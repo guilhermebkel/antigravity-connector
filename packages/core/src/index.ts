@@ -48,3 +48,16 @@ export { AuthCodeRejectedError } from "@antigravity-connector/core/Errors/AuthCo
 export type { AuthStatus } from "@antigravity-connector/core/Protocols/AuthStatusProtocol.ts";
 export { AuthStatusUtil } from "@antigravity-connector/core/Utils/AuthStatusUtil.ts";
 export { StubLoginPort } from "@antigravity-connector/core/Testing/StubLoginPort.ts";
+export { ImageSourceService } from "@antigravity-connector/core/Services/ImageSourceService.ts";
+export { HttpsImageDownloadAdapter } from "@antigravity-connector/core/Adapters/HttpsImageDownloadAdapter.ts";
+export { RemoteImageError } from "@antigravity-connector/core/Errors/RemoteImageError.ts";
+export type { RemoteImageReason } from "@antigravity-connector/core/Errors/RemoteImageError.ts";
+export { RemoteImageUrlUtil } from "@antigravity-connector/core/Utils/RemoteImageUrlUtil.ts";
+export { PublicAddressUtil } from "@antigravity-connector/core/Utils/PublicAddressUtil.ts";
+export type { RemoteImageDownloadPort, RemoteImageUrlResult } from "@antigravity-connector/core/Protocols/RemoteImageProtocol.ts";
+export { StubImageDownloadUtil } from "@antigravity-connector/core/Testing/StubImageDownloadUtil.ts";
+export { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+export { ImageUploadError } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+export type { ImageUploadReason } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+export type { ImageUploadLink, ImageUploadReceipt, UploadedImage } from "@antigravity-connector/core/Protocols/ImageUploadProtocol.ts";
+export { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";

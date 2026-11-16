@@ -6,15 +6,18 @@ import { AppSetup } from "@antigravity-connector/server/Setup/AppSetup.ts";
 const API_KEY = "test-api-key-0123456789abcdef";
 const BEARER = `Bearer ${API_KEY}`;
 const PROBE_PATH = "/v1/probe";
+const UPLOAD_PROBE_PATH = "/upload/probe-token";
 const LIMIT_PER_MINUTE = 3;
 
 describe("AppSetup", () => {
   let app: FastifyInstance;
   let probeCalls: number;
+  let uploadCalls: number;
   let sessionKind: AgySessionKind;
 
   beforeEach(async () => {
     probeCalls = 0;
+    uploadCalls = 0;
     sessionKind = "connected";
     app = await AppSetup.build({
       apiKey: API_KEY,
@@ -25,6 +28,10 @@ describe("AppSetup", () => {
         (instance) => {
           instance.post(PROBE_PATH, () => {
             probeCalls += 1;
+            return { ok: true };
+          });
+          instance.post(UPLOAD_PROBE_PATH, () => {
+            uploadCalls += 1;
             return { ok: true };
           });
         },
@@ -94,6 +101,39 @@ describe("AppSetup", () => {
       payload: {},
     });
     expect(valid.statusCode).toBe(200);
+  });
+
+  it("an upload path needs no bearer: the link in the path is the credential", async () => {
+    const response = await app.inject({ method: "POST", url: UPLOAD_PROBE_PATH, payload: {} });
+    expect(response.statusCode).toBe(200);
+    expect(uploadCalls).toBe(1);
+  });
+
+  it("only the /upload/ prefix skips the bearer: a lookalike path still returns 401", async () => {
+    const lookalike = await app.inject({ method: "POST", url: "/uploads/probe-token", payload: {} });
+    const bare = await app.inject({ method: "POST", url: "/upload", payload: {} });
+    const nested = await app.inject({ method: "POST", url: "/v1/upload/probe-token", payload: {} });
+    expect([lookalike.statusCode, bare.statusCode, nested.statusCode]).toStrictEqual([401, 401, 401]);
+  });
+
+  it("uploads over the limit get 429 from their own bucket, and the valid bearer still succeeds", async () => {
+    for (let attempt = 0; attempt < LIMIT_PER_MINUTE; attempt += 1) {
+      const accepted = await app.inject({ method: "POST", url: UPLOAD_PROBE_PATH, payload: {} });
+      expect(accepted.statusCode).toBe(200);
+    }
+    const limited = await app.inject({ method: "POST", url: UPLOAD_PROBE_PATH, payload: {} });
+    expect(limited.statusCode).toBe(429);
+    expect(uploadCalls).toBe(LIMIT_PER_MINUTE);
+    const valid = await app.inject({ method: "POST", url: PROBE_PATH, headers: { authorization: BEARER }, payload: {} });
+    expect(valid.statusCode).toBe(200);
+  });
+
+  it("calls with the bearer do not use the upload budget", async () => {
+    for (let attempt = 0; attempt < LIMIT_PER_MINUTE; attempt += 1) {
+      await app.inject({ method: "POST", url: PROBE_PATH, headers: { authorization: BEARER }, payload: {} });
+    }
+    const upload = await app.inject({ method: "POST", url: UPLOAD_PROBE_PATH, payload: {} });
+    expect(upload.statusCode).toBe(200);
   });
 
   it("AC6: the health body shows login_required and never the login URL", async () => {

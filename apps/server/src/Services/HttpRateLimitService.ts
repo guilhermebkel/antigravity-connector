@@ -1,4 +1,4 @@
-export type RateBucket = "authenticated" | "failed";
+export type RateBucket = "authenticated" | "failed" | "upload";
 
 export type HttpRateLimitOptions = {
   maxRequestsPerWindow: number;

@@ -47,7 +47,7 @@ A bug found at a high level is first reproduced in a lower-level test, then fixe
 
 ## Safety tests
 
-Behavior that cannot fail has a deterministic test and no exception: every output path returns and logs no secret (a fake one is planted and searched for); a request without the bearer key is refused on every route except `/health`; the server refuses a non-loopback bind unless allowed; a run is killed at its timeout. A change to one of these rules changes its test in the same PR.
+Behavior that cannot fail has a deterministic test and no exception: every output path returns and logs no secret (a fake one is planted and searched for); a request without the bearer key is refused on every route except `/health` and the one-time upload links, which are refused without a valid token; the server refuses a non-loopback bind unless allowed; a run is killed at its timeout. A change to one of these rules changes its test in the same PR.
 
 ## Before finishing: the mutation check
 

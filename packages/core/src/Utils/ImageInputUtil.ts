@@ -53,6 +53,12 @@ export class ImageInputUtil {
     return { isValid: true, mime, bytes };
   }
 
+  static detectMime(bytes: Uint8Array): ImageMime | undefined {
+    const buffer = Buffer.from(bytes);
+    const mimes = Object.keys(ImageInputUtil.MIME_TO_SIGNATURE_CHECK) as ImageMime[];
+    return mimes.find((mime) => ImageInputUtil.MIME_TO_SIGNATURE_CHECK[mime](buffer));
+  }
+
   static readAttachment(url: string, index: number): RunAttachment {
     const result = ImageInputUtil.parse(url);
     if (!result.isValid) {

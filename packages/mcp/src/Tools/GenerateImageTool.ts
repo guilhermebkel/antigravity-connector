@@ -4,7 +4,6 @@ import type { ToolJobOutput, ToolRunOutput } from "@antigravity-connector/mcp/Pr
 import { GenerateImageInputSchema } from "@antigravity-connector/mcp/Schemas/GenerateImageSchema.ts";
 import { ToolJobOutputSchema } from "@antigravity-connector/mcp/Schemas/ToolJobSchema.ts";
 import { ToolJobUtil } from "@antigravity-connector/mcp/Utils/ToolJobUtil.ts";
-import { ImageInputUtil, type RunAttachment } from "@antigravity-connector/core";
 
 export class GenerateImageTool implements McpToolPort<GenerateImageInput, ToolJobOutput> {
   static readonly DEFAULT_MODEL = "gemini-3.8-flash";
@@ -17,7 +16,8 @@ export class GenerateImageTool implements McpToolPort<GenerateImageInput, ToolJo
     "Generates one PNG image from a text prompt with agy's image generator.",
     "Use it when the user asks for a picture, not for text.",
     "Do not use it to describe an existing image.",
-    "Optional images are reference images for the picture: up to 4 base64 data: URLs of PNG, JPEG or WebP, 4 MiB each.",
+    "Optional images are reference images for the picture, to edit or copy a photo: up to 4, each an https:// URL, a base64 data: URL, or the image value that create_upload_link returned after the file was uploaded; the file is a PNG, JPEG or WebP of up to 4 MiB.",
+    "Prefer an https:// URL that the server can reach: it follows up to 3 redirects and refuses private addresses. A long base64 string is easy to corrupt when copied by hand, so use create_upload_link for a local file.",
     "Returns the image and its size when it is ready within about 20 seconds.",
     "Otherwise returns status running and a job_id: call get_result with that job_id after retry_after_seconds, until it returns the image.",
     "A job takes about a minute and spends subscription quota; it counts against the daily image limit.",
@@ -37,9 +37,7 @@ export class GenerateImageTool implements McpToolPort<GenerateImageInput, ToolJo
 
   async execute(input: GenerateImageInput, context: McpToolContext): Promise<McpToolRun<ToolRunOutput>> {
     const model = input.model ?? GenerateImageTool.DEFAULT_MODEL;
-    const attachments: RunAttachment[] = (input.images ?? []).map((url, index) => {
-      return ImageInputUtil.readAttachment(url, index);
-    });
+    const attachments = await context.imageSourceService.readAttachments(input.images ?? [], context.signal);
     const outcome = await context.imageService.generate(
       { model, attachments, door: "mcp", prompt: input.prompt },
       context.signal,

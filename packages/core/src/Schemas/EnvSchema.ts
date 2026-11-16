@@ -20,6 +20,13 @@ const DEFAULT_DATA_DIR = "data";
 const LOG_LEVELS = ["error", "warn", "info", "debug"] as const;
 const DEFAULT_LOG_LEVEL = "info";
 
+const PublicUrlSchema = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.url({ protocol: /^https?$/ })
+    .refine((value) => URL.canParse(value) && new URL(value).pathname === "/", "must be an origin such as https://connector.example.com")
+    .optional(),
+);
+
 export const EnvSchema: z.ZodType<Env> = z.object({
   API_KEY: z.string().min(MIN_API_KEY_LENGTH),
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
@@ -39,4 +46,5 @@ export const EnvSchema: z.ZodType<Env> = z.object({
   MCP_MAX_SESSIONS: z.coerce.number().int().positive().default(DEFAULT_MCP_MAX_SESSIONS),
   MCP_SESSION_TTL_MS: z.coerce.number().int().positive().default(DEFAULT_MCP_SESSION_TTL_MS),
   DATA_DIR: z.string().min(1).default(DEFAULT_DATA_DIR),
+  PUBLIC_URL: PublicUrlSchema,
 });
