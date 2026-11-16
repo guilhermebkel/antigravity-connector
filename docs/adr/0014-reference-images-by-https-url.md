@@ -12,17 +12,17 @@ The server runs on the owner's VPS, and the address in `images` is chosen by the
 
 - An entry of `images` is a base64 `data:` URL or an `https://` URL. The chat API is not changed: it takes `data:` URLs only.
 - The download runs before the call enters the queue, in `core`, and it is held to these limits in code:
-  - Only `https:`, with no user name or password in the address. The schema refuses anything else before a run starts.
+  - Only `https:`. The schema refuses anything else before a run starts. A user name and password in the address are allowed: the owner chose the URL, and they go only to that host.
   - The socket connects only to an address that is on the public internet. The check runs in the lookup that the socket itself uses, so a DNS answer that changes between the check and the connection cannot get past it; an address written in the URL is checked before any lookup. A host with one public and one private address is refused.
-  - A redirect is not followed, and a status outside 2xx is an error.
+  - At most 3 redirects are followed, each to an `https:` address; the address check runs again on every hop, so a redirect to a private address is refused before any connection. A redirect with no `Location`, a status outside 2xx and a fourth redirect are errors.
   - The body stops at 4 MiB, with or without `Content-Length`, and the whole request, body included, stops after 15 seconds.
   - The type comes from the first bytes (PNG, JPEG or WebP), never from the `Content-Type` header or from the end of the address.
-- The request carries only an `Accept` header: no cookie, no authorization and nothing of the server.
+- The request carries only `Accept` and `User-Agent` headers (many hosts refuse a request with no `User-Agent`): no cookie, no authorization of the server and no key. A URL may carry its own user name and password; they go only to the host the owner wrote.
 - An error names which reference image failed, why and what to do next. It never contains the address, the query string or the bytes, and nothing about the address is logged.
 
 ## Consequences
 
 - A client can send `https://host/photo.jpg` and spend a few tokens instead of the picture.
-- A picture that sits behind a login, a redirect or a private network cannot be used by URL; the client sends it as a `data:` URL, as before.
+- A picture that sits behind a login or a private network cannot be used by URL; the client sends it as a `data:` URL, as before. Short links and signed CDN URLs that redirect work.
 - The server makes outbound HTTPS requests to addresses the client picks. The address guard is a rule that cannot fail, so it is code with tests, including a local listener that must receive no connection.
 - Reading an image from a file path or an upload endpoint stays out of scope. It would need the client and the server to share a disk or a new route.

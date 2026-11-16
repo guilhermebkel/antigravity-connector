@@ -3,7 +3,6 @@ import type { OpenAiErrorCode } from "@antigravity-connector/protocol";
 export type RemoteImageReason
   = | "invalid_url"
     | "not_https"
-    | "has_credentials"
     | "non_public_address"
     | "redirect"
     | "bad_status"
@@ -14,11 +13,10 @@ export type RemoteImageReason
 
 export class RemoteImageError extends Error {
   static readonly REASON_TO_TEXT: Readonly<Record<RemoteImageReason, string>> = {
-    invalid_url: "is not a valid URL of at most 2048 characters. What to do: send a base64 data: URL or a plain https:// URL.",
+    invalid_url: "is not a valid URL of at most 8192 characters. What to do: send a base64 data: URL or a plain https:// URL.",
     not_https: "does not start with https://. What to do: send an https:// URL, or a base64 data: URL.",
-    has_credentials: "has a user name or password in its address. What to do: send a URL without credentials.",
     non_public_address: "points to an address that is not on the public internet. What to do: send a URL on a public host, or a base64 data: URL.",
-    redirect: "answers with a redirect, and redirects are not followed. What to do: send the final URL of the image.",
+    redirect: "redirects more than 3 times, or to an address that is not https, or without saying where. What to do: send the final URL of the image.",
     bad_status: "answered with an error status. What to do: check that the URL is public, or send a base64 data: URL.",
     too_large: "is larger than 4 MiB. What to do: send a smaller picture.",
     not_an_image: "is not a PNG, JPEG or WebP picture. What to do: send a link that serves one of those files.",

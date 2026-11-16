@@ -8,12 +8,15 @@ describe("RemoteImageUrlUtil", () => {
     expect(result).toStrictEqual({ isValid: true, url: new URL("https://cdn.example.com/a/photo.jpg?size=large") });
   });
 
+  it("accepts a long signed URL and credentials in the address", () => {
+    const signed = `https://user:pass@cdn.example.com/photo.png?signature=${"a".repeat(3000)}`;
+    expect(RemoteImageUrlUtil.parse(signed).isValid).toBe(true);
+  });
+
   it.each([
     ["http://example.com/a.png", "not_https"],
     ["ftp://example.com/a.png", "not_https"],
     ["file:///etc/passwd", "not_https"],
-    ["https://user:pass@example.com/a.png", "has_credentials"],
-    ["https://user@example.com/a.png", "has_credentials"],
     ["not a url", "invalid_url"],
     ["", "invalid_url"],
     [`https://example.com/${"a".repeat(RemoteImageUrlUtil.MAX_URL_LENGTH)}`, "invalid_url"],

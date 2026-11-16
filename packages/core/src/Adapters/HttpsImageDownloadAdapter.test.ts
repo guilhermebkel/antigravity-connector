@@ -82,7 +82,7 @@ describe("HttpsImageDownloadAdapter", () => {
     });
   });
 
-  it("does not follow a redirect, and the target is never asked", async () => {
+  it("follows a redirect to another https address and returns the bytes it finds there", async () => {
     const target = await startServer((_request, response) => {
       response.end(PNG_BYTES);
     });
@@ -90,8 +90,73 @@ describe("HttpsImageDownloadAdapter", () => {
       response.writeHead(302, { location: `https://localhost:${target.port}/photo.png` });
       response.end();
     });
+    const bytes = await buildAdapter().download(new URL(`https://localhost:${port}/short`));
+    expect([...bytes]).toStrictEqual([...PNG_BYTES]);
+  });
+
+  it("follows a relative redirect on the same host", async () => {
+    const { port } = await startServer((request, response) => {
+      if (request.url === "/short") {
+        response.writeHead(301, { location: "/final.png" });
+        response.end();
+        return;
+      }
+      response.end(PNG_BYTES);
+    });
+    const bytes = await buildAdapter().download(new URL(`https://localhost:${port}/short`));
+    expect([...bytes]).toStrictEqual([...PNG_BYTES]);
+  });
+
+  it("checks the address again on every hop: a redirect to a private address is refused and never connected", async () => {
+    const guarded = new HttpsImageDownloadAdapter({
+      isPublicAddress: (address) => !address.startsWith("10."),
+      ca: TlsFixtureUtil.CERTIFICATE,
+    });
+    const { port, connections } = await startServer((_request, response) => {
+      response.writeHead(307, { location: "https://10.1.2.3:9/photo.png" });
+      response.end();
+    });
+    await expect(guarded.download(new URL(`https://localhost:${port}/a`))).rejects.toMatchObject({
+      reason: "non_public_address",
+    });
+    expect(connections.count).toBe(1);
+  });
+
+  it("refuses a redirect to a loopback address with the default guard on the first hop too", async () => {
+    const { port, connections } = await startServer((_request, response) => {
+      response.writeHead(302, { location: "https://localhost/other" });
+      response.end();
+    });
+    const guarded = new HttpsImageDownloadAdapter({ ca: TlsFixtureUtil.CERTIFICATE });
+    await expect(guarded.download(new URL(`https://localhost:${port}/a`))).rejects.toMatchObject({
+      reason: "non_public_address",
+    });
+    expect(connections.count).toBe(0);
+  });
+
+  it("refuses a redirect to http", async () => {
+    const { port } = await startServer((_request, response) => {
+      response.writeHead(302, { location: "http://cdn.example.com/photo.png" });
+      response.end();
+    });
     await expect(buildAdapter().download(new URL(`https://localhost:${port}/a`))).rejects.toMatchObject({ reason: "redirect" });
-    expect(target.connections.count).toBe(0);
+  });
+
+  it("refuses a redirect that does not say where", async () => {
+    const { port } = await startServer((_request, response) => {
+      response.writeHead(302);
+      response.end();
+    });
+    await expect(buildAdapter().download(new URL(`https://localhost:${port}/a`))).rejects.toMatchObject({ reason: "redirect" });
+  });
+
+  it("gives up after 3 redirects, so a loop ends", async () => {
+    const { port, connections } = await startServer((_request, response) => {
+      response.writeHead(302, { location: "/again" });
+      response.end();
+    });
+    await expect(buildAdapter().download(new URL(`https://localhost:${port}/a`))).rejects.toMatchObject({ reason: "redirect" });
+    expect(connections.count).toBe(4);
   });
 
   it("refuses an error status", async () => {

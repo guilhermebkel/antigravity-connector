@@ -94,7 +94,7 @@ describe("generate_image with reference images over MCP", () => {
   });
 
   it.each([
-    ["redirect", /Reference image 1 answers with a redirect/],
+    ["redirect", /Reference image 1 redirects more than 3 times/],
     ["non_public_address", /Reference image 1 points to an address that is not on the public internet/],
     ["too_large", /Reference image 1 is larger than 4 MiB/],
   ] as const)("a download that fails with %s ends the call as an error that says what to do, and no run starts", async (reason, message) => {

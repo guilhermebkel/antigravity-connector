@@ -1,4 +1,4 @@
-export type RemoteImageUrlReason = "invalid_url" | "not_https" | "has_credentials";
+export type RemoteImageUrlReason = "invalid_url" | "not_https";
 
 export type RemoteImageUrlValid = {
   isValid: true;

@@ -47,7 +47,6 @@ describe("ImageSourceService", () => {
 
   it.each([
     ["http://cdn.example.com/a.png", "not_https"],
-    ["https://user:pass@cdn.example.com/a.png", "has_credentials"],
     ["ftp://cdn.example.com/a.png", "not_https"],
     ["nonsense", "invalid_url"],
   ])("refuses %s before anything is downloaded", async (url, reason) => {
@@ -67,7 +66,7 @@ describe("ImageSourceService", () => {
       return failingPaths.has(url.pathname) ? Promise.reject(new RemoteImageError("redirect")) : Promise.resolve(PNG_BYTES);
     });
     await expect(service.readAttachments(["https://cdn.example.com/ok", "https://cdn.example.com/bad"]))
-      .rejects.toThrow(/^Reference image 2 answers with a redirect/);
+      .rejects.toThrow(/^Reference image 2 redirects more than 3 times/);
   });
 
   it("passes through an error that is not a remote image error, such as a cancel", async () => {

@@ -16,6 +16,8 @@ export type HttpsImageDownloadAdapterOptions = {
 export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
   static readonly DEFAULT_TIMEOUT_MS = 15000;
 
+  static readonly MAX_REDIRECTS = 3;
+
   static readonly FIRST_OK_STATUS = 200;
 
   static readonly FIRST_REDIRECT_STATUS = 300;
@@ -39,16 +41,33 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
   }
 
   async download(url: URL, signal?: AbortSignal): Promise<Uint8Array> {
-    const host = url.hostname;
-    if (isIP(host.replace(/^\[|\]$/g, "")) !== 0 && !this.isPublicAddress(host)) {
-      throw new RemoteImageError("non_public_address");
-    }
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const combined = signal === undefined ? deadline : AbortSignal.any([signal, deadline]);
     try {
-      return await this.requestBytes(url, combined);
+      return await this.downloadThroughRedirects(url, combined);
     } catch (error: unknown) {
       throw HttpsImageDownloadAdapter.classify(error, signal, deadline);
+    }
+  }
+
+  private async downloadThroughRedirects(first: URL, signal: AbortSignal): Promise<Uint8Array> {
+    let current = first;
+    for (let hop = 0; hop <= HttpsImageDownloadAdapter.MAX_REDIRECTS; hop += 1) {
+      this.assertPublicHost(current);
+      // Why: every hop is awaited in order, because the next address is only known from the answer of the last one.
+      const outcome = await this.requestOnce(current, signal);
+      if (!(outcome instanceof URL)) {
+        return outcome;
+      }
+      current = outcome;
+    }
+    throw new RemoteImageError("redirect");
+  }
+
+  private assertPublicHost(url: URL): void {
+    const host = url.hostname;
+    if (isIP(host.replace(/^\[|\]$/g, "")) !== 0 && !this.isPublicAddress(host)) {
+      throw new RemoteImageError("non_public_address");
     }
   }
 
@@ -62,8 +81,8 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
     return new RemoteImageError(deadline.aborted ? "timeout" : "unreachable");
   }
 
-  private requestBytes(url: URL, signal: AbortSignal): Promise<Uint8Array> {
-    return new Promise<Uint8Array>((resolve, reject) => {
+  private requestOnce(url: URL, signal: AbortSignal): Promise<Uint8Array | URL> {
+    return new Promise<Uint8Array | URL>((resolve, reject) => {
       const outgoing = request(url, {
         method: "GET",
         headers: { "accept": HttpsImageDownloadAdapter.ACCEPT, "user-agent": HttpsImageDownloadAdapter.USER_AGENT },
@@ -72,7 +91,7 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
         ca: this.ca,
         signal,
       }, (response) => {
-        HttpsImageDownloadAdapter.readBody(response).then(resolve, reject);
+        HttpsImageDownloadAdapter.readResponse(response, url).then(resolve, reject);
       });
       outgoing.on("error", reject);
       outgoing.end();
@@ -105,13 +124,12 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
     callback(null, first?.address ?? "", first?.family ?? 0);
   }
 
-  static async readBody(response: IncomingMessage): Promise<Uint8Array> {
+  static async readResponse(response: IncomingMessage, current: URL): Promise<Uint8Array | URL> {
     const status = response.statusCode ?? 0;
     const isRedirect = status >= HttpsImageDownloadAdapter.FIRST_REDIRECT_STATUS
       && status < HttpsImageDownloadAdapter.FIRST_ERROR_STATUS;
     if (isRedirect) {
-      response.destroy();
-      throw new RemoteImageError("redirect");
+      return HttpsImageDownloadAdapter.readRedirect(response, current);
     }
     const isOk = status >= HttpsImageDownloadAdapter.FIRST_OK_STATUS
       && status < HttpsImageDownloadAdapter.FIRST_REDIRECT_STATUS;
@@ -125,6 +143,19 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
       throw new RemoteImageError("too_large");
     }
     return HttpsImageDownloadAdapter.collect(response);
+  }
+
+  static readRedirect(response: IncomingMessage, current: URL): URL {
+    const location = response.headers.location ?? "";
+    response.destroy();
+    if (location === "" || !URL.canParse(location, current.href)) {
+      throw new RemoteImageError("redirect");
+    }
+    const next = new URL(location, current);
+    if (next.protocol !== "https:") {
+      throw new RemoteImageError("redirect");
+    }
+    return next;
   }
 
   static async collect(response: IncomingMessage): Promise<Uint8Array> {
