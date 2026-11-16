@@ -399,7 +399,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
         </div>
         <div class="merge" aria-hidden="true"><i></i><b></b></div>
         <div class="queue">
-          <div class="queue__head"><span>shared queue</span><span>one agy call at a time</span></div>
+          <div class="queue__head"><span>shared queue</span><span>up to four agy calls at once</span></div>
           <div class="queue__slots">
             <div class="slot" data-on data-run data-slot="run"><span>chat</span><em>running</em></div>
             <div class="slot" data-on data-slot="wait"><span>web_search</span><span>waiting</span></div>
@@ -444,16 +444,25 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
 
       <article class="panel" data-reveal data-delay="80">
         <div class="panel__top"><h3>MCP server</h3><span class="panel__path">/mcp</span></div>
-        <p>Streamable HTTP. Progress is reported while a call waits and runs, and a cancelled call kills the agy process.</p>
+        <p>Streamable HTTP, for any MCP client: Claude, Cursor, Codex and others. Progress is reported while a call waits and runs, and a cancelled call kills the agy process.</p>
         <ul class="facts">
           <li><code>web_search</code><span>links · ~20 to 45 s</span></li>
           <li><code>generate_image</code><span>one PNG · ~1 min</span></li>
+          <li><code>research</code><span>report with sources · minutes</span></li>
+          <li><code>browse</code><span>read a public page</span></li>
           <li><span>Progress during queue and run, when the client sends a progress token</span><span>progress</span></li>
         </ul>
-        <div class="code"><pre><span class="c"># add it to Claude Code</span>
-<span class="k">claude mcp add</span> --transport http antigravity \
-  https://connector.your-domain.com/mcp \
-  --header <span class="s">"Authorization: Bearer &lt;API_KEY&gt;"</span></pre></div>
+        <div class="code"><pre><span class="c"># in your client's MCP settings</span>
+{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"antigravity"</span>: {
+      <span class="s">"url"</span>: <span class="s">"https://connector.your-domain.com/mcp"</span>,
+      <span class="s">"headers"</span>: {
+        <span class="s">"Authorization"</span>: <span class="s">"Bearer &lt;API_KEY&gt;"</span>
+      }
+    }
+  }
+}</pre></div>
       </article>
     </div>
   </div>
@@ -475,8 +484,8 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
       <li class="step" data-reveal>
         <span class="step__n">02</span>
         <h3>It waits its turn</h3>
-        <p>Only one agy call runs at a time. API and MCP calls share the same queue, with a limit on how long a call may wait.</p>
-        <span class="chip">QUEUE_MAX_WAIT_MS</span>
+        <p>Up to four agy calls run at once. API and MCP calls share the same queue, with a limit on how long a call may wait.</p>
+        <span class="chip">QUEUE_CONCURRENCY</span>
       </li>
       <li class="step" data-reveal>
         <span class="step__n">03</span>
@@ -502,9 +511,9 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
     </div>
     <div class="figs" data-reveal>
       <div class="fig">
-        <span class="fig__n num">1<small>call at a time</small></span>
+        <span class="fig__n num">4<small>calls at once</small></span>
         <span class="fig__l">Concurrency</span>
-        <p>Chat, search and image calls queue behind each other instead of racing the CLI.</p>
+        <p>Past four runs at once, calls wait in line instead of racing the CLI.</p>
       </div>
       <div class="fig">
         <span class="fig__n num">24<small>chars</small></span>
@@ -579,8 +588,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
     <div class="limits">
       <ul class="nope" data-reveal>
         <li><span class="x">Not yet</span><span>Tool calling. The <code>tools</code> field returns 400.</span></li>
-        <li><span class="x">Not yet</span><span><code>response_format</code> other than text, and image input.</span></li>
-        <li><span class="x">Not yet</span><span>The <code>research</code> and <code>browse</code> tools, and <code>POST /v1/images/generations</code>.</span></li>
+        <li><span class="x">Not yet</span><span>PDF and other file input, audio and video, and a browser profile with your own logins.</span></li>
         <li><span class="x">Ignored</span><span><code>temperature</code> and <code>max_tokens</code> are accepted but have no effect.</span></li>
         <li><span class="x">Pinned</span><span>The agy binary is fixed at version 1.5.9 in the image.</span></li>
       </ul>
