@@ -242,7 +242,7 @@ Any MCP client that supports Streamable HTTP can use them: it sends the URL and 
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
-The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`. It can take up to four reference images in `images`, as base64 `data:` URLs of PNG, JPEG or WebP files of up to 4 MiB each; a remote URL is refused.
+The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`. It can take up to four reference images in `images`, each a base64 `data:` URL or an `https://` URL of a PNG, JPEG or WebP file of up to 4 MiB. The server downloads an `https://` URL itself ([ADR 0014](docs/adr/0014-reference-images-by-https-url.md)): it follows no redirect, gives up after 15 seconds and refuses a host that resolves to a private, loopback or link-local address. The chat API still takes `data:` URLs only.
 
 The long MCP tools (`web_search`, `generate_image`, `research` and `browse`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
 

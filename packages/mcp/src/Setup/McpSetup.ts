@@ -1,5 +1,12 @@
 import type { FastifyInstance } from "fastify";
-import { ImageRunService, type AgyLoginService, type AgyRunService } from "@antigravity-connector/core";
+import {
+  HttpsImageDownloadAdapter,
+  ImageRunService,
+  ImageSourceService,
+  type AgyLoginService,
+  type AgyRunService,
+  type RemoteImageDownloadPort,
+} from "@antigravity-connector/core";
 import { McpSessionService } from "@antigravity-connector/mcp/Services/McpSessionService.ts";
 import { ToolJobService } from "@antigravity-connector/mcp/Services/ToolJobService.ts";
 import { McpRoute } from "@antigravity-connector/mcp/Routes/McpRoute.ts";
@@ -12,6 +19,7 @@ export type McpSetupOptions = {
   researchDailyLimit: number;
   loginService: AgyLoginService;
   jobWaitMs?: number;
+  imageDownloader?: RemoteImageDownloadPort;
 };
 
 export class McpSetup {
@@ -24,6 +32,9 @@ export class McpSetup {
     const services = {
       runService: options.runService,
       imageService: new ImageRunService({ runService: options.runService }),
+      imageSourceService: new ImageSourceService({
+        downloader: options.imageDownloader ?? new HttpsImageDownloadAdapter(),
+      }),
       toolJobs: new ToolJobService({ clock: options.clock, waitMs: options.jobWaitMs }),
       researchDailyLimit: options.researchDailyLimit,
       loginService: options.loginService,

@@ -1,20 +1,45 @@
 import { z } from "zod";
 import type { GenerateImageInput } from "@antigravity-connector/mcp/Protocols/GenerateImageProtocol.ts";
-import { ImageInputUtil, type ImageInputReason } from "@antigravity-connector/core";
+import {
+  ImageInputUtil,
+  RemoteImageError,
+  RemoteImageUrlUtil,
+  type ImageInputReason,
+} from "@antigravity-connector/core";
 
 const GENERATE_IMAGE_PROMPT_MAX_LENGTH = 2000;
+const DATA_URL_PREFIX = "data:";
 
 const REASON_TO_MESSAGE: Readonly<Record<ImageInputReason, string>> = {
-  not_data_url: "must be a base64 data: URL of a PNG, JPEG or WebP image. Remote URLs are not fetched.",
+  not_data_url: "must be a base64 data: URL of a PNG, JPEG or WebP image, or an https:// URL of one.",
   too_large: "is larger than 4 MiB.",
   signature_mismatch: "does not match its declared image type.",
 };
 
-const validateReferenceImage = (url: string, context: z.RefinementCtx): void => {
+const validateDataUrl = (url: string, context: z.RefinementCtx): void => {
   const result = ImageInputUtil.parse(url);
   if (!result.isValid) {
     context.addIssue({ code: "custom", message: `The reference image ${REASON_TO_MESSAGE[result.reason]}` });
   }
+};
+
+const validateRemoteUrl = (url: string, context: z.RefinementCtx): void => {
+  const result = RemoteImageUrlUtil.parse(url);
+  if (!result.isValid) {
+    context.addIssue({ code: "custom", message: new RemoteImageError(result.reason).message });
+  }
+};
+
+const validateReferenceImage = (url: string, context: z.RefinementCtx): void => {
+  if (url.startsWith(DATA_URL_PREFIX)) {
+    validateDataUrl(url, context);
+    return;
+  }
+  if (URL.canParse(url)) {
+    validateRemoteUrl(url, context);
+    return;
+  }
+  context.addIssue({ code: "custom", message: `The reference image ${REASON_TO_MESSAGE.not_data_url}` });
 };
 
 export const GenerateImageInputSchema: z.ZodType<GenerateImageInput> = z.strictObject({

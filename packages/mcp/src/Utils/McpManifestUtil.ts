@@ -65,6 +65,7 @@ export class McpManifestUtil {
         return await runner(request.params.arguments, {
           runService: services.runService,
           imageService: services.imageService,
+          imageSourceService: services.imageSourceService,
           toolJobs: services.toolJobs,
           loginService: services.loginService,
           signal: extra.signal,
@@ -97,6 +98,7 @@ export class McpManifestUtil {
       async (input, extra) => McpManifestUtil.invoke(tool, input, {
         runService: services.runService,
         imageService: services.imageService,
+        imageSourceService: services.imageSourceService,
         toolJobs: services.toolJobs,
         loginService: services.loginService,
         signal: extra.signal,

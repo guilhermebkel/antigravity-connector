@@ -1,7 +1,12 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { StubRuntimeUtil, type StubRunOptions, type StubRunRequest } from "@antigravity-connector/core";
+import {
+  StubRuntimeUtil,
+  type RemoteImageDownloadPort,
+  type StubRunOptions,
+  type StubRunRequest,
+} from "@antigravity-connector/core";
 import { McpSetup } from "@antigravity-connector/mcp/Setup/McpSetup.ts";
 
 export const MCP_API_KEY = "test-api-key-0123456789abcdef";
@@ -13,6 +18,7 @@ export type McpHarnessOptions = StubRunOptions & {
   researchDailyLimit?: number;
   sessionTtlMs?: number;
   jobWaitMs?: number;
+  imageDownloader?: RemoteImageDownloadPort;
 };
 
 export type McpHarness = {
@@ -39,6 +45,7 @@ export class McpHarnessUtil {
       researchDailyLimit: options.researchDailyLimit ?? McpHarnessUtil.RESEARCH_DAILY_LIMIT,
       loginService: stub.loginService,
       jobWaitMs: options.jobWaitMs,
+      imageDownloader: options.imageDownloader,
     });
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
     return { app, address, clock, requests: stub.requests };

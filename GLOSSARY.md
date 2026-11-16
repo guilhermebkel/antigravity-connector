@@ -17,6 +17,7 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **Call log** | The SQLite table with one metadata row per call (door, route or tool, kind, model, duration, token counts, status). It never stores content. The daily counters are read from it at startup. |
 | **Conversation id** | The id `agy` returns for a conversation. The API keeps the ids it has seen for 24 hours, at most 256; a request that sends a known id resumes that conversation with only its last user message. |
 | **Attachment** | An image sent in a chat message as a `data:` URL. The server saves it in the run's temporary directory and names the file in the prompt, so agy can read it with its own tools. |
+| **Reference image** | A picture sent to `generate_image` in `images`, as a base64 `data:` URL or an `https://` URL that the server downloads. It reaches agy as an attachment, so the tool can edit or copy it. |
 | **Structured output** | The JSON that `agy` returns for a `response_format` with a schema, passed to agy as a schema file (`--json-schema`). The API returns it as the message content. |
 | **Queue** | The global queue with concurrency 1 that serializes every run from both doors. A call that waits longer than the maximum fails with a clear error. |
 | **Daily limit** | The number of runs of one kind allowed per UTC day. A call over the limit fails before the queue. |
