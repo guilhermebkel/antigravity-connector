@@ -174,13 +174,14 @@ describe("HttpsImageDownloadAdapter", () => {
     await expect(pending).rejects.not.toBeInstanceOf(RemoteImageError);
   });
 
-  it("sends no cookie, no authorization and no key of the server", async () => {
+  it("identifies itself with a User-Agent, as many hosts refuse a request without one, and sends no cookie, authorization or key", async () => {
     let headerNameToValue: Record<string, string | string[] | undefined> = {};
     const { port } = await startServer((request, response) => {
       headerNameToValue = request.headers;
       response.end(PNG_BYTES);
     });
     await buildAdapter().download(new URL(`https://localhost:${port}/a`));
-    expect(Object.keys(headerNameToValue).sort()).toStrictEqual(["accept", "connection", "host"]);
+    expect(headerNameToValue["user-agent"]).toBe("antigravity-connector");
+    expect(Object.keys(headerNameToValue).sort()).toStrictEqual(["accept", "connection", "host", "user-agent"]);
   });
 });

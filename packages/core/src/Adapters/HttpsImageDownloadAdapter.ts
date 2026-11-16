@@ -24,6 +24,8 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
 
   static readonly ACCEPT = "image/png,image/jpeg,image/webp";
 
+  static readonly USER_AGENT = "antigravity-connector";
+
   private readonly timeoutMs: number;
 
   private readonly isPublicAddress: (address: string) => boolean;
@@ -64,7 +66,7 @@ export class HttpsImageDownloadAdapter implements RemoteImageDownloadPort {
     return new Promise<Uint8Array>((resolve, reject) => {
       const outgoing = request(url, {
         method: "GET",
-        headers: { accept: HttpsImageDownloadAdapter.ACCEPT },
+        headers: { "accept": HttpsImageDownloadAdapter.ACCEPT, "user-agent": HttpsImageDownloadAdapter.USER_AGENT },
         lookup: this.buildGuardedLookup(),
         agent: false,
         ca: this.ca,
