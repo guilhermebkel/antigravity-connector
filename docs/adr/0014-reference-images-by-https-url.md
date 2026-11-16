@@ -25,4 +25,4 @@ The server runs on the owner's VPS, and the address in `images` is chosen by the
 - A client can send `https://host/photo.jpg` and spend a few tokens instead of the picture.
 - A picture that sits behind a login or a private network cannot be used by URL; the client sends it as a `data:` URL, as before. Short links and signed CDN URLs that redirect work.
 - The server makes outbound HTTPS requests to addresses the client picks. The address guard is a rule that cannot fail, so it is code with tests, including a local listener that must receive no connection.
-- Reading an image from a file path or an upload endpoint stays out of scope. It would need the client and the server to share a disk or a new route.
+- Reading an image from a file path stays out of scope: it would need the client and the server to share a disk. A file on the client's machine goes through an upload link ([0015](0015-upload-link-for-reference-images.md)).

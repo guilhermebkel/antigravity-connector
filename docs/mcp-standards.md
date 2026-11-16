@@ -6,7 +6,7 @@ The server speaks MCP over Streamable HTTP only, on `/mcp`, in the same process 
 
 ## Scope
 
-- **One tool per thing a client does (review).** A tool is a task, not a copy of an `agy` capability. The tools are `web_search`, `generate_image`, `research`, `browse`, `get_result` (the job result) and the login pair `check_auth` and `set_auth`.
+- **One tool per thing a client does (review).** A tool is a task, not a copy of an `agy` capability. The tools are `web_search`, `generate_image`, `create_upload_link` (a one-time link for a reference picture, with no `agy` run), `research`, `browse`, `get_result` (the job result) and the login pair `check_auth` and `set_auth`.
 - **Names are a verb and an object, in `snake_case` (test).** No service prefix: the client already shows the server name.
 - **Filtering and shaping happen in the server (review).** A tool returns what the model needs, not the raw `agy` output.
 

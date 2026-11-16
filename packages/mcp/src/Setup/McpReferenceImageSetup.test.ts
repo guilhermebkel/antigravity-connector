@@ -66,13 +66,13 @@ describe("generate_image with reference images over MCP", () => {
     await harness.app.close();
   });
 
-  it("a value that is neither a data URL nor an https URL is refused, and the message names both forms", async () => {
+  it("a value that is not a data URL, an https URL or an upload reference is refused, and the message names the three forms", async () => {
     const harness = await McpHarnessUtil.start({ respond: buildPng });
     const client = await McpHarnessUtil.connect(harness.address);
     await expect(client.callTool({
       name: "generate_image",
       arguments: { prompt: PROMPT, images: ["/home/user/photo.png"] },
-    })).rejects.toThrow(/base64 data: URL of a PNG, JPEG or WebP image, or an https:\/\/ URL of one/);
+    })).rejects.toThrow(/must be an https:\/\/ URL, a base64 data: URL of a PNG, JPEG or WebP image, or the image value from create_upload_link/);
     expect(harness.requests).toHaveLength(0);
     await client.close();
     await harness.app.close();

@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { generateText } from "ai";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { EnvUtil, type Env } from "@antigravity-connector/core";
 import { ServerSetup, type RunningServer } from "@antigravity-connector/server/Setup/ServerSetup.ts";
@@ -97,6 +99,26 @@ describe("the two doors on the server", () => {
       { jsonrpc: "2.0", id: 3, method: "tools/list", params: {} },
     );
     expect(wrong.status).toBe(401);
+  });
+
+  it("a link made through the keyed /mcp door takes a picture with no key, and the link works once", async () => {
+    const started = await startServer(buildEnv());
+    running = started.server;
+    const client = new Client({ name: "test-client", version: "0.0.0" });
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${started.address}/mcp`), {
+      requestInit: { headers: { authorization: `Bearer ${API_KEY}` } },
+    }));
+    const result = await client.callTool({ name: "create_upload_link", arguments: {} });
+    const { uploadPath, image } = result.structuredContent as {
+      uploadPath: string;
+      image: string;
+    };
+    const picture = Buffer.from("ffd8ffe000104a46", "hex");
+    const first = await fetch(`${started.address}${uploadPath}`, { method: "POST", body: picture });
+    expect(await first.json()).toStrictEqual({ image, mimeType: "image/jpeg", sizeBytes: 8 });
+    const second = await fetch(`${started.address}${uploadPath}`, { method: "POST", body: picture });
+    expect(second.status).toBe(404);
+    await client.close();
   });
 
   it("AC5 of issue 16: with QUEUE_CONCURRENCY=1, an MCP call and an API chat call never overlap in agy", async () => {

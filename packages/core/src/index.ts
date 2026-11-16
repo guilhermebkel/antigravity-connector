@@ -56,3 +56,8 @@ export { RemoteImageUrlUtil } from "@antigravity-connector/core/Utils/RemoteImag
 export { PublicAddressUtil } from "@antigravity-connector/core/Utils/PublicAddressUtil.ts";
 export type { RemoteImageDownloadPort, RemoteImageUrlResult } from "@antigravity-connector/core/Protocols/RemoteImageProtocol.ts";
 export { StubImageDownloadUtil } from "@antigravity-connector/core/Testing/StubImageDownloadUtil.ts";
+export { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+export { ImageUploadError } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+export type { ImageUploadReason } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+export type { ImageUploadLink, ImageUploadReceipt, UploadedImage } from "@antigravity-connector/core/Protocols/ImageUploadProtocol.ts";
+export { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";

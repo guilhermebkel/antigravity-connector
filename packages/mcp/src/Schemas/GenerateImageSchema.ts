@@ -4,6 +4,7 @@ import {
   ImageInputUtil,
   RemoteImageError,
   RemoteImageUrlUtil,
+  UploadReferenceUtil,
   type ImageInputReason,
 } from "@antigravity-connector/core";
 
@@ -11,7 +12,7 @@ const GENERATE_IMAGE_PROMPT_MAX_LENGTH = 2000;
 const DATA_URL_PREFIX = "data:";
 
 const REASON_TO_MESSAGE: Readonly<Record<ImageInputReason, string>> = {
-  not_data_url: "must be a base64 data: URL of a PNG, JPEG or WebP image, or an https:// URL of one.",
+  not_data_url: "must be an https:// URL, a base64 data: URL of a PNG, JPEG or WebP image, or the image value from create_upload_link.",
   too_large: "is larger than 4 MiB.",
   signature_mismatch: "does not match its declared image type.",
 };
@@ -30,9 +31,22 @@ const validateRemoteUrl = (url: string, context: z.RefinementCtx): void => {
   }
 };
 
+const validateUploadReference = (reference: string, context: z.RefinementCtx): void => {
+  if (UploadReferenceUtil.readImageId(reference) === undefined) {
+    context.addIssue({
+      code: "custom",
+      message: "The upload reference is not valid. What to do: pass the image value exactly as create_upload_link returned it.",
+    });
+  }
+};
+
 const validateReferenceImage = (url: string, context: z.RefinementCtx): void => {
   if (url.startsWith(DATA_URL_PREFIX)) {
     validateDataUrl(url, context);
+    return;
+  }
+  if (url.startsWith(UploadReferenceUtil.PREFIX)) {
+    validateUploadReference(url, context);
     return;
   }
   if (URL.canParse(url)) {

@@ -56,7 +56,7 @@ Both doors share one global queue, which runs up to `QUEUE_CONCURRENCY` agy call
 
 **Local by default**
 
-Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces so the published port works, and the install publishes it on `127.0.0.1` only, behind the HTTPS proxy. Every route but `/health` needs the bearer `API_KEY`.
+Listens on `127.0.0.1` by default and refuses to start on any other address unless you allow it. The image listens on all interfaces so the published port works, and the install publishes it on `127.0.0.1` only, behind the HTTPS proxy. Every route but `/health` and the one-time upload links needs the bearer `API_KEY`.
 
 </td>
 <td valign="top">
@@ -238,11 +238,13 @@ The setup is in [Quick start](#3-connect-your-ai). This section says what each d
 
 ### MCP tools (`/mcp`)
 
-Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `research`, `browse`, `get_result`, `check_auth` and `set_auth`.
+Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `create_upload_link`, `research`, `browse`, `get_result`, `check_auth` and `set_auth`.
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
-The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`. It can take up to four reference images in `images`, each a base64 `data:` URL or an `https://` URL of a PNG, JPEG or WebP file of up to 4 MiB. The server downloads an `https://` URL itself ([ADR 0014](docs/adr/0014-reference-images-by-https-url.md)): it follows at most 3 redirects (https only), gives up after 15 seconds and refuses, on every hop, a host that resolves to a private, loopback or link-local address. The chat API still takes `data:` URLs only.
+The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`. It can take up to four reference images in `images`, each a base64 `data:` URL, an `https://` URL or an `upload:` value from `create_upload_link`, of a PNG, JPEG or WebP file of up to 4 MiB. The server downloads an `https://` URL itself ([ADR 0014](docs/adr/0014-reference-images-by-https-url.md)): it follows at most 3 redirects (https only), gives up after 15 seconds and refuses, on every hop, a host that resolves to a private, loopback or link-local address. The chat API still takes `data:` URLs only.
+
+A photo that sits on your own machine has no public URL, and a long base64 string is easy to corrupt when a model copies it. The `create_upload_link` tool returns a one-time path, `/upload/<token>`, and an `upload:<id>` value. Send the file as the raw body of a `POST` to that path on your server, with no key, because the link is the credential (`curl --data-binary @photo.jpg https://connector.your-domain.com/upload/<token>`), then put the `upload:<id>` value in `images`. A link works once and lasts 5 minutes, the picture is kept in memory for 15 minutes, and at most 8 links and pictures wait at a time ([ADR 0015](docs/adr/0015-upload-link-for-reference-images.md)).
 
 The long MCP tools (`web_search`, `generate_image`, `research` and `browse`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
 
@@ -256,7 +258,7 @@ When the client sends a progress token, the server reports progress while a call
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` requires. |
+| `API_KEY` | none (required, at least 24 characters) | The bearer token every route except `/health` and the upload links requires. |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | The address the server listens on. |
 | `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the port can be published on the host. Publish it on `127.0.0.1` only and put an HTTPS proxy in front. |
 | `PORT` | `8787` | The port. |

@@ -3,6 +3,7 @@ import {
   HttpsImageDownloadAdapter,
   ImageRunService,
   ImageSourceService,
+  ImageUploadService,
   type AgyLoginService,
   type AgyRunService,
   type RemoteImageDownloadPort,
@@ -10,6 +11,7 @@ import {
 import { McpSessionService } from "@antigravity-connector/mcp/Services/McpSessionService.ts";
 import { ToolJobService } from "@antigravity-connector/mcp/Services/ToolJobService.ts";
 import { McpRoute } from "@antigravity-connector/mcp/Routes/McpRoute.ts";
+import { UploadRoute } from "@antigravity-connector/mcp/Routes/UploadRoute.ts";
 
 export type McpSetupOptions = {
   runService: AgyRunService;
@@ -29,16 +31,20 @@ export class McpSetup {
       maxSessions: options.maxSessions,
       clock: options.clock,
     });
+    const imageUploadService = new ImageUploadService({ clock: options.clock });
     const services = {
+      imageUploadService,
       runService: options.runService,
       imageService: new ImageRunService({ runService: options.runService }),
       imageSourceService: new ImageSourceService({
         downloader: options.imageDownloader ?? new HttpsImageDownloadAdapter(),
+        uploads: imageUploadService,
       }),
       toolJobs: new ToolJobService({ clock: options.clock, waitMs: options.jobWaitMs }),
       researchDailyLimit: options.researchDailyLimit,
       loginService: options.loginService,
     };
     McpRoute.register(app, { services, sessions });
+    UploadRoute.register(app, { uploads: imageUploadService });
   }
 }

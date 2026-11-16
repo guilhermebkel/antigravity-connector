@@ -1,18 +1,26 @@
 import type { RunAttachment } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { RemoteImageDownloadPort } from "@antigravity-connector/core/Protocols/RemoteImageProtocol.ts";
 import { RemoteImageError } from "@antigravity-connector/core/Errors/RemoteImageError.ts";
+import type { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
 import { ImageInputUtil } from "@antigravity-connector/core/Utils/ImageInputUtil.ts";
 import { RemoteImageUrlUtil } from "@antigravity-connector/core/Utils/RemoteImageUrlUtil.ts";
+import { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";
 
-export type ImageSourceServiceOptions = { downloader: RemoteImageDownloadPort };
+export type ImageSourceServiceOptions = {
+  downloader: RemoteImageDownloadPort;
+  uploads: ImageUploadService;
+};
 
 export class ImageSourceService {
   static readonly DATA_URL_PREFIX = "data:";
 
   private readonly downloader: RemoteImageDownloadPort;
 
+  private readonly uploads: ImageUploadService;
+
   constructor(options: ImageSourceServiceOptions) {
     this.downloader = options.downloader;
+    this.uploads = options.uploads;
   }
 
   async readAttachments(urls: readonly string[], signal?: AbortSignal): Promise<RunAttachment[]> {
@@ -22,6 +30,11 @@ export class ImageSourceService {
   private async readAttachment(url: string, index: number, signal: AbortSignal | undefined): Promise<RunAttachment> {
     if (url.startsWith(ImageSourceService.DATA_URL_PREFIX)) {
       return ImageInputUtil.readAttachment(url, index);
+    }
+    const uploadedImageId = UploadReferenceUtil.readImageId(url);
+    if (uploadedImageId !== undefined) {
+      const uploaded = this.uploads.readImage(uploadedImageId);
+      return ImageInputUtil.buildAttachment(uploaded.mime, uploaded.bytes, index);
     }
     const imageNumber = index + 1;
     const parsed = RemoteImageUrlUtil.parse(url);
