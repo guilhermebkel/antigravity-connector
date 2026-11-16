@@ -29,6 +29,23 @@ describe("EnvSchema", () => {
     });
   });
 
+  it("reads PUBLIC_URL as an origin and leaves it out when it is empty or missing", () => {
+    const set = EnvSchema.parse({ API_KEY: FAKE_API_KEY, PUBLIC_URL: "https://connector.example.com" });
+    const empty = EnvSchema.parse({ API_KEY: FAKE_API_KEY, PUBLIC_URL: "" });
+    expect(set.PUBLIC_URL).toBe("https://connector.example.com");
+    expect(empty.PUBLIC_URL).toBeUndefined();
+  });
+
+  it.each([
+    ["connector.example.com"],
+    ["ftp://connector.example.com"],
+    ["https://connector.example.com/app"],
+  ])("refuses PUBLIC_URL %s: it must be an http or https origin", (value) => {
+    const result = EnvSchema.safeParse({ API_KEY: FAKE_API_KEY, PUBLIC_URL: value });
+    const names = new Set(result.error?.issues.map((issue) => issue.path[0]));
+    expect([...names]).toStrictEqual(["PUBLIC_URL"]);
+  });
+
   it("reads numbers and the boolean from their text form", () => {
     const env = EnvSchema.parse({ API_KEY: FAKE_API_KEY, PORT: "9000", ALLOW_NON_LOOPBACK_BIND: "true" });
 

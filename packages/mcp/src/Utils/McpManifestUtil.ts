@@ -38,7 +38,7 @@ export class McpManifestUtil {
     const getResult = new GetResultTool();
     const research = new ResearchTool({ dailyLimit: services.researchDailyLimit });
     const browse = new BrowseTool();
-    const createUploadLink = new CreateUploadLinkTool();
+    const createUploadLink = new CreateUploadLinkTool({ publicUrl: services.publicUrl });
     McpManifestUtil.registerTool(server, webSearch, services);
     McpManifestUtil.registerTool(server, generateImage, services);
     McpManifestUtil.registerTool(server, getResult, services);

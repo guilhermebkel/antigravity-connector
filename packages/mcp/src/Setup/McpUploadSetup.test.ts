@@ -18,6 +18,7 @@ const buildPng = (): Promise<StubRunResult> => Promise.resolve({
 
 type UploadLink = {
   uploadPath: string;
+  uploadUrl?: string;
   image: string;
   expiresInSeconds: number;
   maxBytes: number;
@@ -28,8 +29,8 @@ type Session = {
   client: Awaited<ReturnType<typeof McpHarnessUtil.connect>>;
 };
 
-const openSession = async (): Promise<Session> => {
-  const harness = await McpHarnessUtil.start({ respond: buildPng });
+const openSession = async (publicUrl?: string): Promise<Session> => {
+  const harness = await McpHarnessUtil.start({ respond: buildPng, publicUrl });
   const client = await McpHarnessUtil.connect(harness.address);
   return { harness, client };
 };
@@ -66,11 +67,25 @@ describe("create_upload_link over MCP", () => {
     await closeSession(session);
   });
 
+  it("gives no uploadUrl when the server does not know its public address", async () => {
+    const session = await openSession();
+    const link = await createLink(session);
+    expect(Object.keys(link)).toStrictEqual(["uploadPath", "image", "expiresInSeconds", "maxBytes"]);
+    await closeSession(session);
+  });
+
+  it("gives the full uploadUrl, the public address followed by the path, when PUBLIC_URL is set", async () => {
+    const session = await openSession("https://connector.example.com");
+    const link = await createLink(session);
+    expect(link.uploadUrl).toBe(`https://connector.example.com${link.uploadPath}`);
+    await closeSession(session);
+  });
+
   it("is listed with a description that says what to send and where", async () => {
     const session = await openSession();
     const { tools } = await session.client.listTools();
     const tool = tools.find((candidate) => candidate.name === "create_upload_link");
-    expect(tool?.description).toMatch(/raw body of POST uploadPath/);
+    expect(tool?.description).toMatch(/raw body of a POST to uploadUrl/);
     expect(tool?.description).toMatch(/starts no agy run and spends no quota/);
     await closeSession(session);
   });

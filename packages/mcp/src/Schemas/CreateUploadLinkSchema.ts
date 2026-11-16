@@ -11,6 +11,7 @@ export const CreateUploadLinkInputSchema: z.ZodType<CreateUploadLinkInput> = z.s
 
 export const CreateUploadLinkOutputSchema: z.ZodType<CreateUploadLinkOutput> = z.strictObject({
   uploadPath: z.string().describe("Path of the one-time upload link, on the host of this MCP server."),
+  uploadUrl: z.string().optional().describe("Full upload URL, present when the server knows its public address."),
   image: z.string().describe("Value to put in the images field of generate_image once the file is uploaded."),
   expiresInSeconds: z.number().int().describe("Seconds the link works for."),
   maxBytes: z.number().int().describe("Largest file the link accepts."),

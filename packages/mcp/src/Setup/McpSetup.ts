@@ -22,6 +22,7 @@ export type McpSetupOptions = {
   loginService: AgyLoginService;
   jobWaitMs?: number;
   imageDownloader?: RemoteImageDownloadPort;
+  publicUrl?: string | undefined;
 };
 
 export class McpSetup {
@@ -34,6 +35,7 @@ export class McpSetup {
     const imageUploadService = new ImageUploadService({ clock: options.clock });
     const services = {
       imageUploadService,
+      publicUrl: options.publicUrl,
       runService: options.runService,
       imageService: new ImageRunService({ runService: options.runService }),
       imageSourceService: new ImageSourceService({

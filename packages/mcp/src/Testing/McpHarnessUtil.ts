@@ -19,6 +19,7 @@ export type McpHarnessOptions = StubRunOptions & {
   sessionTtlMs?: number;
   jobWaitMs?: number;
   imageDownloader?: RemoteImageDownloadPort;
+  publicUrl?: string;
 };
 
 export type McpHarness = {
@@ -46,6 +47,7 @@ export class McpHarnessUtil {
       loginService: stub.loginService,
       jobWaitMs: options.jobWaitMs,
       imageDownloader: options.imageDownloader,
+      publicUrl: options.publicUrl,
     });
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
     return { app, address, clock, requests: stub.requests };

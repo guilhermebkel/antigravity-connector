@@ -12,6 +12,7 @@ export type McpServices = {
   imageService: ImageRunService;
   imageSourceService: ImageSourceService;
   imageUploadService: ImageUploadService;
+  publicUrl: string | undefined;
   toolJobs: ToolJobService;
   researchDailyLimit: number;
   loginService: AgyLoginService;

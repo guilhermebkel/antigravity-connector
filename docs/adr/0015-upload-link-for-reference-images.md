@@ -10,6 +10,7 @@ Status: accepted (2026-11-16). Extends [0014](0014-reference-images-by-https-url
 
 - The MCP tool `create_upload_link` takes no argument. It returns `uploadPath` (`/upload/<token>`), `image` (`upload:<id>`), `expiresInSeconds` and `maxBytes`. It starts no `agy` run and spends no quota.
 - `POST /upload/<token>` takes the file as the raw request body, whatever the `Content-Type`. The answer is JSON with `image`, `mimeType` and `sizeBytes`. The path takes no bearer: the token is the credential, 32 random bytes, and each link works once.
+- The server sits behind a proxy and does not know its own address. The optional `PUBLIC_URL` (an origin, no path) makes the tool return the full `uploadUrl`; without it the tool returns `uploadPath` only and the client joins it to the host it already uses for MCP.
 - The type comes from the first bytes (PNG, JPEG or WebP) and the size stops at 4 MiB, the same limits as a URL. A file that is not a picture, or that is too large, is refused and the link stays valid, so the right file can follow.
 - An unknown or expired token is refused before the body is read, so nobody without a link makes the server buffer 4 MiB. Upload requests have their own rate bucket (`HTTP_MAX_REQUESTS_PER_MINUTE`), so they never use the budget of calls that carry the key, and an attack on the path can stop uploads for a minute but nothing else.
 - `generate_image` accepts `upload:<id>` in `images`, next to `data:` and `https://` values. The id is not the token, so the path that uploads cannot be used to read a picture back.
