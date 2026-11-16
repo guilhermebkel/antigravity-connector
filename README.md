@@ -40,12 +40,12 @@ The server is built: the OpenAI-compatible API, the MCP endpoint with `web_searc
 
 **Two doors, one process**
 
-An OpenAI-compatible API under `/v1` (chat with and without streaming, models, later images) and an MCP server under `/mcp` over Streamable HTTP. Works from the Vercel AI SDK, scripts, Claude Code and any MCP client.
+An OpenAI-compatible API under `/v1` (chat with and without streaming, models, images) and an MCP server under `/mcp` over Streamable HTTP. Works from any OpenAI-compatible client or SDK and from any MCP client.
 
 </td>
 <td width="50%" valign="top">
 
-**One call at a time**
+**A shared queue**
 
 Both doors share one global queue, which runs up to `QUEUE_CONCURRENCY` agy calls at once (4 by default; [ADR 0013](docs/adr/0013-queue-concurrency-of-four.md)), plus a daily limit per kind of run. The daily limits are the cost control for a subscription. MCP over stdio is out of scope ([ADR 0006](docs/adr/0006-api-and-mcp-in-one-process-with-one-queue.md)).
 
@@ -75,9 +75,9 @@ The login is done over HTTP: `GET /v1/auth` returns a link and `POST /v1/auth` t
 | --- | --- | --- |
 | Chat | `/v1/chat/completions`, with and without streaming | `agy -p`, plan mode, no file edits |
 | Web search | MCP tool `web_search` | `agy` with its search tool, answer with source URLs |
-| Image generation | MCP tool `generate_image`, later `/v1/images/generations` | The native image subagent, in a fresh temporary directory |
-| Research | MCP tool `research` (later) | A longer report with links; takes minutes |
-| Browsing | MCP tool `browse` (later) | The `/browser` command with a throwaway browser profile |
+| Image generation | MCP tool `generate_image`, and `/v1/images/generations` | The native image subagent, in a fresh temporary directory |
+| Research | MCP tool `research` | A longer report with links; takes minutes |
+| Browsing | MCP tool `browse` | The `/browser` command with a throwaway browser profile |
 
 Video, Google Flow, Deep Research from the Gemini app, workflows, swarms, MCP over stdio, any web page, several users and exposing the server to a network are out of scope ([ADR 0004](docs/adr/0004-scope-chat-image-search-research-and-browsing.md)).
 
@@ -92,6 +92,80 @@ Running a subscription through a server you expose to the internet is not someth
 
 ## Quick start
 
+Three steps, on any VPS that runs Docker: run the server, log in once, connect your AI. Replace `connector.your-domain.com` with your own host name, and `your-api-key` with a random secret of at least 24 characters (for example `openssl rand -hex 24`).
+
+### 1. Run the server on your VPS
+
+The image is `ghcr.io/guilhermebkel/antigravity-connector`, public on GitHub Container Registry. No clone and no files are needed.
+
+```bash
+docker run -d --name antigravity-connector --restart unless-stopped \
+  -p 127.0.0.1:8787:8787 \
+  -e API_KEY='your-api-key' \
+  -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
+  ghcr.io/guilhermebkel/antigravity-connector:latest
+```
+
+The port is published on `127.0.0.1` only. The internet reaches it through an HTTPS reverse proxy that you already run (Caddy, nginx, Traefik or a platform proxy), pointed at `127.0.0.1:8787`, with a host name (an A record) for the VPS. The two volumes keep the login and the call log: keep them, or you log in again after every update.
+
+Check it: `curl https://connector.your-domain.com/health` answers `{"status":"ok","agy":"login_required"}` until you log in.
+
+### 2. Log in once
+
+Use the Google account that has the AI Pro plan. Ask for the link, open it, sign in, copy the code, and send it back within 60 seconds ([Logging in](#logging-in)):
+
+```bash
+curl -H "Authorization: Bearer your-api-key" https://connector.your-domain.com/v1/auth
+
+curl -X POST -H "Authorization: Bearer your-api-key" -H "Content-Type: application/json" \
+  -d '{"code":"the code from the login page"}' https://connector.your-domain.com/v1/auth
+```
+
+`/health` now answers `{"status":"ok","agy":"connected"}`.
+
+### 3. Connect your AI
+
+Any client that speaks one of two standards works. Pick the one your tool supports.
+
+**An MCP client** (Claude, Cursor, Codex and others): add the server to its MCP settings. It uses the Streamable HTTP transport.
+
+```json
+{
+  "mcpServers": {
+    "antigravity": {
+      "url": "https://connector.your-domain.com/mcp",
+      "headers": {
+        "Authorization": "Bearer your-api-key"
+      }
+    }
+  }
+}
+```
+
+The file name and the exact key names differ between clients, so check the MCP page of yours: it needs the URL and one `Authorization` header. Some clients have a command for it; for example, Claude Code: `claude mcp add --transport http antigravity https://connector.your-domain.com/mcp --header "Authorization: Bearer your-api-key"`.
+
+**An OpenAI-compatible client** (a script, the OpenAI SDKs, the Vercel AI SDK, or any app with a "custom OpenAI endpoint" setting):
+
+| Setting | Value |
+| --- | --- |
+| Base URL | `https://connector.your-domain.com/v1` |
+| API key | your `API_KEY` |
+| Model | `gemini-3.8-flash` (list them with `GET /v1/models`) |
+
+### Ask
+
+```text
+Search the web for the latest stable Node.js version and give me the links.
+Generate an image of a lighthouse at dusk, flat illustration.
+Research the trade-offs between SQLite and Postgres for a small app, with sources.
+```
+
+Every tool call is a full agent run: a search takes tens of seconds and research takes minutes, so a call may come back as "running" first ([details](#connect-your-ai-in-detail)).
+
+### Run it locally with Docker Compose
+
+To try it on your own computer instead:
+
 ```bash
 cp .env.example .env                 # then set API_KEY to a random value of at least 24 characters
 docker compose up -d --build
@@ -99,63 +173,22 @@ curl -H "Authorization: Bearer $API_KEY" http://127.0.0.1:8787/v1/auth    # logi
 curl -s http://127.0.0.1:8787/health
 ```
 
-## Install on a VPS with Docker
+To update the VPS install, pull the new image, remove the old container (`docker rm -f antigravity-connector`) and run the `docker run` command again; the login and the call log stay in their volumes.
 
-Like the better-caprover-mcp install: one `docker run` command, no clone and no files. The image is `ghcr.io/guilhermebkel/antigravity-connector`, public on GitHub Container Registry.
+The API key is the only access control: anyone who has it can spend your daily limits. `docker inspect` shows the value of `-e API_KEY`, so keep the VPS to yourself.
 
-The container publishes its port on `127.0.0.1` only, so the internet reaches it only through the HTTPS proxy your server already uses for your other apps.
+## Persistent storage on any platform
 
-1. Point a host name at the VPS (an A record, such as `connector.your-domain.com`).
+Whatever runs the container (a PaaS dashboard, Kubernetes, Compose, Nomad), it must keep two directories across redeploys:
 
-2. Start the container:
+| Directory in the container | What it keeps |
+| --- | --- |
+| `/home/agy/.gemini` | The agy login |
+| `/data` | The call log and the daily counters |
 
-   ```bash
-   docker run -d --name antigravity-connector --restart unless-stopped \
-     -p 127.0.0.1:8787:8787 \
-     -e API_KEY='your-random-api-key-at-least-24-chars' \
-     -v agy-gemini:/home/agy/.gemini -v agy-data:/data \
-     ghcr.io/guilhermebkel/antigravity-connector:latest
-   ```
+Other settings the platform needs: the image `ghcr.io/guilhermebkel/antigravity-connector:<version>` (a release, or a branch image such as `:<branch>`), the environment variable `API_KEY`, the container HTTP port `8787`, and HTTPS on the domain.
 
-3. Log in once, with the Google account that has the AI Pro plan (see [Logging in](#logging-in)). Ask for the link, open it, copy the code, and send it back within 60 seconds:
-
-   ```bash
-   curl -H "Authorization: Bearer your-random-api-key-at-least-24-chars" https://connector.your-domain.com/v1/auth
-   curl -X POST -H "Authorization: Bearer your-random-api-key-at-least-24-chars" -H "Content-Type: application/json" \
-     -d '{"code":"the code from the login page"}' https://connector.your-domain.com/v1/auth
-   ```
-
-4. Check the HTTPS endpoint. It answers `{"status":"ok","agy":"connected"}`:
-
-   ```bash
-   curl https://connector.your-domain.com/health
-   ```
-
-5. Connect Claude Code on your computer:
-
-   ```bash
-   claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
-     --header "Authorization: Bearer your-random-api-key-at-least-24-chars"
-   ```
-
-The API key must be at least 24 characters, and it is the only access control: anyone who has it can spend your daily limits. `docker inspect` shows the value of `-e API_KEY`, so keep the VPS to yourself.
-
-To update, pull the new image and run the `docker run` command again after removing the old container (`docker rm -f antigravity-connector`); the login and the call log stay in their volumes.
-
-## Deploy on CapRover
-
-Use the published image (a release, or a branch image such as `ghcr.io/guilhermebkel/antigravity-connector:<branch>`), and configure the app in the CapRover dashboard:
-
-1. **Image:** deploy `ghcr.io/guilhermebkel/antigravity-connector:<version>`.
-2. **Environment variables:** `API_KEY` (at least 24 characters).
-3. **HTTP settings:** the container HTTP port is `8787`, and enable HTTPS for the app's domain.
-4. **Persistent directories** (App Configs → Persistent Directories). This step is required, and it is not done by the `hasPersistentData` flag, which mounts nothing:
-   - `connector-gemini` → `/home/agy/.gemini` (the agy login)
-   - `connector-data` → `/data` (the call log and the daily counters)
-
-Without the persistent directories, every redeploy recreates the container and the login is lost: `GET /v1/auth` starts answering `login_required` again. At startup the server logs `storage.checked` with `isLoginDirMounted` and `isDataDirMounted`; a `warn` line means one of the directories is not mounted.
-
-After the directories are added, log in once more: the directories start empty. From then on, redeploys keep the login.
+Without the two directories, every redeploy recreates the container and the login is lost: `GET /v1/auth` starts answering `login_required` again. A platform flag that says "has persistent data" does not always mount anything; mount the directories explicitly as volumes or bind mounts. At startup the server logs `storage.checked` with `isLoginDirMounted` and `isDataDirMounted`; a `warn` line means one of the directories is not mounted. After you add them, log in once more: the directories start empty.
 
 ## Logging in
 
@@ -199,12 +232,13 @@ More endpoints and options:
 - An `image_url` part with a base64 `data:` URL (PNG, JPEG or WebP, up to 4 MiB each, four per request) is saved for the run. Remote URLs are refused, and nothing is fetched.
 - `conversation_id` from a previous response continues that conversation: send the new message only. The id is kept for 24 hours, in memory; after a restart, or once it expires, send the full history without it.
 
-## Connecting Claude Code to `/mcp`
+## Connect your AI in detail
 
-```bash
-claude mcp add --transport http antigravity https://connector.your-domain.com/mcp \
-  --header "Authorization: Bearer <API_KEY>"
-```
+The setup is in [Quick start](#3-connect-your-ai). This section says what each door gives your AI.
+
+### MCP tools (`/mcp`)
+
+Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `research`, `browse`, `get_result`, `check_auth` and `set_auth`.
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
@@ -260,7 +294,7 @@ Decisions are in [`docs/adr/`](docs/adr/), vocabulary in [`GLOSSARY.md`](GLOSSAR
 
 ## Limits and what is not supported yet
 
-- One agy call runs at a time. Calls from the API and from MCP share one queue.
+- Up to `QUEUE_CONCURRENCY` agy calls run at once (4 by default). Calls from the API and from MCP share one queue, and the rest wait.
 - Calls are slow: a chat answer takes seconds, a search takes tens of seconds.
 - Streaming works with `stream: true` (Server-Sent Events, OpenAI chunk format). Set `stream_options.include_usage` to get the usage in the last chunk.
 - Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), PDF and other file input, audio and video, and a browser profile with your own logins.
@@ -301,7 +335,7 @@ No. It is a single-user server, reachable over HTTPS with an API key, and the su
 </details>
 
 <details>
-<summary><b>Why is the first login done in a terminal?</b></summary>
+<summary><b>Why is there no login page?</b></summary>
 
 There is no web page on purpose. When there is no session, `GET /v1/auth` (or the `check_auth` tool) returns a login link; you open it, sign in, and send the code to `POST /v1/auth` (or `set_auth`). `/health` says whether the session is connected, as seen by a real `agy` check, never by configuration ([ADR 0009](docs/adr/0009-no-web-page-login-through-docker-exec.md)). The landing page is a separate static folder, `site/` ([ADR 0011](docs/adr/0011-landing-page-and-logo-in-the-repository.md)).
 
@@ -347,7 +381,7 @@ A release is started by hand: run the `Release` workflow on `master` and pick `p
 ---
 
 <p align="center">
-  <strong>Your subscription. Your machine. One call at a time.</strong>
+  <strong>Your subscription. Your server. Any AI.</strong>
 </p>
 
 <p align="center">
