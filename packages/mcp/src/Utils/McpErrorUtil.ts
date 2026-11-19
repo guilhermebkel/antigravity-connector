@@ -1,5 +1,5 @@
 import type { OpenAiErrorCode } from "@antigravity-connector/protocol";
-import { ImageUploadError, RemoteImageError } from "@antigravity-connector/core";
+import { ImageNotProducedError, ImageUploadError, RemoteImageError } from "@antigravity-connector/core";
 import { JobNotFoundError } from "@antigravity-connector/mcp/Errors/JobNotFoundError.ts";
 
 export class McpErrorUtil {
@@ -26,6 +26,9 @@ export class McpErrorUtil {
     }
     if (error instanceof RemoteImageError || error instanceof ImageUploadError) {
       return `The call did not run: ${error.message}`;
+    }
+    if (error instanceof ImageNotProducedError && error.reason !== undefined) {
+      return `The call did not produce an image: agy answered instead of writing a PNG: ${error.reason}. What to do: follow the reason, or retry later.`;
     }
     const code = McpErrorUtil.readCode(error);
     if (code === undefined) {

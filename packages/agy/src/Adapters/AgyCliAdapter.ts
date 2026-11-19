@@ -18,7 +18,6 @@ import { AgyEnvUtil } from "@antigravity-connector/agy/Utils/AgyEnvUtil.ts";
 import { AgyOutcomeUtil } from "@antigravity-connector/agy/Utils/AgyOutcomeUtil.ts";
 import { AgySpawnUtil } from "@antigravity-connector/agy/Utils/AgySpawnUtil.ts";
 import { AgyStreamReaderService } from "@antigravity-connector/agy/Services/AgyStreamReaderService.ts";
-import { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
 import { AgyStoppedError } from "@antigravity-connector/agy/Errors/AgyStoppedError.ts";
 import { AgyAbortedError } from "@antigravity-connector/agy/Errors/AgyAbortedError.ts";
 
@@ -206,16 +205,16 @@ export class AgyCliAdapter implements AgyRunnerPort {
     fileNames: readonly string[],
   ): Promise<AgyOutputFileNameToBytes> {
     const entries = await Promise.all(fileNames.map((fileName) => this.readOutputFile(workingDirectory, fileName)));
-    return Object.fromEntries(entries);
+    return Object.fromEntries(entries.filter((entry): entry is [string, Uint8Array] => entry !== undefined));
   }
 
-  private async readOutputFile(workingDirectory: string, fileName: string): Promise<[string, Uint8Array]> {
+  private async readOutputFile(workingDirectory: string, fileName: string): Promise<[string, Uint8Array] | undefined> {
     const filePath = join(workingDirectory, fileName);
     try {
       const bytes = await readFile(filePath);
       return [fileName, bytes];
     } catch {
-      throw new AgyOutputError(`the expected output file ${fileName} was not written`);
+      return undefined;
     }
   }
 

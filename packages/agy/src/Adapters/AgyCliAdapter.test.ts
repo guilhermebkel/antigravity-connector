@@ -140,10 +140,11 @@ describe("AgyCliAdapter.run", () => {
     expect(new TextDecoder().decode(bytes)).toBe("FAKE-PNG");
   });
 
-  it("rejects with AgyOutputError when an expected output file is missing", async () => {
-    const error = await failRun("[[fake-agy:success]] draw", { expectedOutputFileNames: [OUTPUT_FILE_NAME] });
+  it("returns the envelope without the file when an expected output file is missing, so the caller can read agy's answer", async () => {
+    const result = await runPrompt("[[fake-agy:success]] draw", { expectedOutputFileNames: [OUTPUT_FILE_NAME] });
 
-    expect(error).toBeInstanceOf(AgyOutputError);
+    expect(result.outputFiles[OUTPUT_FILE_NAME]).toBeUndefined();
+    expect(result.envelope.status).toBe("SUCCESS");
   });
 
   it("passes the prompt to the binary byte for byte, as one argument", async () => {

@@ -1,4 +1,4 @@
-import { AsyncEventBufferService, ModelCatalogueUtil, type AgyUsage, type RunKind } from "@antigravity-connector/protocol";
+import { AsyncEventBufferService, ModelCatalogueUtil, RedactUtil, type AgyUsage, type RunKind } from "@antigravity-connector/protocol";
 import type { AgyRunRequest, AgyRunResult, AgyRunnerPort, AgyStreamOutputEvent } from "@antigravity-connector/agy";
 import { AgyAbortedError, AgyFailedError, AgySessionRequiredError, AgyTimeoutError } from "@antigravity-connector/agy";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
@@ -80,6 +80,10 @@ export class AgyRunService {
     this.logSink = options.logSink;
     this.secrets = options.secrets;
     this.callLog = options.callLog;
+  }
+
+  buildAnswerExcerpt(text: string): string {
+    return RedactUtil.buildExcerpt(text, this.secrets);
   }
 
   async run(kind: RunKind, input: RunInput, signal?: AbortSignal, observer?: RunObserver): Promise<AgyRunResult> {
@@ -323,7 +327,7 @@ export class AgyRunService {
       return { reason: "agy_timeout" };
     }
     if (!(error instanceof AgyFailedError)) {
-      return {};
+      return error instanceof Error ? { errorName: error.constructor.name } : {};
     }
     const fields: DetailFields = {};
     if (error.exitCode !== null) {
