@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgyRunnerPort, AgyRunRequest, AgyRunResult, AgyStreamOutputEvent } from "@antigravity-connector/agy";
-import { AgyAbortedError, AgyFailedError, AgySessionRequiredError, AgyTimeoutError } from "@antigravity-connector/agy";
+import { AgyAbortedError, AgyFailedError, AgyOutputError, AgySessionRequiredError, AgyTimeoutError } from "@antigravity-connector/agy";
 import type { AgySessionCheckPort, AgySessionCheckResult } from "@antigravity-connector/agy";
 import { AsyncEventBufferService } from "@antigravity-connector/protocol";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
@@ -229,6 +229,12 @@ describe("AgyRunService call detail for the logs", () => {
   it("an abort by the client and an agy timeout each get a reason", () => {
     expect(AgyRunService.buildFailureDetail(new AgyAbortedError())).toStrictEqual({ reason: "client_aborted" });
     expect(AgyRunService.buildFailureDetail(new AgyTimeoutError(1000, ""))).toStrictEqual({ reason: "agy_timeout" });
+  });
+
+  it("any other failure is named by its error class, never by its message", () => {
+    const error = new AgyOutputError("leaks the agy answer text");
+
+    expect(AgyRunService.buildFailureDetail(error)).toStrictEqual({ errorName: "AgyOutputError" });
   });
 
   it("success detail counts the turns and the output files without their content", () => {

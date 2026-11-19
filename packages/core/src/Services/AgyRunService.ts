@@ -327,7 +327,7 @@ export class AgyRunService {
       return { reason: "agy_timeout" };
     }
     if (!(error instanceof AgyFailedError)) {
-      return {};
+      return error instanceof Error ? { errorName: error.constructor.name } : {};
     }
     const fields: DetailFields = {};
     if (error.exitCode !== null) {
