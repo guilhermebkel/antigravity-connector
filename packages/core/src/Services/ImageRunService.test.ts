@@ -37,6 +37,18 @@ describe("ImageRunService", () => {
     );
   });
 
+  it("keeps agy's answer as the reason when no output.png is written", async () => {
+    const quotaAnswer = "The image model returned 429 RESOURCE_EXHAUSTED; quota resets after approximately 2 hours.";
+    const stub = StubRuntimeUtil.build({
+      respond: () => Promise.resolve({ ...StubRuntimeUtil.buildResult(quotaAnswer), outputFiles: {} }),
+    });
+    const service = new ImageRunService({ runService: stub.runService });
+    const error: unknown = await service.generate({ door: "mcp", model: MODEL, prompt: "x" }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ImageNotProducedError);
+    expect((error as ImageNotProducedError).reason).toBe(quotaAnswer);
+    expect((error as ImageNotProducedError).message).toContain("RESOURCE_EXHAUSTED");
+  });
+
   it("maps agy's missing-output error to not produced", async () => {
     const stub = StubRuntimeUtil.build({
       respond: () => Promise.reject(new AgyOutputError("the expected output file output.png was not written")),

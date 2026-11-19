@@ -37,7 +37,7 @@ export class ImageRunService {
     const result = await this.runImage(input, signal, observer);
     const bytes = result.outputFiles[ImageRunService.OUTPUT_FILE_NAME];
     if (bytes === undefined) {
-      throw new ImageNotProducedError();
+      throw new ImageNotProducedError(this.runService.buildAnswerExcerpt(result.envelope.response));
     }
     ImageOutputUtil.assertPng(bytes);
     return {

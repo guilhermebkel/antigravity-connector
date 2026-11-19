@@ -67,7 +67,8 @@ export class ImageGenerationService {
       return outcome.bytes;
     } catch (error: unknown) {
       if (error instanceof ImageNotProducedError) {
-        throw new ApiRequestError("agy_failed", null, "agy finished without a PNG file.");
+        const message = error.reason === undefined ? "agy finished without a PNG file." : `agy finished without a PNG file. agy said: ${error.reason}`;
+        throw new ApiRequestError("agy_failed", null, message);
       }
       throw error;
     }
