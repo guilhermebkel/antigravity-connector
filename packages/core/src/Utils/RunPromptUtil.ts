@@ -8,7 +8,7 @@ export class RunPromptUtil {
     chat: "Answer the conversation directly. Do not search the web and do not edit files.",
     search: "Answer briefly and list the source URLs you used. Use the web search tool.",
     research: "Write a Markdown report on the request, with a link to every source you used.",
-    image: "Use the image-generator subagent to create exactly one PNG and save it as output.png in the current directory.",
+    image: "Use the image-generator subagent to create exactly one PNG and save it as output.png in the current directory. Reply only after output.png exists in the current directory. Do not reply with a promise to report later.",
     browse: "",
   };
 
