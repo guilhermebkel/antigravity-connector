@@ -15,4 +15,12 @@ export class AgyArgumentUtil {
     const schemaArguments = schemaPath === undefined ? [] : ["--json-schema", schemaPath];
     return [...baseArguments, ...planArguments, ...permissionArguments, ...conversationArguments, ...schemaArguments];
   }
+
+  static buildPromptOnStdin(request: AgyRunRequest): string[] {
+    const baseArguments = ["-p=", "--input-format", "stream-json", "--output-format", "stream-json", "--model", request.modelSlug];
+    const planArguments = request.profile.isPlanMode ? ["--mode", "plan"] : [];
+    const permissionArguments = request.profile.shouldSkipPermissions ? ["--dangerously-skip-permissions"] : [];
+    const conversationArguments = request.conversationId === undefined ? [] : ["--conversation", request.conversationId];
+    return [...baseArguments, ...planArguments, ...permissionArguments, ...conversationArguments];
+  }
 }

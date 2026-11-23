@@ -6,6 +6,7 @@ import type {
   AgyCliAdapterOptions,
   AgyEnvNameToValue,
   AgyOutputFileNameToBytes,
+  AgyOutputWatchTiming,
   AgyProcessOutcome,
   AgyRunRequest,
   AgyRunResult,
@@ -17,6 +18,7 @@ import { AgyWorkspaceUtil } from "@antigravity-connector/agy/Utils/AgyWorkspaceU
 import { AgyEnvUtil } from "@antigravity-connector/agy/Utils/AgyEnvUtil.ts";
 import { AgyOutcomeUtil } from "@antigravity-connector/agy/Utils/AgyOutcomeUtil.ts";
 import { AgySpawnUtil } from "@antigravity-connector/agy/Utils/AgySpawnUtil.ts";
+import { AgyOutputWatchService } from "@antigravity-connector/agy/Services/AgyOutputWatchService.ts";
 import { AgyStreamReaderService } from "@antigravity-connector/agy/Services/AgyStreamReaderService.ts";
 import { AgyStoppedError } from "@antigravity-connector/agy/Errors/AgyStoppedError.ts";
 import { AgyAbortedError } from "@antigravity-connector/agy/Errors/AgyAbortedError.ts";
@@ -30,11 +32,20 @@ type AgyStreamRun = {
 export class AgyCliAdapter implements AgyRunnerPort {
   static readonly RUN_DIRECTORY_PREFIX = "agy-run-";
 
+  static readonly DEFAULT_OUTPUT_WATCH_TIMING: AgyOutputWatchTiming = {
+    pollMs: 500,
+    resultGraceMs: 5000,
+    afterResultWaitMs: 30000,
+    stopDelayMs: 3000,
+  };
+
   private readonly binaryPath: string;
 
   private readonly tempRoot: string;
 
   private readonly parentEnv: AgyEnvNameToValue;
+
+  private readonly outputWatchTiming: AgyOutputWatchTiming;
 
   private readonly liveChildren = new Set<ChildProcess>();
 
@@ -44,6 +55,7 @@ export class AgyCliAdapter implements AgyRunnerPort {
     this.binaryPath = options.binaryPath;
     this.tempRoot = options.tempRoot;
     this.parentEnv = options.parentEnv;
+    this.outputWatchTiming = options.outputWatchTiming ?? AgyCliAdapter.DEFAULT_OUTPUT_WATCH_TIMING;
   }
 
   stopAll(): void {
@@ -78,12 +90,43 @@ export class AgyCliAdapter implements AgyRunnerPort {
     workingDirectory: string,
     signal: AbortSignal | undefined,
   ): Promise<AgyRunResult> {
+    if (AgyCliAdapter.shouldWatchOutputs(request)) {
+      return this.watchOutputs(request, workingDirectory, signal);
+    }
     const schemaPath = await AgyWorkspaceUtil.writeInputs(workingDirectory, request);
     const args = AgyArgumentUtil.build(request, AgyArgumentUtil.DEFAULT_OUTPUT_FORMAT, schemaPath);
     const outcome = await this.runProcess(args, workingDirectory, request.profile.timeoutMs, signal);
     const envelope = AgyOutcomeUtil.readEnvelope(outcome, request.profile.timeoutMs, this.buildSecrets());
     const outputFiles = await this.readOutputFiles(workingDirectory, request.profile.expectedOutputFileNames);
     return { envelope, outputFiles };
+  }
+
+  static shouldWatchOutputs(request: AgyRunRequest): boolean {
+    return request.profile.shouldWaitForOutputFiles === true && request.profile.expectedOutputFileNames.length > 0;
+  }
+
+  private async watchOutputs(
+    request: AgyRunRequest,
+    workingDirectory: string,
+    signal: AbortSignal | undefined,
+  ): Promise<AgyRunResult> {
+    await AgyWorkspaceUtil.writeInputs(workingDirectory, request);
+    const args = AgyArgumentUtil.buildPromptOnStdin(request);
+    const child = this.startTracked(args, workingDirectory, AgyEnvUtil.build(this.parentEnv), true);
+    const watcher = new AgyOutputWatchService({
+      child,
+      signal,
+      workingDirectory,
+      prompt: request.prompt,
+      fileNames: request.profile.expectedOutputFileNames,
+      timeoutMs: request.profile.timeoutMs,
+      secrets: this.buildSecrets(),
+      timing: this.outputWatchTiming,
+      stopProcess: () => {
+        AgySpawnUtil.stopProcessGroup(child.pid);
+      },
+    });
+    return watcher.watch();
   }
 
   private async* streamInDirectory(
@@ -184,8 +227,9 @@ export class AgyCliAdapter implements AgyRunnerPort {
     args: readonly string[],
     workingDirectory: string,
     childEnvNameToValue: Readonly<Record<string, string>>,
+    hasStdin = false,
   ): ChildProcess {
-    const child = AgySpawnUtil.startDetached(this.binaryPath, args, workingDirectory, childEnvNameToValue);
+    const child = AgySpawnUtil.startDetached(this.binaryPath, args, workingDirectory, childEnvNameToValue, hasStdin);
     this.liveChildren.add(child);
     const removeChild = (): void => {
       this.liveChildren.delete(child);

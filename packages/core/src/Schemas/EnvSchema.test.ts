@@ -14,6 +14,7 @@ describe("EnvSchema", () => {
       ALLOW_NON_LOOPBACK_BIND: false,
       AGY_BIN: "agy",
       AGY_TIMEOUT_MS: 300000,
+      AGY_OUTPUT_WAIT_MS: 30000,
       QUEUE_MAX_WAIT_MS: 120000,
       QUEUE_CONCURRENCY: 4,
       DAILY_LIMIT_CHAT: 200,

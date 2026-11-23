@@ -7,8 +7,10 @@ import { AgyFailedError } from "@antigravity-connector/agy/Errors/AgyFailedError
 import { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
 import { AgySessionRequiredError } from "@antigravity-connector/agy/Errors/AgySessionRequiredError.ts";
 import { AgyTimeoutError } from "@antigravity-connector/agy/Errors/AgyTimeoutError.ts";
+import { AgyAbortedError } from "@antigravity-connector/agy/Errors/AgyAbortedError.ts";
 import type {
   AgyEnvNameToValue,
+  AgyOutputWatchTiming,
   AgyRunProfile,
   AgyRunRequest,
   AgyActivityEvent,
@@ -371,5 +373,136 @@ describe("AgyCliAdapter inputs", () => {
     ]);
     expect(report.schema).toBe("{\"type\":\"object\"}");
     expect(readdirSync(tempRoot).filter((name) => name.startsWith("agy-run-"))).toStrictEqual([]);
+  });
+});
+
+describe("AgyCliAdapter output watching", () => {
+  const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const WATCH_PROFILE: Partial<AgyRunProfile> = {
+    isPlanMode: false,
+    expectedOutputFileNames: ["output.png"],
+    shouldWaitForOutputFiles: true,
+  };
+  const FAST_TIMING: AgyOutputWatchTiming = {
+    pollMs: 20,
+    resultGraceMs: 200,
+    afterResultWaitMs: 1500,
+    stopDelayMs: 500,
+  };
+  const SHORT_WAIT_TIMING: AgyOutputWatchTiming = { ...FAST_TIMING, afterResultWaitMs: 150 };
+  const HANG_TIMEOUT_MS = 400;
+
+  const buildWatchAdapter = (timing: AgyOutputWatchTiming = FAST_TIMING): AgyCliAdapter =>
+    new AgyCliAdapter({
+      tempRoot,
+      binaryPath: FAKE_BINARY,
+      parentEnv: buildParentEnv(),
+      outputWatchTiming: timing,
+    });
+
+  const runWatched = (
+    prompt: string,
+    timing: AgyOutputWatchTiming = FAST_TIMING,
+    profile: Partial<AgyRunProfile> = {},
+  ): ReturnType<AgyCliAdapter["run"]> => {
+    const request = buildRequest(prompt, { ...WATCH_PROFILE, ...profile });
+    return buildWatchAdapter(timing).run(request);
+  };
+
+  const readBytes = (result: Awaited<ReturnType<typeof runWatched>>): Buffer | undefined => {
+    const bytes = result.outputFiles["output.png"];
+    return bytes === undefined ? undefined : Buffer.from(bytes);
+  };
+
+  it("returns the file and the result when the file is written before the result", async () => {
+    const result = await runWatched("[[fake-agy:watch-file]] draw");
+
+    expect(readBytes(result)?.equals(Buffer.from(PNG_BASE64, "base64"))).toBe(true);
+    expect(result.envelope.status).toBe("SUCCESS");
+  });
+
+  it("waits for a file that appears after the result while the process stays alive", async () => {
+    const result = await runWatched("[[fake-agy:watch-late-file]] draw");
+
+    expect(readBytes(result)?.equals(Buffer.from(PNG_BASE64, "base64"))).toBe(true);
+    expect(result.envelope.response).toBe("ok");
+  });
+
+  it("does not take a half-written PNG", async () => {
+    const result = await runWatched("[[fake-agy:watch-partial-file]] draw");
+
+    expect(readBytes(result)?.equals(Buffer.from(PNG_BASE64, "base64"))).toBe(true);
+  });
+
+  it("returns agy's answer without the file when no file appears after the result and the wait ends", async () => {
+    const result = await runWatched("[[fake-agy:watch-no-file]] draw", SHORT_WAIT_TIMING);
+
+    expect(result.outputFiles["output.png"]).toBeUndefined();
+    expect(result.envelope.response).toContain("I will notify you");
+  });
+
+  it("settles with an empty result when the file is ready and no result event comes", async () => {
+    const result = await runWatched("[[fake-agy:watch-file-no-result]] draw");
+
+    expect(readBytes(result)?.equals(Buffer.from(PNG_BASE64, "base64"))).toBe(true);
+    expect(result.envelope).toMatchObject({ status: "SUCCESS", response: "" });
+  });
+
+  it("returns a file that is not a PNG as written, after the wait", async () => {
+    const result = await runWatched("[[fake-agy:watch-not-png]] draw", SHORT_WAIT_TIMING);
+
+    expect(readBytes(result)?.toString("utf8")).toBe("not a png");
+  });
+
+  it("fails with AgyFailedError when the result carries an error status", async () => {
+    const error = await captureFailure(runWatched("[[fake-agy:watch-error-result]] draw"));
+
+    expect(error).toBeInstanceOf(AgyFailedError);
+    expect(error).toMatchObject({ envelopeStatus: "ERROR", envelopeError: "the image model failed" });
+  });
+
+  it("fails with AgyOutputError when the process exits without a result", async () => {
+    const error = await captureFailure(runWatched("[[fake-agy:watch-exit-without-result]] draw"));
+
+    expect(error).toBeInstanceOf(AgyOutputError);
+  });
+
+  it("fails with AgyFailedError when the process exits with an error code", async () => {
+    const error = await captureFailure(runWatched("[[fake-agy:watch-fail-exit]] draw"));
+
+    expect(error).toBeInstanceOf(AgyFailedError);
+    expect(readErrorMessage(error)).toContain("boom: the run broke");
+  });
+
+  it("stops a run that hangs at the timeout", async () => {
+    const run = runWatched("[[fake-agy:watch-hang]] draw", FAST_TIMING, { timeoutMs: HANG_TIMEOUT_MS });
+    const error = await captureFailure(run);
+
+    expect(error).toBeInstanceOf(AgyTimeoutError);
+  });
+
+  it("fails with AgyAbortedError when the caller aborts a run that hangs", async () => {
+    const controller = new AbortController();
+    const run = buildWatchAdapter().run(buildRequest("[[fake-agy:watch-hang]] draw", WATCH_PROFILE), controller.signal);
+    setTimeout(() => {
+      controller.abort();
+    }, 100);
+
+    expect(await captureFailure(run)).toBeInstanceOf(AgyAbortedError);
+  });
+
+  it("sends the prompt over stdin and never in the arguments", async () => {
+    const result = await runWatched("[[fake-agy:watch-argv]] secret-marker-4471");
+    const argv = JSON.parse(result.envelope.response) as string[];
+
+    expect(argv).toContain("--input-format");
+    expect(argv).toContain("-p=");
+    expect(argv.join(" ")).not.toContain("secret-marker-4471");
+  });
+
+  it("removes its temporary directory after a watched run", async () => {
+    await runWatched("[[fake-agy:watch-file]] draw");
+
+    expect(readdirSync(tempRoot)).toStrictEqual([]);
   });
 });

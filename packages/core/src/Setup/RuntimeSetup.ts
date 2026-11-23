@@ -33,6 +33,7 @@ export class RuntimeSetup {
       binaryPath: env.AGY_BIN,
       tempRoot: tmpdir(),
       parentEnv: options.parentEnv,
+      outputWatchTiming: { ...AgyCliAdapter.DEFAULT_OUTPUT_WATCH_TIMING, afterResultWaitMs: env.AGY_OUTPUT_WAIT_MS },
     });
     const sessionService = new AgySessionService({
       checkPort: RuntimeSetup.buildCheckAdapter(adapter, env),

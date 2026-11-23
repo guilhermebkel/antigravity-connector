@@ -264,6 +264,7 @@ When the client sends a progress token, the server reports progress while a call
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
 | `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
+| `AGY_OUTPUT_WAIT_MS` | `30000` | For an image call, how long to keep waiting for `output.png` after agy says it is done. The call fails with the agy answer if the file does not appear. |
 | `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue is refused. |
 | `QUEUE_CONCURRENCY` | `4` | Agy runs in flight at once, from `1` to `8`. Calls past this wait in the queue. |
 | `DAILY_LIMIT_CHAT` / `_SEARCH` / `_IMAGE` / `_RESEARCH` / `_BROWSE` | `200` / `50` / `20` / `5` / `20` | Calls per UTC day, per kind. `0` refuses that kind. |
