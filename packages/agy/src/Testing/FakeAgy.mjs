@@ -26,6 +26,10 @@ const STRUCTURED_ANSWER = { answer: "ok" };
 const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
 const OVERSIZE_IMAGE_BYTES = 8388609;
+const STDIN_FORMAT_FLAG = "--input-format";
+const LATE_FILE_DELAY_MS = 300;
+const PARTIAL_FILE_DELAY_MS = 300;
+const HALF_PNG_BYTES = 20;
 
 const readFixture = (fileName) => readFileSync(new URL(fileName, FIXTURES_DIRECTORY), "utf8");
 const readChatEnvelope = () => JSON.parse(readFixture("chatEnvelope.json"));
@@ -206,8 +210,128 @@ const handlers = {
   "stderr-secret": () => ({ stdout: "", stderr: "token sk-fake-secret-123 rejected\n", exitCode: 1 }),
 };
 
+const WATCH_MODE_ALIASES = {
+  "image-png": "watch-file",
+  "image-none": "watch-no-file",
+  "image-not-png": "watch-not-png",
+  "image-oversize": "watch-oversize",
+};
+
+const buildResultLine = (overrides = {}) => {
+  const envelope = { ...readChatEnvelope(), response: "ok", ...overrides };
+  return JSON.stringify({ event: "result", result: envelope });
+};
+
+const readFirstStdinLine = () => new Promise((resolve) => {
+  let text = "";
+  process.stdin.setEncoding("utf8");
+  const onData = (chunk) => {
+    text += chunk;
+    const index = text.indexOf("\n");
+    if (index >= 0) {
+      process.stdin.off("data", onData);
+      resolve(text.slice(0, index));
+    }
+  };
+  process.stdin.on("data", onData);
+});
+
+const stopWhenStdinEnds = () => {
+  process.stdin.on("end", () => {
+    process.exit(0);
+  });
+  process.stdin.resume();
+};
+
+const writeLine = (line) => {
+  process.stdout.write(`${line}\n`);
+};
+
+const watchHandlers = {
+  "watch-file": async () => {
+    writeOutputImage(Buffer.from(PNG_BASE64, "base64"));
+    writeLine(buildResultLine());
+    stopWhenStdinEnds();
+  },
+  "watch-late-file": async () => {
+    writeLine(buildResultLine());
+    await sleep(LATE_FILE_DELAY_MS);
+    writeOutputImage(Buffer.from(PNG_BASE64, "base64"));
+    stopWhenStdinEnds();
+  },
+  "watch-file-no-result": async () => {
+    writeOutputImage(Buffer.from(PNG_BASE64, "base64"));
+    stopWhenStdinEnds();
+  },
+  "watch-partial-file": async () => {
+    const bytes = Buffer.from(PNG_BASE64, "base64");
+    writeOutputImage(bytes.subarray(0, HALF_PNG_BYTES));
+    await sleep(PARTIAL_FILE_DELAY_MS);
+    writeOutputImage(bytes);
+    writeLine(buildResultLine());
+    stopWhenStdinEnds();
+  },
+  "watch-no-file": async () => {
+    writeLine(buildResultLine({ response: "I will notify you when the image is ready." }));
+    stopWhenStdinEnds();
+  },
+  "watch-not-png": async () => {
+    writeOutputImage("not a png");
+    writeLine(buildResultLine());
+    stopWhenStdinEnds();
+  },
+  "watch-error-result": async () => {
+    writeLine(buildResultLine({ status: "ERROR", error: "the image model failed" }));
+    stopWhenStdinEnds();
+  },
+  "watch-exit-without-result": async () => {
+    process.exit(0);
+  },
+  "watch-fail-exit": async () => {
+    process.stderr.write("boom: the run broke\n");
+    process.exit(1);
+  },
+  "watch-oversize": async () => {
+    const padding = Buffer.alloc(OVERSIZE_IMAGE_BYTES - PNG_SIGNATURE.length);
+    writeOutputImage(Buffer.concat([PNG_SIGNATURE, padding]));
+    writeLine(buildResultLine());
+    stopWhenStdinEnds();
+  },
+  "watch-hang": async () => {
+    setInterval(keepAlive, KEEP_ALIVE_MS);
+  },
+  "watch-argv": async () => {
+    writeLine(buildResultLine({ response: JSON.stringify(process.argv.slice(ARGUMENTS_OFFSET)) }));
+    stopWhenStdinEnds();
+  },
+  "watch-echo": async (prompt) => {
+    writeLine(buildResultLine({ response: prompt }));
+    stopWhenStdinEnds();
+  },
+};
+
+const runWatchMode = async () => {
+  writeLine(readStreamLines(CHAT_STREAM_FIXTURE)[0]);
+  const line = await readFirstStdinLine();
+  const message = JSON.parse(line);
+  const prompt = message.message?.content ?? "";
+  const marker = MODE_MARKER.exec(prompt)?.[1] ?? "watch-file";
+  const mode = WATCH_MODE_ALIASES[marker] ?? marker;
+  const handler = watchHandlers[mode];
+  if (handler === undefined) {
+    process.stderr.write(`unknown fake watch mode ${mode}\n`);
+    process.exitCode = 2;
+    return;
+  }
+  await handler(prompt);
+};
+
 const runMain = async () => {
   const args = process.argv.slice(ARGUMENTS_OFFSET);
+  if (args.includes(STDIN_FORMAT_FLAG)) {
+    await runWatchMode();
+    return;
+  }
   const promptIndex = args.indexOf("-p") + 1;
   const prompt = args[promptIndex] ?? "";
   const mode = MODE_MARKER.exec(prompt)?.[1] ?? "success";

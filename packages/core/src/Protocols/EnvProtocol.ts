@@ -8,6 +8,7 @@ export type Env = {
   ALLOW_NON_LOOPBACK_BIND: boolean;
   AGY_BIN: string;
   AGY_TIMEOUT_MS: number;
+  AGY_OUTPUT_WAIT_MS: number;
   QUEUE_MAX_WAIT_MS: number;
   QUEUE_CONCURRENCY: number;
   DAILY_LIMIT_CHAT: number;

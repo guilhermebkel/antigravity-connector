@@ -10,11 +10,12 @@ export class AgySpawnUtil {
     args: readonly string[],
     workingDirectory: string,
     childEnvNameToValue: Readonly<Record<string, string>>,
+    hasStdin = false,
   ): ChildProcess {
     return spawn(binaryPath, args, {
       cwd: workingDirectory,
       env: childEnvNameToValue,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: [hasStdin ? "pipe" : "ignore", "pipe", "pipe"],
       detached: true,
     });
   }

@@ -127,8 +127,17 @@ describe("streaming, cancellation and images through the server", () => {
     const scratchRoot = join(tmpdir(), "agy-image-test-");
     scratchDirectory = mkdtempSync(scratchRoot);
     const wrapperPath = join(scratchDirectory, "agy-wrapper.sh");
-    const envelopePath = join(FIXTURES, "chatEnvelope.json");
-    writeFileSync(wrapperPath, ["#!/bin/bash", "printf 'not a png' > output.png", `cat "${envelopePath}"`, ""].join("\n"));
+    const streamPath = join(FIXTURES, "chatStream.ndjson");
+    const wrapperLines = [
+      "#!/bin/bash",
+      `head -n 1 "${streamPath}"`,
+      "read -r promptLine",
+      "printf 'not a png' > output.png",
+      `tail -n 1 "${streamPath}"`,
+      "cat > /dev/null",
+      "",
+    ];
+    writeFileSync(wrapperPath, wrapperLines.join("\n"));
     chmodSync(wrapperPath, WRAPPER_MODE);
     started = await ServerHarnessUtil.start(ServerHarnessUtil.buildEnv({ AGY_BIN: wrapperPath }));
     const client = await connectMcp(started.address);

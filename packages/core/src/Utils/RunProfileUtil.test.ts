@@ -10,6 +10,7 @@ describe("RunProfileUtil.build", () => {
       shouldSkipPermissions: false,
       timeoutMs: 300000,
       expectedOutputFileNames: [],
+      shouldWaitForOutputFiles: false,
     });
   });
 
@@ -23,6 +24,7 @@ describe("RunProfileUtil.build", () => {
       shouldSkipPermissions: false,
       timeoutMs: 300000,
       expectedOutputFileNames: ["output.png"],
+      shouldWaitForOutputFiles: true,
     });
   });
 
@@ -32,5 +34,12 @@ describe("RunProfileUtil.build", () => {
     );
     expect(nonPlanKinds).toStrictEqual(["image", "browse"]);
     expect(RunProfileUtil.build("image", 1000).expectedOutputFileNames).toStrictEqual(["output.png"]);
+  });
+
+  it("only image waits for its output file; browse keeps its screenshot optional", () => {
+    const waitingKinds = (["chat", "search", "research", "image", "browse"] as const).filter(
+      (kind) => RunProfileUtil.build(kind, 1000).shouldWaitForOutputFiles,
+    );
+    expect(waitingKinds).toStrictEqual(["image"]);
   });
 });

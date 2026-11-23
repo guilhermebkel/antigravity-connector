@@ -5,6 +5,7 @@ export type AgyRunProfile = {
   shouldSkipPermissions: boolean;
   timeoutMs: number;
   expectedOutputFileNames: readonly string[];
+  shouldWaitForOutputFiles?: boolean;
 };
 
 export type AgyAttachment = {
@@ -68,8 +69,16 @@ export type AgyEnvNameToValue = Readonly<Record<string, string | undefined>>;
 
 export type AgyChildEnvName = "HOME" | "PATH" | "LANG" | "TMPDIR";
 
+export type AgyOutputWatchTiming = {
+  pollMs: number;
+  resultGraceMs: number;
+  afterResultWaitMs: number;
+  stopDelayMs: number;
+};
+
 export type AgyCliAdapterOptions = {
   binaryPath: string;
   tempRoot: string;
   parentEnv: AgyEnvNameToValue;
+  outputWatchTiming?: AgyOutputWatchTiming;
 };

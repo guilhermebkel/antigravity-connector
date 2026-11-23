@@ -16,6 +16,8 @@ export class ServerHarnessUtil {
 
   static readonly RUN_TIMEOUT_MS = 60000;
 
+  static readonly OUTPUT_WAIT_MS = 300;
+
   static readonly SHUTDOWN_GRACE_MS = 2000;
 
   static buildDataDirectory(): string {
@@ -28,6 +30,7 @@ export class ServerHarnessUtil {
       API_KEY: SERVER_API_KEY,
       AGY_BIN: ServerHarnessUtil.FAKE_AGY,
       AGY_TIMEOUT_MS: String(ServerHarnessUtil.RUN_TIMEOUT_MS),
+      AGY_OUTPUT_WAIT_MS: String(ServerHarnessUtil.OUTPUT_WAIT_MS),
       DATA_DIR: ServerHarnessUtil.buildDataDirectory(),
       ...overrides,
     });

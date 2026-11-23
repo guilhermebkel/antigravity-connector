@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AgyArgumentUtil } from "@antigravity-connector/agy/Utils/AgyArgumentUtil.ts";
 
+const STREAM_FORMAT = "stream-json";
+const OUTPUT_FORMAT_FLAG = "--output-format";
+const JSON_FORMAT = "json";
 const CHAT_PROFILE = { isPlanMode: true, shouldSkipPermissions: false, timeoutMs: 300000, expectedOutputFileNames: [] };
 
 describe("AgyArgumentUtil.build", () => {
@@ -10,8 +13,8 @@ describe("AgyArgumentUtil.build", () => {
     expect(args).toStrictEqual([
       "-p",
       "User: hi",
-      "--output-format",
-      "json",
+      OUTPUT_FORMAT_FLAG,
+      JSON_FORMAT,
       "--model",
       "gemini-3.8-flash-low",
       "--mode",
@@ -25,13 +28,13 @@ describe("AgyArgumentUtil.build", () => {
       modelSlug: "gemini-4-argon-high",
       profile: { ...CHAT_PROFILE, isPlanMode: false, shouldSkipPermissions: true },
       conversationId: "00000000-0000-4000-8000-000000000000",
-    }, "json", "schema.json");
+    }, JSON_FORMAT, "schema.json");
 
     expect(args).toStrictEqual([
       "-p",
       "User: draw",
-      "--output-format",
-      "json",
+      OUTPUT_FORMAT_FLAG,
+      JSON_FORMAT,
       "--model",
       "gemini-4-argon-high",
       "--dangerously-skip-permissions",
@@ -40,5 +43,29 @@ describe("AgyArgumentUtil.build", () => {
       "--json-schema",
       "schema.json",
     ]);
+  });
+});
+
+describe("AgyArgumentUtil.buildPromptOnStdin", () => {
+  it("builds a stream-json run that reads its prompt from stdin, so the prompt is not in the arguments", () => {
+    const args = AgyArgumentUtil.buildPromptOnStdin({
+      prompt: "User: private-marker-5521",
+      modelSlug: "gemini-3.8-flash",
+      profile: { ...CHAT_PROFILE, isPlanMode: false },
+      conversationId: "conversation-9",
+    });
+
+    expect(args).toStrictEqual([
+      "-p=",
+      "--input-format",
+      STREAM_FORMAT,
+      OUTPUT_FORMAT_FLAG,
+      STREAM_FORMAT,
+      "--model",
+      "gemini-3.8-flash",
+      "--conversation",
+      "conversation-9",
+    ]);
+    expect(args.join(" ")).not.toContain("private-marker-5521");
   });
 });
