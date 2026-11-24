@@ -14,6 +14,8 @@ export class RunProfileUtil {
 
   static readonly RESEARCH_TIMEOUT_MULTIPLIER = 2;
 
+  static readonly IMAGE_TIMEOUT_MULTIPLIER = 0.6;
+
   static readonly RUN_KIND_TO_SPEC: Readonly<Record<RunKind, RunKindSpec>> = {
     chat: {
       isPlanMode: true,
@@ -39,7 +41,7 @@ export class RunProfileUtil {
     image: {
       isPlanMode: false,
       shouldSkipPermissions: false,
-      timeoutMultiplier: 1,
+      timeoutMultiplier: RunProfileUtil.IMAGE_TIMEOUT_MULTIPLIER,
       expectedOutputFileNames: ["output.png"],
       shouldWaitForOutputFiles: true,
     },
@@ -57,7 +59,7 @@ export class RunProfileUtil {
     return {
       isPlanMode: spec.isPlanMode,
       shouldSkipPermissions: spec.shouldSkipPermissions,
-      timeoutMs: baseTimeoutMs * spec.timeoutMultiplier,
+      timeoutMs: Math.round(baseTimeoutMs * spec.timeoutMultiplier),
       expectedOutputFileNames: spec.expectedOutputFileNames,
       shouldWaitForOutputFiles: spec.shouldWaitForOutputFiles,
     };

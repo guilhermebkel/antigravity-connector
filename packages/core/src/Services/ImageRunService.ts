@@ -1,8 +1,9 @@
-import { AgyOutputError } from "@antigravity-connector/agy";
+import { AgyOutputError, AgyTimeoutError } from "@antigravity-connector/agy";
 import type { RunDoor } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { RunObserver } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
 import type { RunAttachment } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
+import { ImageTimeoutError } from "@antigravity-connector/core/Errors/ImageTimeoutError.ts";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
 import { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
 
@@ -56,6 +57,9 @@ export class ImageRunService {
     } catch (error: unknown) {
       if (error instanceof AgyOutputError) {
         throw new ImageNotProducedError();
+      }
+      if (error instanceof AgyTimeoutError) {
+        throw new ImageTimeoutError(error.lastActivity);
       }
       throw error;
     }

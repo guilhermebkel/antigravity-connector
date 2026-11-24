@@ -298,6 +298,10 @@ const watchHandlers = {
     stopWhenStdinEnds();
   },
   "watch-hang": async () => {
+    writeLine(JSON.stringify({
+      event: "step_update",
+      step_update: { conversation_id: "hang", step_index: 1, state: "ACTIVE", step_type: "subagent" },
+    }));
     setInterval(keepAlive, KEEP_ALIVE_MS);
   },
   "watch-argv": async () => {

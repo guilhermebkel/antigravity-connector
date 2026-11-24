@@ -263,7 +263,7 @@ When the client sends a progress token, the server reports progress while a call
 | `ALLOW_NON_LOOPBACK_BIND` | `false` (`true` in the image) | Allows a non-loopback `HOST`. The image sets it so the port can be published on the host. Publish it on `127.0.0.1` only and put an HTTPS proxy in front. |
 | `PORT` | `8787` | The port. |
 | `AGY_BIN` | `agy` | The agy binary. |
-| `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. |
+| `AGY_TIMEOUT_MS` | `300000` | A call that runs longer is stopped. An image call is stopped at 60 percent of this value, and research at twice. |
 | `AGY_OUTPUT_WAIT_MS` | `30000` | For an image call, how long to keep waiting for `output.png` after agy says it is done. The call fails with the agy answer if the file does not appear. |
 | `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue is refused. |
 | `QUEUE_CONCURRENCY` | `4` | Agy runs in flight at once, from `1` to `8`. Calls past this wait in the queue. |

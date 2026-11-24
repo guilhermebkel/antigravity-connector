@@ -479,6 +479,7 @@ describe("AgyCliAdapter output watching", () => {
     const error = await captureFailure(run);
 
     expect(error).toBeInstanceOf(AgyTimeoutError);
+    expect((error as AgyTimeoutError).lastActivity?.step).toBe("subagent ACTIVE");
   });
 
   it("fails with AgyAbortedError when the caller aborts a run that hangs", async () => {
