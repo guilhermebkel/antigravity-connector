@@ -72,4 +72,18 @@ export class AgyStreamEventUtil {
   static isResult(event: AgyStreamEvent): event is AgyResultEvent {
     return event.event === "result";
   }
+
+  static readStepLabel(line: string): string | undefined {
+    const json = AgyStreamEventUtil.decodeJson(line);
+    if (typeof json !== "object" || json === null || !("step_update" in json)) {
+      return undefined;
+    }
+    const step = json.step_update;
+    if (typeof step !== "object" || step === null || !("step_type" in step) || typeof step.step_type !== "string") {
+      return undefined;
+    }
+    const toolName = "tool_name" in step && typeof step.tool_name === "string" ? `:${step.tool_name}` : "";
+    const state = "state" in step && typeof step.state === "string" ? ` ${step.state}` : "";
+    return `${step.step_type}${toolName}${state}`;
+  }
 }

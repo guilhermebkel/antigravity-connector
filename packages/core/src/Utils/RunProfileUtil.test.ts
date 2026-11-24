@@ -14,6 +14,11 @@ describe("RunProfileUtil.build", () => {
     });
   });
 
+  it("gives an image call 60 percent of the base timeout, rounded to a whole millisecond", () => {
+    expect(RunProfileUtil.build("image", BASE_TIMEOUT_MS).timeoutMs).toBe(180000);
+    expect(RunProfileUtil.build("image", 1001).timeoutMs).toBe(601);
+  });
+
   it("doubles the timeout for research", () => {
     expect(RunProfileUtil.build("research", BASE_TIMEOUT_MS).timeoutMs).toBe(600000);
   });
@@ -22,7 +27,7 @@ describe("RunProfileUtil.build", () => {
     expect(RunProfileUtil.build("image", BASE_TIMEOUT_MS)).toStrictEqual({
       isPlanMode: false,
       shouldSkipPermissions: false,
-      timeoutMs: 300000,
+      timeoutMs: 180000,
       expectedOutputFileNames: ["output.png"],
       shouldWaitForOutputFiles: true,
     });

@@ -1,5 +1,5 @@
 import type { OpenAiErrorCode } from "@antigravity-connector/protocol";
-import { ImageNotProducedError, ImageUploadError, RemoteImageError } from "@antigravity-connector/core";
+import { ImageNotProducedError, ImageTimeoutError, ImageUploadError, RemoteImageError } from "@antigravity-connector/core";
 import { JobNotFoundError } from "@antigravity-connector/mcp/Errors/JobNotFoundError.ts";
 
 export class McpErrorUtil {
@@ -29,6 +29,11 @@ export class McpErrorUtil {
     }
     if (error instanceof ImageNotProducedError && error.reason !== undefined) {
       return `The call did not produce an image: agy answered instead of writing a PNG: ${error.reason}. What to do: follow the reason, or retry later.`;
+    }
+    if (error instanceof ImageTimeoutError) {
+      const activity = error.describeActivity();
+      const detail = activity === undefined ? "" : ` (${activity})`;
+      return `The call was stopped: agy did not make the image in time${detail}. The image model may be slow or out of quota. What to do: retry later.`;
     }
     const code = McpErrorUtil.readCode(error);
     if (code === undefined) {

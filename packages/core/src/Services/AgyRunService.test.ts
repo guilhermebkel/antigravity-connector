@@ -231,6 +231,16 @@ describe("AgyRunService call detail for the logs", () => {
     expect(AgyRunService.buildFailureDetail(new AgyTimeoutError(1000, ""))).toStrictEqual({ reason: "agy_timeout" });
   });
 
+  it("a timeout carries the last step and the silent time, never agy's text", () => {
+    const error = new AgyTimeoutError(1000, "stderr", { step: "subagent ACTIVE", idleMs: 900 });
+
+    expect(AgyRunService.buildFailureDetail(error)).toStrictEqual({
+      reason: "agy_timeout",
+      lastStep: "subagent ACTIVE",
+      idleMs: 900,
+    });
+  });
+
   it("any other failure is named by its error class, never by its message", () => {
     const error = new AgyOutputError("leaks the agy answer text");
 

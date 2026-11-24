@@ -13,6 +13,7 @@ export type {
   AgyAttachment,
   AgyCliAdapterOptions,
   AgyEnvNameToValue,
+  AgyLastActivity,
   AgyOutputFormat,
   AgyProcessOutcome,
   AgyRunnerPort,

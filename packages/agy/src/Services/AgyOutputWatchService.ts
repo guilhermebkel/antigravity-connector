@@ -4,9 +4,11 @@ import { join } from "node:path";
 import { RedactUtil } from "@antigravity-connector/protocol";
 import type { AgyEnvelope, AgyStatus, AgyUsage } from "@antigravity-connector/protocol";
 import { AgyAbortedError } from "@antigravity-connector/agy/Errors/AgyAbortedError.ts";
+import { AgyTimeoutError } from "@antigravity-connector/agy/Errors/AgyTimeoutError.ts";
 import { AgyFailedError } from "@antigravity-connector/agy/Errors/AgyFailedError.ts";
 import { AgyOutputError } from "@antigravity-connector/agy/Errors/AgyOutputError.ts";
 import type {
+  AgyLastActivity,
   AgyOutputFileNameToBytes,
   AgyOutputWatchTiming,
   AgyRunResult,
@@ -54,6 +56,10 @@ export class AgyOutputWatchService {
   private conversationId = "";
 
   private result: AgyEnvelope | undefined = undefined;
+
+  private lastStep: string | undefined = undefined;
+
+  private lastEventAtMs = 0;
 
   private hasSentPrompt = false;
 
@@ -132,6 +138,7 @@ export class AgyOutputWatchService {
     if (line === "") {
       return;
     }
+    this.recordActivity(line);
     const event = AgyStreamEventUtil.parseLine(line);
     if (event === undefined) {
       return;
@@ -143,6 +150,18 @@ export class AgyOutputWatchService {
     if (AgyStreamEventUtil.isResult(event)) {
       void this.handleResult(event.result);
     }
+  }
+
+  private recordActivity(line: string): void {
+    this.lastEventAtMs = Date.now();
+    this.lastStep = AgyStreamEventUtil.readStepLabel(line) ?? this.lastStep;
+  }
+
+  private buildLastActivity(): AgyLastActivity | undefined {
+    if (this.lastEventAtMs === 0) {
+      return undefined;
+    }
+    return { step: this.lastStep ?? "none", idleMs: Date.now() - this.lastEventAtMs };
   }
 
   private sendPrompt(): void {
@@ -218,6 +237,10 @@ export class AgyOutputWatchService {
     }
     const outcome = { exitCode, stdout: this.stdoutText, stderr: this.stderrText, isTimedOut: this.isTimedOut };
     const failure = AgyOutcomeUtil.findProcessFailure(outcome, this.options.timeoutMs, this.options.secrets);
+    if (failure instanceof AgyTimeoutError) {
+      this.fail(new AgyTimeoutError(this.options.timeoutMs, failure.stderrExcerpt, this.buildLastActivity()));
+      return;
+    }
     if (failure !== undefined) {
       this.fail(failure);
       return;

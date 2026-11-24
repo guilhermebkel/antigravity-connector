@@ -324,7 +324,10 @@ export class AgyRunService {
       return { reason: "client_aborted" };
     }
     if (error instanceof AgyTimeoutError) {
-      return { reason: "agy_timeout" };
+      const activity = error.lastActivity;
+      return activity === undefined
+        ? { reason: "agy_timeout" }
+        : { reason: "agy_timeout", lastStep: activity.step, idleMs: activity.idleMs };
     }
     if (!(error instanceof AgyFailedError)) {
       return error instanceof Error ? { errorName: error.constructor.name } : {};

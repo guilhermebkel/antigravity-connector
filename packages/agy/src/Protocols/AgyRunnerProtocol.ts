@@ -58,6 +58,11 @@ export interface AgyRunnerPort {
   stream(request: AgyRunRequest, signal?: AbortSignal): AsyncIterable<AgyStreamOutputEvent>;
 }
 
+export type AgyLastActivity = {
+  step: string;
+  idleMs: number;
+};
+
 export type AgyProcessOutcome = {
   exitCode: number | null;
   stdout: string;

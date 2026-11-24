@@ -36,6 +36,7 @@ export { ImageInputUtil } from "@antigravity-connector/core/Utils/ImageInputUtil
 export type { ImageInputReason, ImageInputResult, ImageMime } from "@antigravity-connector/core/Protocols/ImageInputProtocol.ts";
 export { ImageInvalidError } from "@antigravity-connector/core/Errors/ImageInvalidError.ts";
 export { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
+export { ImageTimeoutError } from "@antigravity-connector/core/Errors/ImageTimeoutError.ts";
 export { RunIncompleteError } from "@antigravity-connector/core/Errors/RunIncompleteError.ts";
 export type { RunObserver, RunProgressEvent } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
 export type { AgyStreamOutputEvent } from "@antigravity-connector/agy";

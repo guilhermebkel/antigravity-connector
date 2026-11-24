@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { AgyOutputError } from "@antigravity-connector/agy";
+import { AgyOutputError, AgyTimeoutError } from "@antigravity-connector/agy";
 import { DailyLimitError } from "@antigravity-connector/core/Errors/DailyLimitError.ts";
 import { ImageInvalidError } from "@antigravity-connector/core/Errors/ImageInvalidError.ts";
 import { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
+import { ImageTimeoutError } from "@antigravity-connector/core/Errors/ImageTimeoutError.ts";
 import { ImageRunService } from "@antigravity-connector/core/Services/ImageRunService.ts";
 import { StubRuntimeUtil, type StubRunResult } from "@antigravity-connector/core/Testing/StubRuntimeUtil.ts";
 
@@ -47,6 +48,18 @@ describe("ImageRunService", () => {
     expect(error).toBeInstanceOf(ImageNotProducedError);
     expect((error as ImageNotProducedError).reason).toBe(quotaAnswer);
     expect((error as ImageNotProducedError).message).toContain("RESOURCE_EXHAUSTED");
+  });
+
+  it("maps an agy timeout to an image timeout that keeps the last activity", async () => {
+    const lastActivity = { step: "subagent ACTIVE", idleMs: 240000 };
+    const stub = StubRuntimeUtil.build({
+      respond: () => Promise.reject(new AgyTimeoutError(180000, "", lastActivity)),
+    });
+    const service = new ImageRunService({ runService: stub.runService });
+    const error: unknown = await service.generate({ door: "mcp", model: MODEL, prompt: "x" }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ImageTimeoutError);
+    expect(error).toMatchObject({ code: "agy_timeout", lastActivity });
   });
 
   it("maps agy's missing-output error to not produced", async () => {

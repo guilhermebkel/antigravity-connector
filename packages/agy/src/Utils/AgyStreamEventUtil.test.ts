@@ -59,4 +59,21 @@ describe("AgyStreamEventUtil", () => {
   it("returns nothing for a line that is not JSON", () => {
     expect(AgyStreamEventUtil.parseLine("Authentication required")).toBeUndefined();
   });
+
+  it("reads a step label from a raw line, including step types the schema does not know", () => {
+    const subagent = AgyStreamEventUtil.readStepLabel(buildStepLine({ state: "ACTIVE", step_type: "subagent" }));
+    const tool = AgyStreamEventUtil.readStepLabel(
+      buildStepLine({ state: "DONE", step_type: "tool", tool_name: "generate_image" }),
+    );
+
+    expect(subagent).toBe("subagent ACTIVE");
+    expect(tool).toBe("tool:generate_image DONE");
+  });
+
+  it("reads no step label from a line that is not a step update", () => {
+    const init = AgyStreamEventUtil.readStepLabel(JSON.stringify({ event: "init" }));
+    const text = AgyStreamEventUtil.readStepLabel("Authentication required");
+
+    expect([init, text]).toStrictEqual([undefined, undefined]);
+  });
 });
