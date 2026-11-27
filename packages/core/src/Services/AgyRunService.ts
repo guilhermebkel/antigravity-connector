@@ -10,6 +10,7 @@ import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotF
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
 import { AgySessionService } from "@antigravity-connector/core/Services/AgySessionService.ts";
+import { AnswerKindUtil } from "@antigravity-connector/core/Utils/AnswerKindUtil.ts";
 import { LogUtil } from "@antigravity-connector/core/Utils/LogUtil.ts";
 import { RunPromptUtil } from "@antigravity-connector/core/Utils/RunPromptUtil.ts";
 import { RunProfileUtil } from "@antigravity-connector/core/Utils/RunProfileUtil.ts";
@@ -45,6 +46,8 @@ export class AgyRunService {
   static readonly CALL_EVENT = "agy.call.finished";
 
   static readonly UNKNOWN_ERROR_CODE = "unknown";
+
+  static readonly OUTPUT_MISSING_CODE = "output_missing";
 
   static readonly RESULT_TO_LEVEL: Readonly<Record<CallResult, "info" | "warn" | "error">> = {
     success: "info",
@@ -93,11 +96,7 @@ export class AgyRunService {
     try {
       const hooks = AgyRunService.buildHooks(observer);
       const result = await this.queue.run(() => this.runChecked(request, signal), signal, hooks);
-      this.logCall(kind, input, startedAtMs, {
-        result: "success",
-        usage: result.envelope.usage,
-        detail: AgyRunService.buildSuccessDetail(result.envelope.num_turns, Object.keys(result.outputFiles).length),
-      });
+      this.logCall(kind, input, startedAtMs, AgyRunService.buildFinishedOutcome(request, result));
       return result;
     } catch (error: unknown) {
       this.handleFailure(error);
@@ -313,6 +312,29 @@ export class AgyRunService {
       cacheReadTokens: usage.cache_read_tokens,
       totalTokens: usage.total_tokens,
     };
+  }
+
+  static buildFinishedOutcome(request: AgyRunRequest, result: AgyRunResult): CallOutcome {
+    const outputFileCount = Object.keys(result.outputFiles).length;
+    const detail = AgyRunService.buildSuccessDetail(result.envelope.num_turns, outputFileCount);
+    const missingFileCount = AgyRunService.countMissingFiles(request, result);
+    if (missingFileCount === 0) {
+      return { result: "success", usage: result.envelope.usage, detail };
+    }
+    // Why: a run that had to write a file and did not is a failed call, whatever agy's status says; only the kind of its answer is logged.
+    return {
+      result: "error",
+      usage: result.envelope.usage,
+      errorCode: AgyRunService.OUTPUT_MISSING_CODE,
+      detail: { ...detail, missingFileCount, answerKind: AnswerKindUtil.classify(result.envelope.response) },
+    };
+  }
+
+  static countMissingFiles(request: AgyRunRequest, result: AgyRunResult): number {
+    if (request.profile.shouldWaitForOutputFiles !== true) {
+      return 0;
+    }
+    return request.profile.expectedOutputFileNames.filter((name) => result.outputFiles[name] === undefined).length;
   }
 
   static buildSuccessDetail(numTurns: number | undefined, outputFileCount: number): LogFieldToValue {

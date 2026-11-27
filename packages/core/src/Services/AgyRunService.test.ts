@@ -215,6 +215,51 @@ describe("AgyRunService.stream", () => {
   });
 });
 
+describe("AgyRunService logs a run that had to write a file", () => {
+  const PNG_BYTES = new Uint8Array([137, 80, 78, 71]);
+  const QUOTA_ANSWER = `The image model returned 429 RESOURCE_EXHAUSTED ${PRIVATE_MARKER}`;
+
+  const readCallLine = (harness: Harness): string => {
+    const callLines = harness.lines.filter((line) => line.includes("agy.call.finished"));
+    expect(callLines).toHaveLength(1);
+    return callLines[0] ?? "";
+  };
+
+  it("logs an image call without output.png as an error that names the kind of answer, not the answer", async () => {
+    const harness = buildHarness(() => Promise.resolve(buildSuccessResult(QUOTA_ANSWER)));
+    await harness.service.run("image", { ...buildChatInput("draw"), door: "mcp" });
+    const line = readCallLine(harness);
+
+    expect(line).toContain("\"level\":\"error\"");
+    expect(line).toContain("\"result\":\"error\"");
+    expect(line).toContain("\"errorCode\":\"output_missing\"");
+    expect(line).toContain("\"missingFileCount\":1");
+    expect(line).toContain("\"answerKind\":\"quota\"");
+    expect(line).not.toContain(PRIVATE_MARKER);
+    expect(line).not.toContain("RESOURCE_EXHAUSTED");
+  });
+
+  it("logs an image call that wrote output.png as a success", async () => {
+    const harness = buildHarness(() => Promise.resolve({
+      ...buildSuccessResult("done"),
+      outputFiles: { "output.png": PNG_BYTES },
+    }));
+    await harness.service.run("image", { ...buildChatInput("draw"), door: "mcp" });
+    const line = readCallLine(harness);
+
+    expect(line).toContain("\"result\":\"success\"");
+    expect(line).toContain("\"outputFileCount\":1");
+    expect(line).not.toContain("output_missing");
+  });
+
+  it("keeps a browse call without its optional screenshot a success", async () => {
+    const harness = buildHarness(() => Promise.resolve(buildSuccessResult("page title")));
+    await harness.service.run("browse", { ...buildChatInput("open"), door: "mcp" });
+
+    expect(readCallLine(harness)).toContain("\"result\":\"success\"");
+  });
+});
+
 describe("AgyRunService call detail for the logs", () => {
   it("failure detail carries the exit code and the envelope status and error, never the prompt", () => {
     const error = new AgyFailedError(1, "stderr excerpt", { status: "ERROR", error: "boom" });
