@@ -1,6 +1,7 @@
 import type {
   AgyLoginService,
   AgyRunService,
+  AgyUsageService,
   ImageRunService,
   ImageSourceService,
   ImageUploadService,
@@ -18,4 +19,5 @@ export type McpServices = {
   toolJobs: ToolJobService;
   researchDailyLimit: number;
   loginService: AgyLoginService;
+  usageService: AgyUsageService;
 };

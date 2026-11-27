@@ -17,6 +17,8 @@ agy 1.5.18 lists the Gemini 4 models (`gemini-4-neon`, `-hydrogen`, `-carbon`, `
 - The model catalogue gains `gemini-4-neon`, `gemini-4-hydrogen` and `gemini-4-carbon` at the efforts `low`, `medium` and `high`; the MCP tools take their `model` list from one schema. `xhigh` is not offered.
 - The image pins agy 1.5.18. The stream mode that image runs use ([0016](0016-image-runs-wait-for-the-file.md)) was checked on 1.5.18: the `init` event, the stdin line and the `result` event have the same shape.
 
+- `check_usage` runs agy's `/usage` command in print mode (`agy -p /usage`), which answers from the account with no model call, and returns the rows it prints as groups of limits (percent left and refill time). The result is cached for 30 seconds and one read is shared by calls that arrive together. It uses no queue slot and no daily limit.
+
 ## Consequences
 
 - A client needs a machine that can send an HTTP request to use audio or video; there is no URL or base64 input for them.

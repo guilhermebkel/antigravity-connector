@@ -1,6 +1,6 @@
 import { tmpdir } from "node:os";
 import type { RunKind } from "@antigravity-connector/protocol";
-import { AgyCliAdapter, AgyLoginAdapter, AgySessionCheckAdapter } from "@antigravity-connector/agy";
+import { AgyCliAdapter, AgyLoginAdapter, AgySessionCheckAdapter, AgyUsageAdapter } from "@antigravity-connector/agy";
 import type { EnvNameToValue, Env } from "@antigravity-connector/core/Protocols/EnvProtocol.ts";
 import type { LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
 import type { CoreRuntime } from "@antigravity-connector/core/Protocols/CoreRuntimeProtocol.ts";
@@ -8,6 +8,7 @@ import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunServic
 import { AgySessionService } from "@antigravity-connector/core/Services/AgySessionService.ts";
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
+import { AgyUsageService } from "@antigravity-connector/core/Services/AgyUsageService.ts";
 import { AgyLoginService } from "@antigravity-connector/core/Services/AgyLoginService.ts";
 import { CallLogService } from "@antigravity-connector/core/Services/CallLogService.ts";
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
@@ -71,10 +72,20 @@ export class RuntimeSetup {
       logSink: options.logSink,
       secrets: [env.API_KEY],
     });
+    const usageService = new AgyUsageService({
+      session: sessionService,
+      clock: options.clock,
+      port: new AgyUsageAdapter({
+        runner: adapter,
+        modelSlug: RuntimeSetup.buildCheckModelSlug(),
+        timeoutMs: env.AGY_TIMEOUT_MS,
+      }),
+    });
     return {
       runService,
       sessionService,
       loginService,
+      usageService,
       stopRunningCalls: () => {
         adapter.stopAll();
         loginAdapter.stop();

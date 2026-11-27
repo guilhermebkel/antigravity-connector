@@ -3,6 +3,7 @@ import type { ContentBlock, ToolAnnotations } from "@modelcontextprotocol/sdk/ty
 import type {
   AgyLoginService,
   AgyRunService,
+  AgyUsageService,
   ImageRunService,
   ImageSourceService,
   ImageUploadService,
@@ -21,6 +22,7 @@ export type McpToolContext = {
   mediaService: MediaRunService;
   toolJobs: ToolJobService;
   loginService: AgyLoginService;
+  usageService: AgyUsageService;
   signal: AbortSignal | undefined;
   observer: RunObserver;
 };

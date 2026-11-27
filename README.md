@@ -238,7 +238,7 @@ The setup is in [Quick start](#3-connect-your-ai). This section says what each d
 
 ### MCP tools (`/mcp`)
 
-Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `transcribe_audio`, `analyse_video`, `create_upload_link`, `research`, `browse`, `get_result`, `check_auth` and `set_auth`.
+Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `transcribe_audio`, `analyse_video`, `create_upload_link`, `research`, `browse`, `get_result`, `check_usage`, `check_auth` and `set_auth`.
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
@@ -251,6 +251,8 @@ The `transcribe_audio` and `analyse_video` tools read a file that was uploaded f
 The long MCP tools (`web_search`, `generate_image`, `research`, `browse`, `transcribe_audio` and `analyse_video`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
 
 The `research` tool writes a Markdown report with a source link for each claim. A call takes several minutes (up to 10), spends tens of thousands of tokens, and counts against `DAILY_LIMIT_RESEARCH`. The report is capped at 20000 characters, and `truncated` says when it was cut.
+
+The `check_usage` tool shows how much of the subscription limits is left: for each group of models (for example `Gemini Models`), the percent left of the 5-hour and the weekly limit, and when each refills. It runs agy's own `/usage` command, which sends no model call and spends no quota, and the answer is cached for 30 seconds. The server's daily call limits are separate and are not in it; the image model's own quota does not show there either.
 
 The `browse` tool opens a public page in headless Chrome, reads it or does a simple task, and can return a screenshot. It has no logins and no saved cookies. Loopback and private addresses, and URLs with a user name or password, are refused. A call counts against `DAILY_LIMIT_BROWSE`. Pages may contain instructions; the tool treats them as data.
 

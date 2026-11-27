@@ -10,6 +10,7 @@ import type { McpToolContext, McpToolPort } from "@antigravity-connector/mcp/Pro
 import type { McpServices } from "@antigravity-connector/mcp/Protocols/McpServicesProtocol.ts";
 import { BrowseTool } from "@antigravity-connector/mcp/Tools/BrowseTool.ts";
 import { CreateUploadLinkTool } from "@antigravity-connector/mcp/Tools/CreateUploadLinkTool.ts";
+import { CheckUsageTool } from "@antigravity-connector/mcp/Tools/CheckUsageTool.ts";
 import { CheckAuthTool } from "@antigravity-connector/mcp/Tools/CheckAuthTool.ts";
 import { SetAuthTool } from "@antigravity-connector/mcp/Tools/SetAuthTool.ts";
 import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
@@ -52,8 +53,10 @@ export class McpManifestUtil {
     McpManifestUtil.registerTool(server, analyseVideo, services);
     McpManifestUtil.registerTool(server, createUploadLink, services);
     const checkAuth = new CheckAuthTool();
+    const checkUsage = new CheckUsageTool();
     const setAuth = new SetAuthTool();
     McpManifestUtil.registerTool(server, checkAuth, services);
+    McpManifestUtil.registerTool(server, checkUsage, services);
     McpManifestUtil.registerTool(server, setAuth, services);
     const toolNameToRunner = new Map<string, ToolRunner>([
       McpManifestUtil.buildRunnerEntry(webSearch),
@@ -65,6 +68,7 @@ export class McpManifestUtil {
       McpManifestUtil.buildRunnerEntry(analyseVideo),
       McpManifestUtil.buildRunnerEntry(createUploadLink),
       McpManifestUtil.buildRunnerEntry(checkAuth),
+      McpManifestUtil.buildRunnerEntry(checkUsage),
       McpManifestUtil.buildRunnerEntry(setAuth),
     ]);
     server.server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
@@ -82,6 +86,7 @@ export class McpManifestUtil {
           mediaService: services.mediaService,
           toolJobs: services.toolJobs,
           loginService: services.loginService,
+          usageService: services.usageService,
           signal: extra.signal,
           observer: progress.observer,
         });
@@ -117,6 +122,7 @@ export class McpManifestUtil {
         mediaService: services.mediaService,
         toolJobs: services.toolJobs,
         loginService: services.loginService,
+        usageService: services.usageService,
         signal: extra.signal,
         observer: buildNoopObserver(),
       }),

@@ -67,3 +67,6 @@ export type { MediaRunInput, MediaRunOutcome } from "@antigravity-connector/core
 export { MediaInputUtil } from "@antigravity-connector/core/Utils/MediaInputUtil.ts";
 export type { MediaKind } from "@antigravity-connector/core/Protocols/MediaProtocol.ts";
 export type { UploadedMedia } from "@antigravity-connector/core/Protocols/ImageUploadProtocol.ts";
+export { AgyUsageService } from "@antigravity-connector/core/Services/AgyUsageService.ts";
+export type { AgyUsageSnapshot } from "@antigravity-connector/core/Services/AgyUsageService.ts";
+export type { AgyUsageBucket, AgyUsageReport, AgyUsageWindow } from "@antigravity-connector/agy";

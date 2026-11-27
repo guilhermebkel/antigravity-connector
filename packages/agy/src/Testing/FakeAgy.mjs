@@ -158,7 +158,19 @@ const streamHandlers = {
   },
 };
 
+const USAGE_COMMAND = "/usage";
+const USAGE_TABLE = [
+  "Gemini Models\tWeekly Limit Remaining\t99%\t2026-12-04T09:39:33Z",
+  "Gemini Models\tFive Hour Limit Remaining\t42%\t2026-11-27T14:39:33Z",
+  "Claude and GPT models\tWeekly Limit Remaining\t100%\t1970-01-01T00:00:00Z",
+  "Claude and GPT models\tFive Hour Limit Remaining\t100%\t1970-01-01T00:00:00Z",
+].join("\n");
+
 const handlers = {
+  "usage": () => ({
+    ...buildSuccessResult(),
+    stdout: JSON.stringify({ ...readChatEnvelope(), response: `${USAGE_TABLE}\n`, num_turns: 0 }),
+  }),
   "success": () => buildSuccessResult(),
   "error": () => ({ stdout: readFixture("errorEnvelope.json"), stderr: NO_OUTPUT, exitCode: 1 }),
   "no-session": () => ({ stdout: readFixture("noSession.txt"), stderr: NO_OUTPUT, exitCode: 1 }),
@@ -338,7 +350,7 @@ const runMain = async () => {
   }
   const promptIndex = args.indexOf("-p") + 1;
   const prompt = args[promptIndex] ?? "";
-  const mode = MODE_MARKER.exec(prompt)?.[1] ?? "success";
+  const mode = MODE_MARKER.exec(prompt)?.[1] ?? (prompt === USAGE_COMMAND ? "usage" : "success");
   const isStream = args.includes(STREAM_OUTPUT_FORMAT);
   if (isStream) {
     const streamHandler = streamHandlers[mode];

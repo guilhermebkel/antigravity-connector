@@ -45,6 +45,7 @@ export class McpHarnessUtil {
       maxSessions: options.maxSessions ?? McpHarnessUtil.MAX_SESSIONS,
       researchDailyLimit: options.researchDailyLimit ?? McpHarnessUtil.RESEARCH_DAILY_LIMIT,
       loginService: stub.loginService,
+      usageService: stub.usageService,
       jobWaitMs: options.jobWaitMs,
       imageDownloader: options.imageDownloader,
       publicUrl: options.publicUrl,
