@@ -31,9 +31,9 @@ export class ImageSourceService {
     if (url.startsWith(ImageSourceService.DATA_URL_PREFIX)) {
       return ImageInputUtil.readAttachment(url, index);
     }
-    const uploadedImageId = UploadReferenceUtil.readImageId(url);
-    if (uploadedImageId !== undefined) {
-      const uploaded = this.uploads.readImage(uploadedImageId);
+    const uploadId = UploadReferenceUtil.readUploadId(url);
+    if (uploadId !== undefined) {
+      const uploaded = this.uploads.readImage(uploadId);
       return ImageInputUtil.buildAttachment(uploaded.mime, uploaded.bytes, index);
     }
     const imageNumber = index + 1;

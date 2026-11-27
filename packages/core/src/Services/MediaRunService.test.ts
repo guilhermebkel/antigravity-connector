@@ -21,7 +21,7 @@ const buildService = (options: Parameters<typeof StubRuntimeUtil.build>[0] = {})
 const upload = (uploads: MediaUploadService, kind: "audio" | "video", bytes: Uint8Array): string => {
   const link = uploads.createLink(kind);
   uploads.accept(link.token, bytes);
-  return UploadReferenceUtil.build(link.imageId);
+  return UploadReferenceUtil.build(link.uploadId);
 };
 
 describe("MediaRunService", () => {
@@ -54,7 +54,7 @@ describe("MediaRunService", () => {
 
   it("refuses a value that is not an upload reference and an upload that is gone", async () => {
     const { stub, uploads, service } = buildService();
-    const gone = UploadReferenceUtil.build(uploads.createLink("video").imageId);
+    const gone = UploadReferenceUtil.build(uploads.createLink("video").uploadId);
     for (const file of ["https://example.com/a.mp4", gone]) {
       const attempt = service.run({ file, door: "mcp", kind: "video", model: MODEL, prompt: "x", source: "analyse_video" });
       await expect(attempt).rejects.toBeInstanceOf(MediaUploadError);

@@ -17,9 +17,9 @@ export class UploadRoute {
   static readonly REASON_TO_STATUS: Readonly<Record<MediaUploadReason, number>> = {
     unknown_link: 404,
     too_large: 413,
-    not_an_image: 415,
+    unsupported_type: 415,
     too_many_links: 429,
-    image_not_found: 404,
+    upload_not_found: 404,
     wrong_kind: 400,
   };
 
@@ -61,8 +61,8 @@ export class UploadRoute {
       const receipt = options.uploads.accept(token, bytes);
       return reply.code(UploadRoute.STATUS_OK).send({
         kind: receipt.kind,
-        file: UploadReferenceUtil.build(receipt.imageId),
-        image: UploadReferenceUtil.build(receipt.imageId),
+        file: UploadReferenceUtil.build(receipt.uploadId),
+        image: UploadReferenceUtil.build(receipt.uploadId),
         mimeType: receipt.mime,
         sizeBytes: receipt.sizeBytes,
       });

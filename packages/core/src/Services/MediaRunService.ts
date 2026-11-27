@@ -39,9 +39,9 @@ export class MediaRunService {
   }
 
   async run(input: MediaRunInput, signal?: AbortSignal, observer?: RunObserver): Promise<MediaRunOutcome> {
-    const uploadId = UploadReferenceUtil.readImageId(input.file);
+    const uploadId = UploadReferenceUtil.readUploadId(input.file);
     if (uploadId === undefined) {
-      throw new MediaUploadError("image_not_found");
+      throw new MediaUploadError("upload_not_found");
     }
     // Why: the file is checked before the queue and the daily limit, so a wrong or expired upload spends no run.
     const media = this.uploads.readMedia(uploadId, input.kind);

@@ -31,8 +31,8 @@ describe("MediaUploadService", () => {
     const { service } = buildService();
     const link = service.createLink();
     const receipt = service.accept(link.token, PNG_BYTES);
-    expect(receipt).toStrictEqual({ imageId: link.imageId, kind: "image", mime: "image/png", sizeBytes: 12 });
-    expect(service.readImage(link.imageId)).toStrictEqual({ mime: "image/png", bytes: PNG_BYTES });
+    expect(receipt).toStrictEqual({ uploadId: link.uploadId, kind: "image", mime: "image/png", sizeBytes: 12 });
+    expect(service.readImage(link.uploadId)).toStrictEqual({ mime: "image/png", bytes: PNG_BYTES });
   });
 
   it("tells the link lifetime in seconds", () => {
@@ -44,7 +44,7 @@ describe("MediaUploadService", () => {
     const { service } = buildService();
     const first = service.createLink();
     const second = service.createLink();
-    expect(new Set([first.token, second.token, first.imageId, second.imageId]).size).toBe(4);
+    expect(new Set([first.token, second.token, first.uploadId, second.uploadId]).size).toBe(4);
   });
 
   it.each([
@@ -108,22 +108,22 @@ describe("MediaUploadService", () => {
     clock.now += LINK_LIFETIME_MS - 1;
     service.accept(link.token, PNG_BYTES);
     clock.now += IMAGE_LIFETIME_MS - 1;
-    expect(service.readImage(link.imageId).mime).toBe("image/png");
+    expect(service.readImage(link.uploadId).mime).toBe("image/png");
     clock.now += 1;
-    expect(() => service.readImage(link.imageId)).toThrow(/^A file reference points to an upload that was not found/);
+    expect(() => service.readImage(link.uploadId)).toThrow(/^A file reference points to an upload that was not found/);
   });
 
   it("lets the same uploaded picture be read by more than one call", () => {
     const { service } = buildService();
     const link = service.createLink();
     service.accept(link.token, JPEG_BYTES);
-    expect(service.readImage(link.imageId)).toStrictEqual(service.readImage(link.imageId));
+    expect(service.readImage(link.uploadId)).toStrictEqual(service.readImage(link.uploadId));
   });
 
   it("refuses an image id that was announced but never uploaded", () => {
     const { service } = buildService();
     const link = service.createLink();
-    expect(() => service.readImage(link.imageId)).toThrow(/^A file reference points to an upload that was not found/);
+    expect(() => service.readImage(link.uploadId)).toThrow(/^A file reference points to an upload that was not found/);
   });
 
   it("refuses a ninth link while eight links and pictures wait, counting both", () => {
@@ -157,7 +157,7 @@ describe("MediaUploadService", () => {
       const { service } = buildService();
       const link = service.createLink("video");
       expect(service.accept(link.token, MP4_BYTES)).toMatchObject({ kind: "video", mime: "video/mp4" });
-      expect(service.readMedia(link.imageId, "video")).toMatchObject({ extension: "mp4", mime: "video/mp4" });
+      expect(service.readMedia(link.uploadId, "video")).toMatchObject({ extension: "mp4", mime: "video/mp4" });
     });
 
     it("refuses bytes that do not match the kind of the link, keeping the link", () => {
@@ -188,8 +188,8 @@ describe("MediaUploadService", () => {
       const { service } = buildService();
       const link = service.createLink("audio");
       service.accept(link.token, MP3_BYTES);
-      expect(() => service.readMedia(link.imageId, "video")).toThrow(/^The upload is not a video file/);
-      expect(() => service.readImage(link.imageId)).toThrow(/^The upload is not a picture/);
+      expect(() => service.readMedia(link.uploadId, "video")).toThrow(/^The upload is not a video file/);
+      expect(() => service.readImage(link.uploadId)).toThrow(/^The upload is not a picture/);
     });
 
     it("refuses an upload that would pass the memory cap, keeping the link", () => {

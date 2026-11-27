@@ -33,7 +33,7 @@ const validateRemoteUrl = (url: string, context: z.RefinementCtx): void => {
 };
 
 const validateUploadReference = (reference: string, context: z.RefinementCtx): void => {
-  if (UploadReferenceUtil.readImageId(reference) === undefined) {
+  if (UploadReferenceUtil.readUploadId(reference) === undefined) {
     context.addIssue({
       code: "custom",
       message: "The upload reference is not valid. What to do: pass the image value exactly as create_upload_link returned it.",

@@ -46,7 +46,7 @@ describe("ImageSourceService", () => {
     const { service, downloads, uploads } = buildService(() => Promise.resolve(PNG_BYTES));
     const link = uploads.createLink();
     uploads.accept(link.token, JPEG_BYTES);
-    const attachments = await service.readAttachments([PNG_DATA_URL, `upload:${link.imageId}`]);
+    const attachments = await service.readAttachments([PNG_DATA_URL, `upload:${link.uploadId}`]);
     expect(attachments.map((attachment) => attachment.fileName)).toStrictEqual(["attachment-1.png", "attachment-2.jpg"]);
     expect(attachments[1]?.bytes).toStrictEqual(JPEG_BYTES);
     expect(downloads.urls).toStrictEqual([]);
@@ -55,7 +55,7 @@ describe("ImageSourceService", () => {
   it("refuses an upload: reference whose picture was never uploaded", async () => {
     const { service, uploads } = buildService(() => Promise.resolve(PNG_BYTES));
     const link = uploads.createLink();
-    await expect(service.readAttachments([`upload:${link.imageId}`])).rejects.toMatchObject({ reason: "image_not_found" });
+    await expect(service.readAttachments([`upload:${link.uploadId}`])).rejects.toMatchObject({ reason: "upload_not_found" });
   });
 
   it("downloads nothing for a call that holds only data URLs", async () => {

@@ -3,7 +3,7 @@ import type { MediaKind } from "@antigravity-connector/core/Protocols/MediaProto
 
 export type MediaUploadLink = {
   token: string;
-  imageId: string;
+  uploadId: string;
   kind: MediaKind;
   maxBytes: number;
   expiresInSeconds: number;
@@ -22,7 +22,7 @@ export type UploadedMedia = {
 };
 
 export type MediaUploadReceipt = {
-  imageId: string;
+  uploadId: string;
   kind: MediaKind;
   mime: string;
   sizeBytes: number;
