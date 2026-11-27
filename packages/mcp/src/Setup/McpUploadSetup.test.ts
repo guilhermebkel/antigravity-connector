@@ -19,7 +19,7 @@ const buildPng = (): Promise<StubRunResult> => Promise.resolve({
 type UploadLink = {
   uploadPath: string;
   uploadUrl?: string;
-  kind: string;
+  kind: "image" | "audio" | "video";
   file: string;
   expiresInSeconds: number;
   maxBytes: number;
