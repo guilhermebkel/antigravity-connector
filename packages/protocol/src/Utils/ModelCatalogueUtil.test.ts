@@ -6,6 +6,9 @@ describe("ModelCatalogueUtil.resolveSlug", () => {
     { modelId: "gemini-3.8-flash", effort: "low", slug: "gemini-3.8-flash-low" },
     { modelId: "gemini-3.8-flash", effort: "high", slug: "gemini-3.8-flash-high" },
     { modelId: "gemini-4-argon", effort: "medium", slug: "gemini-4-argon-medium" },
+    { modelId: "gemini-4-neon", effort: "high", slug: "gemini-4-neon-high" },
+    { modelId: "gemini-4-hydrogen", effort: "low", slug: "gemini-4-hydrogen-low" },
+    { modelId: "gemini-4-carbon", effort: "medium", slug: "gemini-4-carbon-medium" },
   ])("maps $modelId at $effort to $slug", ({ modelId, effort, slug }) => {
     expect(ModelCatalogueUtil.resolveSlug(modelId, effort)).toBe(slug);
   });

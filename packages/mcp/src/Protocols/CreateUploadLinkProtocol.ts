@@ -1,9 +1,10 @@
-export type CreateUploadLinkInput = { readonly noArguments?: never };
+export type CreateUploadLinkInput = { kind?: "image" | "audio" | "video" };
 
 export type CreateUploadLinkOutput = {
   uploadPath: string;
   uploadUrl?: string;
-  image: string;
+  kind: "image" | "audio" | "video";
+  file: string;
   expiresInSeconds: number;
   maxBytes: number;
 };

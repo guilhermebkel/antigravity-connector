@@ -30,7 +30,7 @@
 
 ## Status
 
-The server is built: the OpenAI-compatible API, the MCP endpoint with `web_search`, `generate_image`, `research` and `browse`, the Docker image, the end-to-end tests and the call log. What is still missing is in [Limits](#limits-and-what-is-not-supported-yet). The execution order is in [#29](https://github.com/guilhermebkel/antigravity-connector/issues/29) and the project brief is [#1](https://github.com/guilhermebkel/antigravity-connector/issues/1).
+The server is built: the OpenAI-compatible API, the MCP endpoint with `web_search`, `generate_image`, `research`, `browse`, `transcribe_audio` and `analyse_video`, the Docker image, the end-to-end tests and the call log. What is still missing is in [Limits](#limits-and-what-is-not-supported-yet). The execution order is in [#29](https://github.com/guilhermebkel/antigravity-connector/issues/29) and the project brief is [#1](https://github.com/guilhermebkel/antigravity-connector/issues/1).
 
 ## What you get
 
@@ -238,17 +238,21 @@ The setup is in [Quick start](#3-connect-your-ai). This section says what each d
 
 ### MCP tools (`/mcp`)
 
-Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `create_upload_link`, `research`, `browse`, `get_result`, `check_auth` and `set_auth`.
+Any MCP client that supports Streamable HTTP can use them: it sends the URL and the `Authorization: Bearer <API_KEY>` header. The tools are `web_search`, `generate_image`, `transcribe_audio`, `analyse_video`, `create_upload_link`, `research`, `browse`, `get_result`, `check_usage`, `check_auth` and `set_auth`.
 
 The `web_search` tool returns a short answer with links. A search takes about 20 to 45 seconds and counts against `DAILY_LIMIT_SEARCH`.
 
 The `generate_image` tool returns one PNG image. A call takes about a minute and counts against `DAILY_LIMIT_IMAGE`. It can take up to four reference images in `images`, each a base64 `data:` URL, an `https://` URL or an `upload:` value from `create_upload_link`, of a PNG, JPEG or WebP file of up to 4 MiB. The server downloads an `https://` URL itself ([ADR 0014](docs/adr/0014-reference-images-by-https-url.md)): it follows at most 3 redirects (https only), gives up after 15 seconds and refuses, on every hop, a host that resolves to a private, loopback or link-local address. The chat API still takes `data:` URLs only.
 
-A photo that sits on your own machine has no public URL, and a long base64 string is easy to corrupt when a model copies it. The `create_upload_link` tool returns a one-time path, `/upload/<token>`, an `upload:<id>` value and, when `PUBLIC_URL` is set, the full `uploadUrl`. Send the file as the raw body of a `POST` to that path on your server, with no key, because the link is the credential (`curl --data-binary @photo.jpg https://connector.your-domain.com/upload/<token>`), then put the `upload:<id>` value in `images`. A link works once and lasts 5 minutes, the picture is kept in memory for 15 minutes, and at most 8 links and pictures wait at a time ([ADR 0015](docs/adr/0015-upload-link-for-reference-images.md)).
+A photo that sits on your own machine has no public URL, and a long base64 string is easy to corrupt when a model copies it. The `create_upload_link` tool returns a one-time path, `/upload/<token>`, an `upload:<id>` value and, when `PUBLIC_URL` is set, the full `uploadUrl`. Send the file as the raw body of a `POST` to that path on your server, with no key, because the link is the credential (`curl --data-binary @photo.jpg https://connector.your-domain.com/upload/<token>`), then put the `upload:<id>` value in `images`. A link works once and lasts 5 minutes, the file is kept in memory for 15 minutes, and at most 8 links and files wait at a time ([ADR 0015](docs/adr/0015-upload-link-for-reference-images.md)).
 
-The long MCP tools (`web_search`, `generate_image`, `research` and `browse`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
+The `transcribe_audio` and `analyse_video` tools read a file that was uploaded first: call `create_upload_link` with `kind` `audio` or `video`, send the file to its path, then pass the `file` value it returned. `transcribe_audio` takes MP3, WAV, M4A, AAC, OGG, FLAC or WebM audio of up to 20 MiB and returns the transcript, with an optional `language` and a `format` of `plain` or `timestamped`. `analyse_video` takes MP4, MOV, WebM or AVI video of up to 30 MiB, with its sound, and answers a `question` about it. Both count against `DAILY_LIMIT_MEDIA`, and the file is data: instructions in it are ignored ([ADR 0017](docs/adr/0017-audio-and-video-tools-by-upload.md)). The server holds at most 60 MiB of uploads at once.
+
+The long MCP tools (`web_search`, `generate_image`, `research`, `browse`, `transcribe_audio` and `analyse_video`) wait about 20 seconds for their result. If it is not ready, they return `status` `running` and a `job_id`; call `get_result` with that `job_id` after `retry_after_seconds` until it returns the result. A client that cancels during the first 20 seconds stops the run; after that the run goes on without the client, and the result is kept for 10 minutes. The OpenAI-compatible API does not use jobs.
 
 The `research` tool writes a Markdown report with a source link for each claim. A call takes several minutes (up to 10), spends tens of thousands of tokens, and counts against `DAILY_LIMIT_RESEARCH`. The report is capped at 20000 characters, and `truncated` says when it was cut.
+
+The `check_usage` tool shows how much of the subscription limits is left: for each group of models (for example `Gemini Models`), the percent left of the 5-hour and the weekly limit, and when each refills. It runs agy's own `/usage` command, which sends no model call and spends no quota, and the answer is cached for 30 seconds. The server's daily call limits are separate and are not in it; the image model's own quota does not show there either.
 
 The `browse` tool opens a public page in headless Chrome, reads it or does a simple task, and can return a screenshot. It has no logins and no saved cookies. Loopback and private addresses, and URLs with a user name or password, are refused. A call counts against `DAILY_LIMIT_BROWSE`. Pages may contain instructions; the tool treats them as data.
 
@@ -267,7 +271,7 @@ When the client sends a progress token, the server reports progress while a call
 | `AGY_OUTPUT_WAIT_MS` | `30000` | For an image call, how long to keep waiting for `output.png` after agy says it is done. The call fails with the agy answer if the file does not appear. |
 | `QUEUE_MAX_WAIT_MS` | `120000` | A call that waits longer in the queue is refused. |
 | `QUEUE_CONCURRENCY` | `4` | Agy runs in flight at once, from `1` to `8`. Calls past this wait in the queue. |
-| `DAILY_LIMIT_CHAT` / `_SEARCH` / `_IMAGE` / `_RESEARCH` / `_BROWSE` | `200` / `50` / `20` / `5` / `20` | Calls per UTC day, per kind. `0` refuses that kind. |
+| `DAILY_LIMIT_CHAT` / `_SEARCH` / `_IMAGE` / `_RESEARCH` / `_BROWSE` / `_MEDIA` | `200` / `50` / `20` / `5` / `20` / `20` | Calls per UTC day, per kind. `0` refuses that kind. |
 | `HTTP_MAX_REQUESTS_PER_MINUTE` | `120` | Requests per minute, counted separately for failed and valid authentications. |
 | `DATA_DIR` | `data` (`/data` in the image) | Where the SQLite call log (`calls.sqlite`) is kept. It holds metadata only: no prompts, responses, queries, URLs or images. Rows older than 90 days are deleted at startup. |
 | `PUBLIC_URL` | none | The public origin of the server, such as `https://connector.your-domain.com`. When it is set, `create_upload_link` also returns the full `uploadUrl`; without it, the client joins `uploadPath` to the host it already uses. |
@@ -301,10 +305,10 @@ Decisions are in [`docs/adr/`](docs/adr/), vocabulary in [`GLOSSARY.md`](GLOSSAR
 - Up to `QUEUE_CONCURRENCY` agy calls run at once (4 by default). Calls from the API and from MCP share one queue, and the rest wait.
 - Calls are slow: a chat answer takes seconds, a search takes tens of seconds.
 - Streaming works with `stream: true` (Server-Sent Events, OpenAI chunk format). Set `stream_options.include_usage` to get the usage in the last chunk.
-- Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), PDF and other file input, audio and video, and a browser profile with your own logins.
+- Not available yet: tool calling (`tools` returns 400, because agy runs its own tools), PDF and other file input, audio and video in the chat API (the MCP tools `transcribe_audio` and `analyse_video` take them), and a browser profile with your own logins.
 - `browse` runs Chrome through agy's `/browser` command. The temporary directory of each run is removed after it; agy chooses where its Chrome profile lives, and no flag sets that, so the profile is not confined to the run directory yet.
 - Sampling parameters (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`) are accepted and ignored. The response header `x-antigravity-connector-ignored-params` lists the ones you sent.
-- The agy binary is pinned to version 1.5.9 in the image. It cannot update itself, because it is installed read-only for the server user.
+- The agy binary is pinned to version 1.5.18 in the image. It cannot update itself, because it is installed read-only for the server user.
 
 ## Troubleshooting
 
@@ -359,9 +363,9 @@ The full order, in groups, is in [#29](https://github.com/guilhermebkel/antigrav
 - [x] **Harness and structure:** monorepo, lint rules, architecture tests, CI and docs.
 - [x] **Spike:** `agy` inside Docker, login and session persistence.
 - [x] **Chat over `/v1`**, with streaming, structured output, conversations and image input.
-- [x] **MCP** with `web_search`, `generate_image`, `research` and `browse`.
+- [x] **MCP** with `web_search`, `generate_image`, `research`, `browse`, `transcribe_audio` and `analyse_video`.
 - [x] **Docker image, end-to-end tests and the real acceptance run** ([`docs/acceptance-2026-11.md`](docs/acceptance-2026-11.md)).
-- [ ] **Not available yet:** tool calling, PDF and other file input, audio and video, a browser profile with your own logins.
+- [ ] **Not available yet:** tool calling, PDF and other file input, audio and video in the chat API, a browser profile with your own logins.
 
 ## Contributing
 

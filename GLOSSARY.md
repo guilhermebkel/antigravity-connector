@@ -8,17 +8,18 @@ The words this project uses, one meaning each. Use them in issue titles, test na
 | **agy** | The official Antigravity CLI binary. The server runs it as a subprocess for every call. It is the only thing that holds the Google login. |
 | **agy session** | The login state of the `agy` binary inside the container. It is *connected* only after a real `agy` check succeeds, never by configuration. |
 | **Run** | One execution of the `agy` binary for one call, with a timeout, in a fresh empty temporary directory that is removed afterwards. |
-| **Run kind** | What a run is for: `chat`, `search`, `research`, `image` or `browse`. Each kind has its own daily limit. |
+| **Run kind** | What a run is for: `chat`, `search`, `research`, `image`, `browse` or `media`. Each kind has its own daily limit. |
 | **Run profile** | The fixed set of flags, working directory rules and prompt shape that `core` asks `agy` to use for one run kind. |
 | **Envelope** | The single JSON object `agy` prints with `--output-format json`: `conversation_id`, `status`, `response`, `usage` and, with a JSON schema, `structured_output`. |
 | **Stream event** | One line of NDJSON that `agy` prints with `--output-format stream-json`: `init`, `step_update` (carrying `text_delta`) or `result`. |
-| **Tool** | One MCP tool a client can call on `/mcp` (`web_search`, `generate_image`, `research`, `browse`, `get_result`, `check_auth`, `set_auth`). Not an `agy` tool. |
-| **Job** | A long MCP call (`web_search`, `generate_image`, `research`, `browse`) that is still running after about 20 seconds. The call returns `status` `running` and a `job_id`; `get_result` returns the result when it is ready. The result is kept for 10 minutes after it finishes. The API has no jobs: its calls always wait. |
+| **Tool** | One MCP tool a client can call on `/mcp` (`web_search`, `generate_image`, `research`, `browse`, `transcribe_audio`, `analyse_video`, `get_result`, `check_usage`, `check_auth`, `set_auth`). Not an `agy` tool. |
+| **Job** | A long MCP call (`web_search`, `generate_image`, `research`, `browse`, `transcribe_audio`, `analyse_video`) that is still running after about 20 seconds. The call returns `status` `running` and a `job_id`; `get_result` returns the result when it is ready. The result is kept for 10 minutes after it finishes. The API has no jobs: its calls always wait. |
 | **Call log** | The SQLite table with one metadata row per call (door, route or tool, kind, model, duration, token counts, status). It never stores content. The daily counters are read from it at startup. |
 | **Conversation id** | The id `agy` returns for a conversation. The API keeps the ids it has seen for 24 hours, at most 256; a request that sends a known id resumes that conversation with only its last user message. |
 | **Attachment** | An image sent in a chat message as a `data:` URL. The server saves it in the run's temporary directory and names the file in the prompt, so agy can read it with its own tools. |
 | **Reference image** | A picture sent to `generate_image` in `images`, as a base64 `data:` URL, an `https://` URL that the server downloads, or an `upload:` value for a picture sent through an upload link. It reaches agy as an attachment, so the tool can edit or copy it. |
-| **Upload link** | The one-time path `/upload/<token>` that `create_upload_link` returns. The file goes as the raw body of a `POST`, with no bearer, because the token is the credential. A link works once and lasts 5 minutes. |
+| **Upload link** | The one-time path `/upload/<token>` that `create_upload_link` returns, for an image, an audio file or a video (`kind`). The file goes as the raw body of a `POST`, with no bearer, because the token is the credential. A link works once and lasts 5 minutes. |
+| **Media run** | A run of kind `media`: `transcribe_audio` or `analyse_video`. agy opens the uploaded audio or video from its working directory and answers from it; the file is data, not instructions. It has its own daily limit, `DAILY_LIMIT_MEDIA`. |
 | **Uploaded image** | A picture received through an upload link, named `upload:<id>` and kept in memory for 15 minutes. Any `generate_image` call can use it by that value. |
 | **Structured output** | The JSON that `agy` returns for a `response_format` with a schema, passed to agy as a schema file (`--json-schema`). The API returns it as the message content. |
 | **Queue** | The global queue with concurrency 1 that serializes every run from both doors. A call that waits longer than the maximum fails with a clear error. |

@@ -1,25 +1,26 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
-  ImageInputUtil,
-  ImageUploadError,
+  MediaInputUtil,
+  MediaUploadError,
   UploadReferenceUtil,
-  type ImageUploadReason,
-  type ImageUploadService,
+  type MediaUploadReason,
+  type MediaUploadService,
 } from "@antigravity-connector/core";
 import { UploadTokenParamsSchema } from "@antigravity-connector/mcp/Schemas/CreateUploadLinkSchema.ts";
 import { UploadPathUtil } from "@antigravity-connector/mcp/Utils/UploadPathUtil.ts";
 
-export type UploadRouteOptions = { uploads: ImageUploadService };
+export type UploadRouteOptions = { uploads: MediaUploadService };
 
 export class UploadRoute {
   static readonly STATUS_OK = 200;
 
-  static readonly REASON_TO_STATUS: Readonly<Record<ImageUploadReason, number>> = {
+  static readonly REASON_TO_STATUS: Readonly<Record<MediaUploadReason, number>> = {
     unknown_link: 404,
     too_large: 413,
-    not_an_image: 415,
+    unsupported_type: 415,
     too_many_links: 429,
-    image_not_found: 404,
+    upload_not_found: 404,
+    wrong_kind: 400,
   };
 
   static register(app: FastifyInstance, options: UploadRouteOptions): void {
@@ -31,8 +32,8 @@ export class UploadRoute {
       scope.post(
         `${UploadPathUtil.PREFIX}/:token`,
         {
-          bodyLimit: ImageInputUtil.MAX_IMAGE_BYTES,
-          // Why: an unknown token is refused before the body is read, so nobody without a link makes the server buffer 4 MiB.
+          bodyLimit: MediaInputUtil.MAX_BYTES,
+          // Why: an unknown token is refused before the body is read, so nobody without a link makes the server buffer a large file.
           onRequest: (request, reply) => UploadRoute.checkLink(request, reply, options),
         },
         (request, reply) => UploadRoute.handle(request, reply, options),
@@ -50,7 +51,7 @@ export class UploadRoute {
     if (token !== undefined && options.uploads.hasLink(token)) {
       return undefined;
     }
-    return UploadRoute.sendFailure(reply, new ImageUploadError("unknown_link"));
+    return UploadRoute.sendFailure(reply, new MediaUploadError("unknown_link"));
   }
 
   static handle(request: FastifyRequest, reply: FastifyReply, options: UploadRouteOptions): FastifyReply {
@@ -59,12 +60,13 @@ export class UploadRoute {
     try {
       const receipt = options.uploads.accept(token, bytes);
       return reply.code(UploadRoute.STATUS_OK).send({
-        image: UploadReferenceUtil.build(receipt.imageId),
+        kind: receipt.kind,
+        file: UploadReferenceUtil.build(receipt.uploadId),
         mimeType: receipt.mime,
         sizeBytes: receipt.sizeBytes,
       });
     } catch (error: unknown) {
-      if (error instanceof ImageUploadError) {
+      if (error instanceof MediaUploadError) {
         return UploadRoute.sendFailure(reply, error);
       }
       throw error;
@@ -76,7 +78,7 @@ export class UploadRoute {
     return parsed.success ? parsed.data.token : undefined;
   }
 
-  static sendFailure(reply: FastifyReply, error: ImageUploadError): FastifyReply {
+  static sendFailure(reply: FastifyReply, error: MediaUploadError): FastifyReply {
     return reply.code(UploadRoute.REASON_TO_STATUS[error.reason]).send({ error: error.message });
   }
 }

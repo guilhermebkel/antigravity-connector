@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+import { MediaUploadService } from "@antigravity-connector/core/Services/MediaUploadService.ts";
 import { ImageSourceService } from "@antigravity-connector/core/Services/ImageSourceService.ts";
 import { RemoteImageError } from "@antigravity-connector/core/Errors/RemoteImageError.ts";
 import { StubImageDownloadUtil } from "@antigravity-connector/core/Testing/StubImageDownloadUtil.ts";
@@ -13,14 +13,14 @@ const PNG_DATA_URL = `data:image/png;base64,${Buffer.from(PNG_BYTES).toString("b
 type ServiceFixture = {
   service: ImageSourceService;
   downloads: StubImageDownloadUtil;
-  uploads: ImageUploadService;
+  uploads: MediaUploadService;
 };
 
 const PHOTO_URL = "https://cdn.example.com/photo.png";
 
 const buildService = (respond: (url: URL) => Promise<Uint8Array>): ServiceFixture => {
   const downloads = new StubImageDownloadUtil(respond);
-  const uploads = new ImageUploadService({ clock: () => 0 });
+  const uploads = new MediaUploadService({ clock: () => 0 });
   return { service: new ImageSourceService({ downloader: downloads, uploads }), downloads, uploads };
 };
 
@@ -46,7 +46,7 @@ describe("ImageSourceService", () => {
     const { service, downloads, uploads } = buildService(() => Promise.resolve(PNG_BYTES));
     const link = uploads.createLink();
     uploads.accept(link.token, JPEG_BYTES);
-    const attachments = await service.readAttachments([PNG_DATA_URL, `upload:${link.imageId}`]);
+    const attachments = await service.readAttachments([PNG_DATA_URL, `upload:${link.uploadId}`]);
     expect(attachments.map((attachment) => attachment.fileName)).toStrictEqual(["attachment-1.png", "attachment-2.jpg"]);
     expect(attachments[1]?.bytes).toStrictEqual(JPEG_BYTES);
     expect(downloads.urls).toStrictEqual([]);
@@ -55,7 +55,7 @@ describe("ImageSourceService", () => {
   it("refuses an upload: reference whose picture was never uploaded", async () => {
     const { service, uploads } = buildService(() => Promise.resolve(PNG_BYTES));
     const link = uploads.createLink();
-    await expect(service.readAttachments([`upload:${link.imageId}`])).rejects.toMatchObject({ reason: "image_not_found" });
+    await expect(service.readAttachments([`upload:${link.uploadId}`])).rejects.toMatchObject({ reason: "upload_not_found" });
   });
 
   it("downloads nothing for a call that holds only data URLs", async () => {

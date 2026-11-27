@@ -3,9 +3,11 @@ import type { ContentBlock, ToolAnnotations } from "@modelcontextprotocol/sdk/ty
 import type {
   AgyLoginService,
   AgyRunService,
+  AgyUsageService,
   ImageRunService,
   ImageSourceService,
-  ImageUploadService,
+  MediaUploadService,
+  MediaRunService,
   RunObserver,
 } from "@antigravity-connector/core";
 import type { ToolJobService } from "@antigravity-connector/mcp/Services/ToolJobService.ts";
@@ -16,9 +18,11 @@ export type McpToolContext = {
   runService: AgyRunService;
   imageService: ImageRunService;
   imageSourceService: ImageSourceService;
-  imageUploadService: ImageUploadService;
+  mediaUploadService: MediaUploadService;
+  mediaService: MediaRunService;
   toolJobs: ToolJobService;
   loginService: AgyLoginService;
+  usageService: AgyUsageService;
   signal: AbortSignal | undefined;
   observer: RunObserver;
 };

@@ -22,11 +22,14 @@ describe("the built server, MCP door", () => {
     await stopAllServers();
   });
 
-  it("initialize returns the instructions and tools/list offers the eight tools with schemas", async () => {
+  it("initialize returns the instructions and tools/list offers the eleven tools with schemas", async () => {
     expect(client.getInstructions()).toContain("subscription");
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
-    expect(names).toStrictEqual(["browse", "check_auth", "create_upload_link", "generate_image", "get_result", "research", "set_auth", "web_search"]);
+    expect(names).toStrictEqual([
+      "analyse_video", "browse", "check_auth", "check_usage", "create_upload_link", "generate_image",
+      "get_result", "research", "set_auth", "transcribe_audio", "web_search",
+    ]);
     for (const tool of tools) {
       expect(typeof tool.inputSchema).toBe("object");
       expect(typeof tool.outputSchema).toBe("object");

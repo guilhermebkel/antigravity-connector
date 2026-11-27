@@ -34,7 +34,7 @@ describe("RunProfileUtil.build", () => {
   });
 
   it("AC7: only image and browse run without plan mode, and image expects output.png", () => {
-    const nonPlanKinds = (["chat", "search", "research", "image", "browse"] as const).filter(
+    const nonPlanKinds = (["chat", "search", "research", "image", "browse", "media"] as const).filter(
       (kind) => !RunProfileUtil.build(kind, 1000).isPlanMode,
     );
     expect(nonPlanKinds).toStrictEqual(["image", "browse"]);
@@ -42,9 +42,19 @@ describe("RunProfileUtil.build", () => {
   });
 
   it("only image waits for its output file; browse keeps its screenshot optional", () => {
-    const waitingKinds = (["chat", "search", "research", "image", "browse"] as const).filter(
+    const waitingKinds = (["chat", "search", "research", "image", "browse", "media"] as const).filter(
       (kind) => RunProfileUtil.build(kind, 1000).shouldWaitForOutputFiles,
     );
     expect(waitingKinds).toStrictEqual(["image"]);
+  });
+
+  it("a media run is a plan-mode run with no output file and the base timeout", () => {
+    expect(RunProfileUtil.build("media", 300000)).toStrictEqual({
+      isPlanMode: true,
+      shouldSkipPermissions: false,
+      timeoutMs: 300000,
+      expectedOutputFileNames: [],
+      shouldWaitForOutputFiles: false,
+    });
   });
 });

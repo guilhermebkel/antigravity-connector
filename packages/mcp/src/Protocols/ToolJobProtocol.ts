@@ -2,7 +2,7 @@ import type { McpToolRun } from "@antigravity-connector/mcp/Protocols/McpToolPro
 
 export type ToolJobState = "running" | "finished" | "failed";
 
-export type ToolJobKind = "image" | "web_search" | "research" | "browse";
+export type ToolJobKind = "image" | "web_search" | "research" | "browse" | "transcribe_audio" | "analyse_video";
 
 export type ToolJobSource = {
   title: string;

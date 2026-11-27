@@ -106,12 +106,18 @@ describe("ApiSetup", () => {
     expect(body.conversation_id).toBe("00000000-0000-4000-8000-000000000000");
   });
 
-  it("AC2: GET /v1/models lists exactly the two model ids", async () => {
+  it("AC2: GET /v1/models lists exactly the model ids", async () => {
     app = await buildApp(StubRuntimeUtil.build());
     const response = await app.inject({ method: "GET", url: "/v1/models", headers: API_KEY_HEADER });
     expect(response.statusCode).toBe(200);
     const ids = readModelList(response).data.map((model) => model.id);
-    expect(ids).toStrictEqual(["gemini-4-argon", "gemini-3.8-flash"]);
+    expect(ids).toStrictEqual([
+      "gemini-4-neon",
+      "gemini-4-hydrogen",
+      "gemini-4-carbon",
+      "gemini-4-argon",
+      "gemini-3.8-flash",
+    ]);
   });
 
   it("AC3: tools with one function return 400 tools_not_supported and no run starts", async () => {

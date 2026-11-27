@@ -10,11 +10,14 @@ import type { McpToolContext, McpToolPort } from "@antigravity-connector/mcp/Pro
 import type { McpServices } from "@antigravity-connector/mcp/Protocols/McpServicesProtocol.ts";
 import { BrowseTool } from "@antigravity-connector/mcp/Tools/BrowseTool.ts";
 import { CreateUploadLinkTool } from "@antigravity-connector/mcp/Tools/CreateUploadLinkTool.ts";
+import { CheckUsageTool } from "@antigravity-connector/mcp/Tools/CheckUsageTool.ts";
 import { CheckAuthTool } from "@antigravity-connector/mcp/Tools/CheckAuthTool.ts";
 import { SetAuthTool } from "@antigravity-connector/mcp/Tools/SetAuthTool.ts";
 import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
 import { GetResultTool } from "@antigravity-connector/mcp/Tools/GetResultTool.ts";
 import { ResearchTool } from "@antigravity-connector/mcp/Tools/ResearchTool.ts";
+import { AnalyseVideoTool } from "@antigravity-connector/mcp/Tools/AnalyseVideoTool.ts";
+import { TranscribeAudioTool } from "@antigravity-connector/mcp/Tools/TranscribeAudioTool.ts";
 import { WebSearchTool } from "@antigravity-connector/mcp/Tools/WebSearchTool.ts";
 import { McpProgressService } from "@antigravity-connector/mcp/Services/McpProgressService.ts";
 import { McpErrorUtil } from "@antigravity-connector/mcp/Utils/McpErrorUtil.ts";
@@ -38,16 +41,22 @@ export class McpManifestUtil {
     const getResult = new GetResultTool();
     const research = new ResearchTool({ dailyLimit: services.researchDailyLimit });
     const browse = new BrowseTool();
+    const transcribeAudio = new TranscribeAudioTool();
+    const analyseVideo = new AnalyseVideoTool();
     const createUploadLink = new CreateUploadLinkTool({ publicUrl: services.publicUrl });
     McpManifestUtil.registerTool(server, webSearch, services);
     McpManifestUtil.registerTool(server, generateImage, services);
     McpManifestUtil.registerTool(server, getResult, services);
     McpManifestUtil.registerTool(server, research, services);
     McpManifestUtil.registerTool(server, browse, services);
+    McpManifestUtil.registerTool(server, transcribeAudio, services);
+    McpManifestUtil.registerTool(server, analyseVideo, services);
     McpManifestUtil.registerTool(server, createUploadLink, services);
     const checkAuth = new CheckAuthTool();
+    const checkUsage = new CheckUsageTool();
     const setAuth = new SetAuthTool();
     McpManifestUtil.registerTool(server, checkAuth, services);
+    McpManifestUtil.registerTool(server, checkUsage, services);
     McpManifestUtil.registerTool(server, setAuth, services);
     const toolNameToRunner = new Map<string, ToolRunner>([
       McpManifestUtil.buildRunnerEntry(webSearch),
@@ -55,8 +64,11 @@ export class McpManifestUtil {
       McpManifestUtil.buildRunnerEntry(getResult),
       McpManifestUtil.buildRunnerEntry(research),
       McpManifestUtil.buildRunnerEntry(browse),
+      McpManifestUtil.buildRunnerEntry(transcribeAudio),
+      McpManifestUtil.buildRunnerEntry(analyseVideo),
       McpManifestUtil.buildRunnerEntry(createUploadLink),
       McpManifestUtil.buildRunnerEntry(checkAuth),
+      McpManifestUtil.buildRunnerEntry(checkUsage),
       McpManifestUtil.buildRunnerEntry(setAuth),
     ]);
     server.server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
@@ -70,9 +82,11 @@ export class McpManifestUtil {
           runService: services.runService,
           imageService: services.imageService,
           imageSourceService: services.imageSourceService,
-          imageUploadService: services.imageUploadService,
+          mediaUploadService: services.mediaUploadService,
+          mediaService: services.mediaService,
           toolJobs: services.toolJobs,
           loginService: services.loginService,
+          usageService: services.usageService,
           signal: extra.signal,
           observer: progress.observer,
         });
@@ -104,9 +118,11 @@ export class McpManifestUtil {
         runService: services.runService,
         imageService: services.imageService,
         imageSourceService: services.imageSourceService,
-        imageUploadService: services.imageUploadService,
+        mediaUploadService: services.mediaUploadService,
+        mediaService: services.mediaService,
         toolJobs: services.toolJobs,
         loginService: services.loginService,
+        usageService: services.usageService,
         signal: extra.signal,
         observer: buildNoopObserver(),
       }),

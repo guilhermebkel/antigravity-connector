@@ -28,11 +28,13 @@ describe("the built server, API door", () => {
 
   afterAll(stopAllServers);
 
-  it("GET /v1/models lists the two model ids", async () => {
+  it("GET /v1/models lists the model ids", async () => {
     const response = await fetch(`${server.baseUrl}/v1/models`, { headers: { authorization: AUTHORIZATION } });
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.data.map((model) => model.id)).toStrictEqual(["gemini-4-argon", "gemini-3.8-flash"]);
+    expect(body.data.map((model) => model.id)).toStrictEqual([
+      "gemini-4-neon", "gemini-4-hydrogen", "gemini-4-carbon", "gemini-4-argon", "gemini-3.8-flash",
+    ]);
   });
 
   it("a non-streaming chat returns the fixture answer and its usage", async () => {

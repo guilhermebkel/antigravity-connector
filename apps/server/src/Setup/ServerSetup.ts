@@ -78,6 +78,7 @@ export class ServerSetup {
           maxSessions: env.MCP_MAX_SESSIONS,
           researchDailyLimit: env.DAILY_LIMIT_RESEARCH,
           loginService: runtime.loginService,
+          usageService: runtime.usageService,
           publicUrl: env.PUBLIC_URL,
         });
       },

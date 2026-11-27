@@ -14,6 +14,7 @@ const DEFAULT_DAILY_LIMIT_SEARCH = 50;
 const DEFAULT_DAILY_LIMIT_IMAGE = 20;
 const DEFAULT_DAILY_LIMIT_RESEARCH = 5;
 const DEFAULT_DAILY_LIMIT_BROWSE = 20;
+const DEFAULT_DAILY_LIMIT_MEDIA = 20;
 const DEFAULT_HTTP_MAX_REQUESTS_PER_MINUTE = 120;
 const DEFAULT_MCP_MAX_SESSIONS = 8;
 const DEFAULT_MCP_SESSION_TTL_MS = 1800000;
@@ -44,6 +45,7 @@ export const EnvSchema: z.ZodType<Env> = z.object({
   DAILY_LIMIT_IMAGE: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_IMAGE),
   DAILY_LIMIT_RESEARCH: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_RESEARCH),
   DAILY_LIMIT_BROWSE: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_BROWSE),
+  DAILY_LIMIT_MEDIA: z.coerce.number().int().nonnegative().default(DEFAULT_DAILY_LIMIT_MEDIA),
   HTTP_MAX_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(DEFAULT_HTTP_MAX_REQUESTS_PER_MINUTE),
   MCP_MAX_SESSIONS: z.coerce.number().int().positive().default(DEFAULT_MCP_MAX_SESSIONS),
   MCP_SESSION_TTL_MS: z.coerce.number().int().positive().default(DEFAULT_MCP_SESSION_TTL_MS),

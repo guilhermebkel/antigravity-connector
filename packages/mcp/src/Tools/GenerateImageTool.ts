@@ -16,7 +16,7 @@ export class GenerateImageTool implements McpToolPort<GenerateImageInput, ToolJo
     "Generates one PNG image from a text prompt with agy's image generator.",
     "Use it when the user asks for a picture, not for text.",
     "Do not use it to describe an existing image.",
-    "Optional images are reference images for the picture, to edit or copy a photo: up to 4, each an https:// URL, a base64 data: URL, or the image value that create_upload_link returned after the file was uploaded; the file is a PNG, JPEG or WebP of up to 4 MiB.",
+    "Optional images are reference images for the picture, to edit or copy a photo: up to 4, each an https:// URL, a base64 data: URL, or the file value that create_upload_link returned after the file was uploaded; the file is a PNG, JPEG or WebP of up to 4 MiB.",
     "Prefer an https:// URL that the server can reach: it follows up to 3 redirects and refuses private addresses. A long base64 string is easy to corrupt when copied by hand, so use create_upload_link for a local file.",
     "Returns the image and its size when it is ready within about 20 seconds.",
     "Otherwise returns status running and a job_id: call get_result with that job_id after retry_after_seconds, until it returns the image.",

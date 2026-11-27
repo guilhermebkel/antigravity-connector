@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";
 
-const IMAGE_ID = "AbCdEfGhIjKlMnOpQrSt_-";
+const UPLOAD_ID = "AbCdEfGhIjKlMnOpQrSt_-";
 
 describe("UploadReferenceUtil", () => {
   it("writes a reference as the upload: prefix followed by the image id", () => {
-    expect(UploadReferenceUtil.build(IMAGE_ID)).toBe("upload:AbCdEfGhIjKlMnOpQrSt_-");
+    expect(UploadReferenceUtil.build(UPLOAD_ID)).toBe("upload:AbCdEfGhIjKlMnOpQrSt_-");
   });
 
   it("reads the image id back from a reference it wrote", () => {
-    const reference = UploadReferenceUtil.build(IMAGE_ID);
-    expect(UploadReferenceUtil.readImageId(reference)).toBe(IMAGE_ID);
+    const reference = UploadReferenceUtil.build(UPLOAD_ID);
+    expect(UploadReferenceUtil.readUploadId(reference)).toBe(UPLOAD_ID);
   });
 
   it.each([
@@ -21,6 +21,6 @@ describe("UploadReferenceUtil", () => {
     ["https://upload:AbCdEfGhIjKlMnOpQrSt_-"],
     ["upload:AbCdEfGhIjKlMnOpQrSt_-\n"],
   ])("reads no image id from %j", (reference) => {
-    expect(UploadReferenceUtil.readImageId(reference)).toBeUndefined();
+    expect(UploadReferenceUtil.readUploadId(reference)).toBeUndefined();
   });
 });

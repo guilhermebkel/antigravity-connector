@@ -5,6 +5,8 @@ import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLim
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
 import { RecordingCallLog } from "@antigravity-connector/core/Testing/RecordingCallLog.ts";
 import type { AgyRunRequest } from "@antigravity-connector/agy";
+import { AgyUsageService } from "@antigravity-connector/core/Services/AgyUsageService.ts";
+import { StubUsageUtil } from "@antigravity-connector/core/Testing/StubUsageUtil.ts";
 import { AgyLoginService } from "@antigravity-connector/core/Services/AgyLoginService.ts";
 import { StubLoginPort } from "@antigravity-connector/core/Testing/StubLoginPort.ts";
 
@@ -88,6 +90,7 @@ export type StubRuntime = {
   requests: StubRunRequest[];
   callLog: RecordingCallLog;
   loginService: AgyLoginService;
+  usageService: AgyUsageService;
 };
 
 export class StubRuntimeUtil {
@@ -185,7 +188,8 @@ export class StubRuntimeUtil {
       logSink: () => undefined,
       secrets: [],
     });
-    return { runService, requests, callLog, loginService };
+    const usageService = new AgyUsageService({ session, port: StubUsageUtil.buildPort(), clock: () => 0 });
+    return { runService, requests, callLog, loginService, usageService };
   }
 
   static buildRecord(request: AgyRunRequest): StubRunRequest {
@@ -222,6 +226,7 @@ export class StubRuntimeUtil {
       research: overrides.research ?? StubRuntimeUtil.DEFAULT_LIMIT,
       image: overrides.image ?? StubRuntimeUtil.DEFAULT_LIMIT,
       browse: overrides.browse ?? StubRuntimeUtil.DEFAULT_LIMIT,
+      media: overrides.media ?? StubRuntimeUtil.DEFAULT_LIMIT,
     };
   }
 }

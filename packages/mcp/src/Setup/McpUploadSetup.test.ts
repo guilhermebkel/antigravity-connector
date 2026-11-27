@@ -9,7 +9,7 @@ const FOUR_MIB = 4194304;
 const LINK_LIFETIME_MS = 300000;
 const ENTRY_LIMIT = 8;
 const UPLOAD_PATH_PATTERN = /^\/upload\/[A-Za-z0-9_-]{43}$/;
-const IMAGE_PATTERN = /^upload:[A-Za-z0-9_-]{22}$/;
+const FILE_PATTERN = /^upload:[A-Za-z0-9_-]{22}$/;
 
 const buildPng = (): Promise<StubRunResult> => Promise.resolve({
   ...StubRuntimeUtil.buildResult("image"),
@@ -19,7 +19,8 @@ const buildPng = (): Promise<StubRunResult> => Promise.resolve({
 type UploadLink = {
   uploadPath: string;
   uploadUrl?: string;
-  image: string;
+  kind: "image" | "audio" | "video";
+  file: string;
   expiresInSeconds: number;
   maxBytes: number;
 };
@@ -57,11 +58,11 @@ const upload = (
 };
 
 describe("create_upload_link over MCP", () => {
-  it("returns a one-time path, the image value to use, the lifetime and the size limit", async () => {
+  it("returns a one-time path, the file value to use, the lifetime and the size limit", async () => {
     const session = await openSession();
     const link = await createLink(session);
     expect(link.uploadPath).toMatch(UPLOAD_PATH_PATTERN);
-    expect(link.image).toMatch(IMAGE_PATTERN);
+    expect(link.file).toMatch(FILE_PATTERN);
     expect(link.expiresInSeconds).toBe(300);
     expect(link.maxBytes).toBe(FOUR_MIB);
     await closeSession(session);
@@ -70,7 +71,7 @@ describe("create_upload_link over MCP", () => {
   it("gives no uploadUrl when the server does not know its public address", async () => {
     const session = await openSession();
     const link = await createLink(session);
-    expect(Object.keys(link)).toStrictEqual(["uploadPath", "image", "expiresInSeconds", "maxBytes"]);
+    expect(Object.keys(link)).toStrictEqual(["uploadPath", "kind", "file", "expiresInSeconds", "maxBytes"]);
     await closeSession(session);
   });
 
@@ -95,10 +96,10 @@ describe("create_upload_link over MCP", () => {
     const link = await createLink(session);
     const response = await upload(session, link.uploadPath, JPEG_BYTES);
     expect(response.status).toBe(200);
-    expect(await response.json()).toStrictEqual({ image: link.image, mimeType: "image/jpeg", sizeBytes: 8 });
+    expect(await response.json()).toStrictEqual({ kind: "image", file: link.file, mimeType: "image/jpeg", sizeBytes: 8 });
     const result = await session.client.callTool({
       name: "generate_image",
-      arguments: { prompt: PROMPT, images: [link.image] },
+      arguments: { prompt: PROMPT, images: [link.file] },
     });
     expect(result.isError).not.toBe(true);
     expect(session.harness.requests.map((request) => request.attachmentNames)).toStrictEqual([["attachment-1.jpg"]]);
@@ -109,8 +110,8 @@ describe("create_upload_link over MCP", () => {
     const session = await openSession();
     const link = await createLink(session);
     await upload(session, link.uploadPath, PNG_BYTES);
-    await session.client.callTool({ name: "generate_image", arguments: { prompt: PROMPT, images: [link.image] } });
-    await session.client.callTool({ name: "generate_image", arguments: { prompt: PROMPT, images: [link.image] } });
+    await session.client.callTool({ name: "generate_image", arguments: { prompt: PROMPT, images: [link.file] } });
+    await session.client.callTool({ name: "generate_image", arguments: { prompt: PROMPT, images: [link.file] } });
     expect(session.harness.requests.map((request) => request.attachmentNames)).toStrictEqual([
       ["attachment-1.png"],
       ["attachment-1.png"],
@@ -199,10 +200,10 @@ describe("create_upload_link over MCP", () => {
     const link = await createLink(session);
     const result = await session.client.callTool({
       name: "generate_image",
-      arguments: { prompt: PROMPT, images: [link.image] },
+      arguments: { prompt: PROMPT, images: [link.file] },
     });
     expect(result.isError).toBe(true);
-    expect(McpHarnessUtil.readFirstText(result)).toMatch(/^The call did not run: A reference image points to an upload that was not found/);
+    expect(McpHarnessUtil.readFirstText(result)).toMatch(/^The call did not run: A file reference points to an upload that was not found/);
     expect(session.harness.requests).toHaveLength(0);
     await closeSession(session);
   });
@@ -212,7 +213,7 @@ describe("create_upload_link over MCP", () => {
     await expect(session.client.callTool({
       name: "generate_image",
       arguments: { prompt: PROMPT, images: ["upload:short"] },
-    })).rejects.toThrow(/The upload reference is not valid. What to do: pass the image value exactly as create_upload_link returned it/);
+    })).rejects.toThrow(/The upload reference is not valid. What to do: pass the file value exactly as create_upload_link returned it/);
     expect(session.harness.requests).toHaveLength(0);
     await closeSession(session);
   });

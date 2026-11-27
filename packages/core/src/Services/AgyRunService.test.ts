@@ -16,7 +16,7 @@ const PRIVATE_MARKER = "private-marker-7731";
 const LOGIN_URL = "https://accounts.google.com/o/oauth2/EXAMPLE";
 const BASE_TIMEOUT_MS = 300000;
 const USAGE = { input_tokens: 10, output_tokens: 5, thinking_tokens: 3, cache_read_tokens: 2, total_tokens: 18 };
-const LIMITS = { chat: 200, search: 50, image: 20, research: 5, browse: 20 };
+const LIMITS = { chat: 200, search: 50, image: 20, research: 5, browse: 20, media: 20 };
 
 type Harness = {
   service: AgyRunService;
@@ -83,7 +83,7 @@ const buildHarness = (
   const runner = buildRunner(behavior);
   const queue = new QueueService({ maxWaitMs: 60000, concurrency: 1 });
   const dailyLimits = new DailyLimitService({
-    runKindToLimit: limits as Record<"chat" | "search" | "research" | "image" | "browse", number>,
+    runKindToLimit: limits as Record<"chat" | "search" | "research" | "image" | "browse" | "media", number>,
     clock: () => new Date(clock.now),
   });
   const service = new AgyRunService({

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ModelIdSchema } from "@antigravity-connector/protocol";
 import type { BrowseInput } from "@antigravity-connector/mcp/Protocols/BrowseProtocol.ts";
 import { BrowseUrlUtil } from "@antigravity-connector/mcp/Utils/BrowseUrlUtil.ts";
 
@@ -14,5 +15,5 @@ export const BrowseInputSchema: z.ZodType<BrowseInput> = z.strictObject({
     .refine((url) => BrowseUrlUtil.isAllowed(url), { message: "url must be a public http or https address." })
     .optional(),
   screenshot: z.boolean().optional(),
-  model: z.enum(["gemini-4-argon", "gemini-3.8-flash"]).optional(),
+  model: ModelIdSchema.optional(),
 });

@@ -31,3 +31,11 @@ export type {
   AgySessionCheckPort,
   AgySessionCheckResult,
 } from "@antigravity-connector/agy/Protocols/AgySessionCheckProtocol.ts";
+export { AgyUsageAdapter } from "@antigravity-connector/agy/Adapters/AgyUsageAdapter.ts";
+export type { AgyUsageAdapterOptions } from "@antigravity-connector/agy/Adapters/AgyUsageAdapter.ts";
+export type {
+  AgyUsageBucket,
+  AgyUsagePort,
+  AgyUsageReport,
+  AgyUsageWindow,
+} from "@antigravity-connector/agy/Protocols/AgyUsageProtocol.ts";

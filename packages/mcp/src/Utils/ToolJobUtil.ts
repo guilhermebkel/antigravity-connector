@@ -18,6 +18,8 @@ export class ToolJobUtil {
       const truncation = output.truncated === true ? " The report was truncated." : "";
       return `Wrote a research report with ${sourceCount} source link(s) in ${output.durationMs ?? 0} ms.${truncation}`;
     },
+    transcribe_audio: (output) => `Transcribed the audio in ${output.durationMs ?? 0} ms.`,
+    analyse_video: (output) => `Analysed the video in ${output.durationMs ?? 0} ms.`,
     browse: (output) => {
       const screenshot = output.hasScreenshot === true ? " with a screenshot" : "";
       return `Browsed the page in ${output.durationMs ?? 0} ms${screenshot}.`;

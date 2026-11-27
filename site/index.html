@@ -451,6 +451,9 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
           <li><code>generate_image</code><span>one PNG · ~1 min</span></li>
           <li><code>research</code><span>report with sources · minutes</span></li>
           <li><code>browse</code><span>read a public page</span></li>
+          <li><code>transcribe_audio</code><span>speech to text · uploaded file</span></li>
+          <li><code>analyse_video</code><span>picture and sound · uploaded file</span></li>
+          <li><code>check_usage</code><span>subscription limits left · no quota</span></li>
           <li><span>Progress during queue and run, when the client sends a progress token</span><span>progress</span></li>
         </ul>
         <div class="code"><pre><span class="c"># in your client's MCP settings</span>
@@ -529,7 +532,7 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
         <span class="fig__l">Queue wait, default</span>
       </div>
     </div>
-    <p class="limits-line"><svg class="ic"><use href="#i-info"/></svg><span>Daily limits per call type (chat, search, image, research and browse) and per-minute request limits are set with <code class="mono">DAILY_LIMIT_*</code> variables. MCP sessions default to a maximum of 8.</span></p>
+    <p class="limits-line"><svg class="ic"><use href="#i-info"/></svg><span>Daily limits per call type (chat, search, image, research, browse and media) and per-minute request limits are set with <code class="mono">DAILY_LIMIT_*</code> variables. MCP sessions default to a maximum of 8.</span></p>
   </div>
 </section>
 
@@ -589,9 +592,9 @@ footer { border-top: 1px solid var(--border); padding: var(--s-7) 0 var(--s-8); 
     <div class="limits">
       <ul class="nope" data-reveal>
         <li><span class="x">Not yet</span><span>Tool calling. The <code>tools</code> field returns 400.</span></li>
-        <li><span class="x">Not yet</span><span>PDF and other file input, audio and video, and a browser profile with your own logins.</span></li>
+        <li><span class="x">Not yet</span><span>PDF and other file input, audio and video in the chat API (the MCP tools take them), and a browser profile with your own logins.</span></li>
         <li><span class="x">Ignored</span><span><code>temperature</code> and <code>max_tokens</code> are accepted but have no effect.</span></li>
-        <li><span class="x">Pinned</span><span>The agy binary is fixed at version 1.5.9 in the image.</span></li>
+        <li><span class="x">Pinned</span><span>The agy binary is fixed at version 1.5.18 in the image.</span></li>
       </ul>
       <aside class="risk" data-reveal data-delay="80">
         <h3>Read this before you run it</h3>

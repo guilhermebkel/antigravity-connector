@@ -109,13 +109,13 @@ describe("the two doors on the server", () => {
       requestInit: { headers: { authorization: `Bearer ${API_KEY}` } },
     }));
     const result = await client.callTool({ name: "create_upload_link", arguments: {} });
-    const { uploadPath, image } = result.structuredContent as {
+    const { uploadPath, file } = result.structuredContent as {
       uploadPath: string;
-      image: string;
+      file: string;
     };
     const picture = Buffer.from("ffd8ffe000104a46", "hex");
     const first = await fetch(`${started.address}${uploadPath}`, { method: "POST", body: picture });
-    expect(await first.json()).toStrictEqual({ image, mimeType: "image/jpeg", sizeBytes: 8 });
+    expect(await first.json()).toStrictEqual({ file, kind: "image", mimeType: "image/jpeg", sizeBytes: 8 });
     const second = await fetch(`${started.address}${uploadPath}`, { method: "POST", body: picture });
     expect(second.status).toBe(404);
     await client.close();

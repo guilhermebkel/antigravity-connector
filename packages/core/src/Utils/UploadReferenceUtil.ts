@@ -3,11 +3,11 @@ export class UploadReferenceUtil {
 
   static readonly PATTERN = /^upload:([A-Za-z0-9_-]{22})$/;
 
-  static build(imageId: string): string {
-    return `${UploadReferenceUtil.PREFIX}${imageId}`;
+  static build(uploadId: string): string {
+    return `${UploadReferenceUtil.PREFIX}${uploadId}`;
   }
 
-  static readImageId(reference: string): string | undefined {
+  static readUploadId(reference: string): string | undefined {
     return UploadReferenceUtil.PATTERN.exec(reference)?.[1];
   }
 }
