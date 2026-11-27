@@ -1,7 +1,7 @@
 import type { ImageMime } from "@antigravity-connector/core/Protocols/ImageInputProtocol.ts";
 import type { MediaKind } from "@antigravity-connector/core/Protocols/MediaProtocol.ts";
 
-export type ImageUploadLink = {
+export type MediaUploadLink = {
   token: string;
   imageId: string;
   kind: MediaKind;
@@ -21,7 +21,7 @@ export type UploadedMedia = {
   bytes: Uint8Array;
 };
 
-export type ImageUploadReceipt = {
+export type MediaUploadReceipt = {
   imageId: string;
   kind: MediaKind;
   mime: string;

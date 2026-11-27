@@ -1,20 +1,20 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   MediaInputUtil,
-  ImageUploadError,
+  MediaUploadError,
   UploadReferenceUtil,
-  type ImageUploadReason,
-  type ImageUploadService,
+  type MediaUploadReason,
+  type MediaUploadService,
 } from "@antigravity-connector/core";
 import { UploadTokenParamsSchema } from "@antigravity-connector/mcp/Schemas/CreateUploadLinkSchema.ts";
 import { UploadPathUtil } from "@antigravity-connector/mcp/Utils/UploadPathUtil.ts";
 
-export type UploadRouteOptions = { uploads: ImageUploadService };
+export type UploadRouteOptions = { uploads: MediaUploadService };
 
 export class UploadRoute {
   static readonly STATUS_OK = 200;
 
-  static readonly REASON_TO_STATUS: Readonly<Record<ImageUploadReason, number>> = {
+  static readonly REASON_TO_STATUS: Readonly<Record<MediaUploadReason, number>> = {
     unknown_link: 404,
     too_large: 413,
     not_an_image: 415,
@@ -51,7 +51,7 @@ export class UploadRoute {
     if (token !== undefined && options.uploads.hasLink(token)) {
       return undefined;
     }
-    return UploadRoute.sendFailure(reply, new ImageUploadError("unknown_link"));
+    return UploadRoute.sendFailure(reply, new MediaUploadError("unknown_link"));
   }
 
   static handle(request: FastifyRequest, reply: FastifyReply, options: UploadRouteOptions): FastifyReply {
@@ -67,7 +67,7 @@ export class UploadRoute {
         sizeBytes: receipt.sizeBytes,
       });
     } catch (error: unknown) {
-      if (error instanceof ImageUploadError) {
+      if (error instanceof MediaUploadError) {
         return UploadRoute.sendFailure(reply, error);
       }
       throw error;
@@ -79,7 +79,7 @@ export class UploadRoute {
     return parsed.success ? parsed.data.token : undefined;
   }
 
-  static sendFailure(reply: FastifyReply, error: ImageUploadError): FastifyReply {
+  static sendFailure(reply: FastifyReply, error: MediaUploadError): FastifyReply {
     return reply.code(UploadRoute.REASON_TO_STATUS[error.reason]).send({ error: error.message });
   }
 }

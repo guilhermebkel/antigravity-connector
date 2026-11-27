@@ -3,7 +3,7 @@ import {
   HttpsImageDownloadAdapter,
   ImageRunService,
   ImageSourceService,
-  ImageUploadService,
+  MediaUploadService,
   MediaRunService,
   type AgyLoginService,
   type AgyRunService,
@@ -35,16 +35,16 @@ export class McpSetup {
       maxSessions: options.maxSessions,
       clock: options.clock,
     });
-    const imageUploadService = new ImageUploadService({ clock: options.clock });
+    const mediaUploadService = new MediaUploadService({ clock: options.clock });
     const services = {
-      imageUploadService,
-      mediaService: new MediaRunService({ runService: options.runService, uploads: imageUploadService }),
+      mediaUploadService,
+      mediaService: new MediaRunService({ runService: options.runService, uploads: mediaUploadService }),
       publicUrl: options.publicUrl,
       runService: options.runService,
       imageService: new ImageRunService({ runService: options.runService }),
       imageSourceService: new ImageSourceService({
         downloader: options.imageDownloader ?? new HttpsImageDownloadAdapter(),
-        uploads: imageUploadService,
+        uploads: mediaUploadService,
       }),
       toolJobs: new ToolJobService({ clock: options.clock, waitMs: options.jobWaitMs }),
       researchDailyLimit: options.researchDailyLimit,
@@ -52,6 +52,6 @@ export class McpSetup {
       usageService: options.usageService,
     };
     McpRoute.register(app, { services, sessions });
-    UploadRoute.register(app, { uploads: imageUploadService });
+    UploadRoute.register(app, { uploads: mediaUploadService });
   }
 }

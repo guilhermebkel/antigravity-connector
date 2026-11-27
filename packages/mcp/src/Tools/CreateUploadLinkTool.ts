@@ -44,7 +44,7 @@ export class CreateUploadLinkTool implements McpToolPort<CreateUploadLinkInput, 
   }
 
   run(input: CreateUploadLinkInput, context: McpToolContext): Promise<McpToolRun<CreateUploadLinkOutput>> {
-    const link = context.imageUploadService.createLink(input.kind ?? "image");
+    const link = context.mediaUploadService.createLink(input.kind ?? "image");
     const uploadPath = UploadPathUtil.build(link.token);
     const uploadUrl = this.publicUrl === undefined ? {} : { uploadUrl: new URL(uploadPath, this.publicUrl).href };
     return Promise.resolve({

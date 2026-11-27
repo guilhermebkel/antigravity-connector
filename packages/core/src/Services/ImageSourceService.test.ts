@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+import { MediaUploadService } from "@antigravity-connector/core/Services/MediaUploadService.ts";
 import { ImageSourceService } from "@antigravity-connector/core/Services/ImageSourceService.ts";
 import { RemoteImageError } from "@antigravity-connector/core/Errors/RemoteImageError.ts";
 import { StubImageDownloadUtil } from "@antigravity-connector/core/Testing/StubImageDownloadUtil.ts";
@@ -13,14 +13,14 @@ const PNG_DATA_URL = `data:image/png;base64,${Buffer.from(PNG_BYTES).toString("b
 type ServiceFixture = {
   service: ImageSourceService;
   downloads: StubImageDownloadUtil;
-  uploads: ImageUploadService;
+  uploads: MediaUploadService;
 };
 
 const PHOTO_URL = "https://cdn.example.com/photo.png";
 
 const buildService = (respond: (url: URL) => Promise<Uint8Array>): ServiceFixture => {
   const downloads = new StubImageDownloadUtil(respond);
-  const uploads = new ImageUploadService({ clock: () => 0 });
+  const uploads = new MediaUploadService({ clock: () => 0 });
   return { service: new ImageSourceService({ downloader: downloads, uploads }), downloads, uploads };
 };
 

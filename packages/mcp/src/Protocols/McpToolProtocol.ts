@@ -6,7 +6,7 @@ import type {
   AgyUsageService,
   ImageRunService,
   ImageSourceService,
-  ImageUploadService,
+  MediaUploadService,
   MediaRunService,
   RunObserver,
 } from "@antigravity-connector/core";
@@ -18,7 +18,7 @@ export type McpToolContext = {
   runService: AgyRunService;
   imageService: ImageRunService;
   imageSourceService: ImageSourceService;
-  imageUploadService: ImageUploadService;
+  mediaUploadService: MediaUploadService;
   mediaService: MediaRunService;
   toolJobs: ToolJobService;
   loginService: AgyLoginService;

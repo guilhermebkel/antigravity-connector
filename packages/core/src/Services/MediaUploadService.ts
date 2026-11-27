@@ -1,16 +1,16 @@
 import { randomBytes } from "node:crypto";
 import type {
-  ImageUploadLink,
-  ImageUploadReceipt,
+  MediaUploadLink,
+  MediaUploadReceipt,
   UploadedImage,
   UploadedMedia,
-} from "@antigravity-connector/core/Protocols/ImageUploadProtocol.ts";
+} from "@antigravity-connector/core/Protocols/MediaUploadProtocol.ts";
 import type { ImageMime } from "@antigravity-connector/core/Protocols/ImageInputProtocol.ts";
 import type { MediaKind } from "@antigravity-connector/core/Protocols/MediaProtocol.ts";
-import { ImageUploadError } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+import { MediaUploadError } from "@antigravity-connector/core/Errors/MediaUploadError.ts";
 import { MediaInputUtil } from "@antigravity-connector/core/Utils/MediaInputUtil.ts";
 
-export type ImageUploadServiceOptions = { clock: () => number };
+export type MediaUploadServiceOptions = { clock: () => number };
 
 type PendingLink = {
   imageId: string;
@@ -23,7 +23,7 @@ type StoredImage = {
   expiresAtMs: number;
 };
 
-export class ImageUploadService {
+export class MediaUploadService {
   static readonly MS_PER_SECOND = 1000;
 
   static readonly LINK_TTL_SECONDS = 300;
@@ -35,7 +35,7 @@ export class ImageUploadService {
   static readonly STORED_FILES_ROOM = 2;
 
   // Why: uploads live in memory, so the bytes held at once are capped, not only their count: room for two of the largest files.
-  static readonly MAX_STORED_BYTES = MediaInputUtil.MAX_BYTES * ImageUploadService.STORED_FILES_ROOM;
+  static readonly MAX_STORED_BYTES = MediaInputUtil.MAX_BYTES * MediaUploadService.STORED_FILES_ROOM;
 
   static readonly TOKEN_BYTES = 32;
 
@@ -47,21 +47,21 @@ export class ImageUploadService {
 
   private readonly imageIdToStored = new Map<string, StoredImage>();
 
-  constructor(options: ImageUploadServiceOptions) {
+  constructor(options: MediaUploadServiceOptions) {
     this.clock = options.clock;
   }
 
-  createLink(kind: MediaKind = "image"): ImageUploadLink {
+  createLink(kind: MediaKind = "image"): MediaUploadLink {
     this.removeExpired();
-    if (this.tokenToLink.size + this.imageIdToStored.size >= ImageUploadService.MAX_ENTRIES) {
-      throw new ImageUploadError("too_many_links");
+    if (this.tokenToLink.size + this.imageIdToStored.size >= MediaUploadService.MAX_ENTRIES) {
+      throw new MediaUploadError("too_many_links");
     }
-    const token = randomBytes(ImageUploadService.TOKEN_BYTES).toString("base64url");
-    const imageId = randomBytes(ImageUploadService.IMAGE_ID_BYTES).toString("base64url");
-    const expiresAtMs = this.clock() + ImageUploadService.LINK_TTL_SECONDS * ImageUploadService.MS_PER_SECOND;
+    const token = randomBytes(MediaUploadService.TOKEN_BYTES).toString("base64url");
+    const imageId = randomBytes(MediaUploadService.IMAGE_ID_BYTES).toString("base64url");
+    const expiresAtMs = this.clock() + MediaUploadService.LINK_TTL_SECONDS * MediaUploadService.MS_PER_SECOND;
     this.tokenToLink.set(token, { imageId, kind, expiresAtMs });
     const maxBytes = MediaInputUtil.KIND_TO_MAX_BYTES[kind];
-    return { token, imageId, kind, maxBytes, expiresInSeconds: ImageUploadService.LINK_TTL_SECONDS };
+    return { token, imageId, kind, maxBytes, expiresInSeconds: MediaUploadService.LINK_TTL_SECONDS };
   }
 
   hasLink(token: string): boolean {
@@ -69,24 +69,24 @@ export class ImageUploadService {
     return this.tokenToLink.has(token);
   }
 
-  accept(token: string, bytes: Uint8Array): ImageUploadReceipt {
+  accept(token: string, bytes: Uint8Array): MediaUploadReceipt {
     this.removeExpired();
     const link = this.tokenToLink.get(token);
     if (link === undefined) {
-      throw new ImageUploadError("unknown_link");
+      throw new MediaUploadError("unknown_link");
     }
     if (bytes.byteLength > MediaInputUtil.KIND_TO_MAX_BYTES[link.kind]) {
-      throw new ImageUploadError("too_large", link.kind);
+      throw new MediaUploadError("too_large", link.kind);
     }
     const found = MediaInputUtil.detect(bytes, link.kind);
     if (found === undefined) {
-      throw new ImageUploadError("not_an_image", link.kind);
+      throw new MediaUploadError("not_an_image", link.kind);
     }
-    if (this.countStoredBytes() + bytes.byteLength > ImageUploadService.MAX_STORED_BYTES) {
-      throw new ImageUploadError("too_many_links");
+    if (this.countStoredBytes() + bytes.byteLength > MediaUploadService.MAX_STORED_BYTES) {
+      throw new MediaUploadError("too_many_links");
     }
     this.tokenToLink.delete(token);
-    const expiresAtMs = this.clock() + ImageUploadService.IMAGE_TTL_SECONDS * ImageUploadService.MS_PER_SECOND;
+    const expiresAtMs = this.clock() + MediaUploadService.IMAGE_TTL_SECONDS * MediaUploadService.MS_PER_SECOND;
     const media: UploadedMedia = { kind: link.kind, mime: found.mime, extension: found.extension, bytes };
     this.imageIdToStored.set(link.imageId, { media, expiresAtMs });
     return { imageId: link.imageId, kind: link.kind, mime: found.mime, sizeBytes: bytes.byteLength };
@@ -101,10 +101,10 @@ export class ImageUploadService {
     this.removeExpired();
     const stored = this.imageIdToStored.get(imageId);
     if (stored === undefined) {
-      throw new ImageUploadError("image_not_found");
+      throw new MediaUploadError("image_not_found");
     }
     if (stored.media.kind !== kind) {
-      throw new ImageUploadError("wrong_kind", kind);
+      throw new MediaUploadError("wrong_kind", kind);
     }
     return stored.media;
   }

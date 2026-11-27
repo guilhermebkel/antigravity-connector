@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+import { MediaUploadService } from "@antigravity-connector/core/Services/MediaUploadService.ts";
 
 const PNG_BYTES = new Uint8Array(Buffer.from("89504e470d0a1a0a0000000d", "hex"));
 const JPEG_BYTES = new Uint8Array(Buffer.from("ffd8ffe000104a46", "hex"));
@@ -11,13 +11,13 @@ const IMAGE_LIFETIME_MS = 900000;
 const ENTRY_LIMIT = 8;
 
 type ServiceFixture = {
-  service: ImageUploadService;
+  service: MediaUploadService;
   clock: { now: number };
 };
 
 const buildService = (): ServiceFixture => {
   const clock = { now: 1000 };
-  return { service: new ImageUploadService({ clock: () => clock.now }), clock };
+  return { service: new MediaUploadService({ clock: () => clock.now }), clock };
 };
 
 const buildBytes = (byteLength: number): Uint8Array => {
@@ -26,7 +26,7 @@ const buildBytes = (byteLength: number): Uint8Array => {
   return bytes;
 };
 
-describe("ImageUploadService", () => {
+describe("MediaUploadService", () => {
   it("stores an uploaded picture under the image id the link announced, and reads it back", () => {
     const { service } = buildService();
     const link = service.createLink();

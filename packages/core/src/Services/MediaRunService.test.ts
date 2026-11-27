@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ImageUploadError } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+import { MediaUploadError } from "@antigravity-connector/core/Errors/MediaUploadError.ts";
 import { DailyLimitError } from "@antigravity-connector/core/Errors/DailyLimitError.ts";
-import { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+import { MediaUploadService } from "@antigravity-connector/core/Services/MediaUploadService.ts";
 import { MediaRunService } from "@antigravity-connector/core/Services/MediaRunService.ts";
 import { StubRuntimeUtil } from "@antigravity-connector/core/Testing/StubRuntimeUtil.ts";
 import { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";
@@ -13,12 +13,12 @@ const MP3_BYTES = new Uint8Array(Buffer.from("494433040000", "hex"));
 
 const buildService = (options: Parameters<typeof StubRuntimeUtil.build>[0] = {}) => {
   const stub = StubRuntimeUtil.build(options);
-  const uploads = new ImageUploadService({ clock: () => 0 });
+  const uploads = new MediaUploadService({ clock: () => 0 });
   const service = new MediaRunService({ runService: stub.runService, uploads });
   return { stub, uploads, service };
 };
 
-const upload = (uploads: ImageUploadService, kind: "audio" | "video", bytes: Uint8Array): string => {
+const upload = (uploads: MediaUploadService, kind: "audio" | "video", bytes: Uint8Array): string => {
   const link = uploads.createLink(kind);
   uploads.accept(link.token, bytes);
   return UploadReferenceUtil.build(link.imageId);
@@ -57,7 +57,7 @@ describe("MediaRunService", () => {
     const gone = UploadReferenceUtil.build(uploads.createLink("video").imageId);
     for (const file of ["https://example.com/a.mp4", gone]) {
       const attempt = service.run({ file, door: "mcp", kind: "video", model: MODEL, prompt: "x", source: "analyse_video" });
-      await expect(attempt).rejects.toBeInstanceOf(ImageUploadError);
+      await expect(attempt).rejects.toBeInstanceOf(MediaUploadError);
     }
     expect(stub.requests).toHaveLength(0);
   });

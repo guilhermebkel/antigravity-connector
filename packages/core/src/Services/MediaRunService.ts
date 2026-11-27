@@ -1,8 +1,8 @@
 import type { RunDoor } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { RunObserver } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
-import { ImageUploadError } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
+import { MediaUploadError } from "@antigravity-connector/core/Errors/MediaUploadError.ts";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
-import type { ImageUploadService } from "@antigravity-connector/core/Services/ImageUploadService.ts";
+import type { MediaUploadService } from "@antigravity-connector/core/Services/MediaUploadService.ts";
 import { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";
 
 export type MediaRunInput = {
@@ -23,7 +23,7 @@ export type MediaRunOutcome = {
 
 export type MediaRunServiceOptions = {
   runService: AgyRunService;
-  uploads: ImageUploadService;
+  uploads: MediaUploadService;
 };
 
 export class MediaRunService {
@@ -31,7 +31,7 @@ export class MediaRunService {
 
   private readonly runService: AgyRunService;
 
-  private readonly uploads: ImageUploadService;
+  private readonly uploads: MediaUploadService;
 
   constructor(options: MediaRunServiceOptions) {
     this.runService = options.runService;
@@ -41,7 +41,7 @@ export class MediaRunService {
   async run(input: MediaRunInput, signal?: AbortSignal, observer?: RunObserver): Promise<MediaRunOutcome> {
     const uploadId = UploadReferenceUtil.readImageId(input.file);
     if (uploadId === undefined) {
-      throw new ImageUploadError("image_not_found");
+      throw new MediaUploadError("image_not_found");
     }
     // Why: the file is checked before the queue and the daily limit, so a wrong or expired upload spends no run.
     const media = this.uploads.readMedia(uploadId, input.kind);
