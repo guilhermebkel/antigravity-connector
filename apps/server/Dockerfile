@@ -12,8 +12,8 @@ RUN pnpm install --frozen-lockfile \
 # The agy binary is pinned by version, URL and SHA-512 (from the release manifest of the official installer).
 # Installed root-owned, so the server user cannot replace it with a self-update.
 FROM debian:bookworm-slim AS agy
-ARG AGY_URL=https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.9-4515810895593472/linux-x64/cli_linux_x64.tar.gz
-ARG AGY_SHA512=d01eb13ba7750eed18907f1ae8860864371e0ad9064415e8d033d22b4bd7b9b4e4c7f962058520b452d67db1c33163d9a889d55a7dffa159596ec6cd91a87b79
+ARG AGY_URL=https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/linux-x64/cli_linux_x64.tar.gz
+ARG AGY_SHA512=ef379ec869719112f696e8c7cfddf776618712e58fc38e53df80801d6528abb4677782c7c8778f9c09c9123fa44c2c32675d228c06f2a8f7a8f4214e75f5bb26
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl util-linux \
  && rm -rf /var/lib/apt/lists/*

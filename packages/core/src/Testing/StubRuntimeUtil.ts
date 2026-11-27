@@ -222,6 +222,7 @@ export class StubRuntimeUtil {
       research: overrides.research ?? StubRuntimeUtil.DEFAULT_LIMIT,
       image: overrides.image ?? StubRuntimeUtil.DEFAULT_LIMIT,
       browse: overrides.browse ?? StubRuntimeUtil.DEFAULT_LIMIT,
+      media: overrides.media ?? StubRuntimeUtil.DEFAULT_LIMIT,
     };
   }
 }

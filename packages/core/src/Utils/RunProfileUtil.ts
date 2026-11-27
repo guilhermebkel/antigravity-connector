@@ -45,6 +45,13 @@ export class RunProfileUtil {
       expectedOutputFileNames: ["output.png"],
       shouldWaitForOutputFiles: true,
     },
+    media: {
+      isPlanMode: true,
+      shouldSkipPermissions: false,
+      timeoutMultiplier: 1,
+      expectedOutputFileNames: [],
+      shouldWaitForOutputFiles: false,
+    },
     browse: {
       isPlanMode: false,
       shouldSkipPermissions: false,

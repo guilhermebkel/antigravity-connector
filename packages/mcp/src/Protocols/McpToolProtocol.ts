@@ -6,6 +6,7 @@ import type {
   ImageRunService,
   ImageSourceService,
   ImageUploadService,
+  MediaRunService,
   RunObserver,
 } from "@antigravity-connector/core";
 import type { ToolJobService } from "@antigravity-connector/mcp/Services/ToolJobService.ts";
@@ -17,6 +18,7 @@ export type McpToolContext = {
   imageService: ImageRunService;
   imageSourceService: ImageSourceService;
   imageUploadService: ImageUploadService;
+  mediaService: MediaRunService;
   toolJobs: ToolJobService;
   loginService: AgyLoginService;
   signal: AbortSignal | undefined;

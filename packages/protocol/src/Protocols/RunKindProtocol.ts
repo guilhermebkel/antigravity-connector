@@ -1,1 +1,1 @@
-export type RunKind = "chat" | "search" | "research" | "image" | "browse";
+export type RunKind = "chat" | "search" | "research" | "image" | "browse" | "media";

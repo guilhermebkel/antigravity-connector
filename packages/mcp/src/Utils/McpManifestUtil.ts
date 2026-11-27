@@ -15,6 +15,8 @@ import { SetAuthTool } from "@antigravity-connector/mcp/Tools/SetAuthTool.ts";
 import { GenerateImageTool } from "@antigravity-connector/mcp/Tools/GenerateImageTool.ts";
 import { GetResultTool } from "@antigravity-connector/mcp/Tools/GetResultTool.ts";
 import { ResearchTool } from "@antigravity-connector/mcp/Tools/ResearchTool.ts";
+import { AnalyseVideoTool } from "@antigravity-connector/mcp/Tools/AnalyseVideoTool.ts";
+import { TranscribeAudioTool } from "@antigravity-connector/mcp/Tools/TranscribeAudioTool.ts";
 import { WebSearchTool } from "@antigravity-connector/mcp/Tools/WebSearchTool.ts";
 import { McpProgressService } from "@antigravity-connector/mcp/Services/McpProgressService.ts";
 import { McpErrorUtil } from "@antigravity-connector/mcp/Utils/McpErrorUtil.ts";
@@ -38,12 +40,16 @@ export class McpManifestUtil {
     const getResult = new GetResultTool();
     const research = new ResearchTool({ dailyLimit: services.researchDailyLimit });
     const browse = new BrowseTool();
+    const transcribeAudio = new TranscribeAudioTool();
+    const analyseVideo = new AnalyseVideoTool();
     const createUploadLink = new CreateUploadLinkTool({ publicUrl: services.publicUrl });
     McpManifestUtil.registerTool(server, webSearch, services);
     McpManifestUtil.registerTool(server, generateImage, services);
     McpManifestUtil.registerTool(server, getResult, services);
     McpManifestUtil.registerTool(server, research, services);
     McpManifestUtil.registerTool(server, browse, services);
+    McpManifestUtil.registerTool(server, transcribeAudio, services);
+    McpManifestUtil.registerTool(server, analyseVideo, services);
     McpManifestUtil.registerTool(server, createUploadLink, services);
     const checkAuth = new CheckAuthTool();
     const setAuth = new SetAuthTool();
@@ -55,6 +61,8 @@ export class McpManifestUtil {
       McpManifestUtil.buildRunnerEntry(getResult),
       McpManifestUtil.buildRunnerEntry(research),
       McpManifestUtil.buildRunnerEntry(browse),
+      McpManifestUtil.buildRunnerEntry(transcribeAudio),
+      McpManifestUtil.buildRunnerEntry(analyseVideo),
       McpManifestUtil.buildRunnerEntry(createUploadLink),
       McpManifestUtil.buildRunnerEntry(checkAuth),
       McpManifestUtil.buildRunnerEntry(setAuth),
@@ -71,6 +79,7 @@ export class McpManifestUtil {
           imageService: services.imageService,
           imageSourceService: services.imageSourceService,
           imageUploadService: services.imageUploadService,
+          mediaService: services.mediaService,
           toolJobs: services.toolJobs,
           loginService: services.loginService,
           signal: extra.signal,
@@ -105,6 +114,7 @@ export class McpManifestUtil {
         imageService: services.imageService,
         imageSourceService: services.imageSourceService,
         imageUploadService: services.imageUploadService,
+        mediaService: services.mediaService,
         toolJobs: services.toolJobs,
         loginService: services.loginService,
         signal: extra.signal,

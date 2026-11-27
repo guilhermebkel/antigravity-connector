@@ -115,6 +115,7 @@ export class RuntimeSetup {
       research: env.DAILY_LIMIT_RESEARCH,
       image: env.DAILY_LIMIT_IMAGE,
       browse: env.DAILY_LIMIT_BROWSE,
+      media: env.DAILY_LIMIT_MEDIA,
     };
     return new DailyLimitService({ runKindToLimit, clock: () => new Date(clock()) });
   }

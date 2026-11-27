@@ -2,6 +2,21 @@ import type { ModelId, ReasoningEffort } from "@antigravity-connector/protocol/P
 
 export class ModelCatalogueUtil {
   static readonly MODEL_ID_TO_EFFORT_TO_SLUG: Readonly<Record<ModelId, Readonly<Record<ReasoningEffort, string>>>> = {
+    "gemini-4-neon": {
+      low: "gemini-4-neon-low",
+      medium: "gemini-4-neon-medium",
+      high: "gemini-4-neon-high",
+    },
+    "gemini-4-hydrogen": {
+      low: "gemini-4-hydrogen-low",
+      medium: "gemini-4-hydrogen-medium",
+      high: "gemini-4-hydrogen-high",
+    },
+    "gemini-4-carbon": {
+      low: "gemini-4-carbon-low",
+      medium: "gemini-4-carbon-medium",
+      high: "gemini-4-carbon-high",
+    },
     "gemini-4-argon": {
       low: "gemini-4-argon-low",
       medium: "gemini-4-argon-medium",

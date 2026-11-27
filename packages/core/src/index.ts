@@ -62,3 +62,8 @@ export { ImageUploadError } from "@antigravity-connector/core/Errors/ImageUpload
 export type { ImageUploadReason } from "@antigravity-connector/core/Errors/ImageUploadError.ts";
 export type { ImageUploadLink, ImageUploadReceipt, UploadedImage } from "@antigravity-connector/core/Protocols/ImageUploadProtocol.ts";
 export { UploadReferenceUtil } from "@antigravity-connector/core/Utils/UploadReferenceUtil.ts";
+export { MediaRunService } from "@antigravity-connector/core/Services/MediaRunService.ts";
+export type { MediaRunInput, MediaRunOutcome } from "@antigravity-connector/core/Services/MediaRunService.ts";
+export { MediaInputUtil } from "@antigravity-connector/core/Utils/MediaInputUtil.ts";
+export type { MediaKind } from "@antigravity-connector/core/Protocols/MediaProtocol.ts";
+export type { UploadedMedia } from "@antigravity-connector/core/Protocols/ImageUploadProtocol.ts";

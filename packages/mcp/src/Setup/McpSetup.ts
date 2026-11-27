@@ -4,6 +4,7 @@ import {
   ImageRunService,
   ImageSourceService,
   ImageUploadService,
+  MediaRunService,
   type AgyLoginService,
   type AgyRunService,
   type RemoteImageDownloadPort,
@@ -35,6 +36,7 @@ export class McpSetup {
     const imageUploadService = new ImageUploadService({ clock: options.clock });
     const services = {
       imageUploadService,
+      mediaService: new MediaRunService({ runService: options.runService, uploads: imageUploadService }),
       publicUrl: options.publicUrl,
       runService: options.runService,
       imageService: new ImageRunService({ runService: options.runService }),

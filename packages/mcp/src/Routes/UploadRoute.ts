@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
-  ImageInputUtil,
+  MediaInputUtil,
   ImageUploadError,
   UploadReferenceUtil,
   type ImageUploadReason,
@@ -20,6 +20,7 @@ export class UploadRoute {
     not_an_image: 415,
     too_many_links: 429,
     image_not_found: 404,
+    wrong_kind: 400,
   };
 
   static register(app: FastifyInstance, options: UploadRouteOptions): void {
@@ -31,8 +32,8 @@ export class UploadRoute {
       scope.post(
         `${UploadPathUtil.PREFIX}/:token`,
         {
-          bodyLimit: ImageInputUtil.MAX_IMAGE_BYTES,
-          // Why: an unknown token is refused before the body is read, so nobody without a link makes the server buffer 4 MiB.
+          bodyLimit: MediaInputUtil.MAX_BYTES,
+          // Why: an unknown token is refused before the body is read, so nobody without a link makes the server buffer a large file.
           onRequest: (request, reply) => UploadRoute.checkLink(request, reply, options),
         },
         (request, reply) => UploadRoute.handle(request, reply, options),
@@ -59,6 +60,8 @@ export class UploadRoute {
     try {
       const receipt = options.uploads.accept(token, bytes);
       return reply.code(UploadRoute.STATUS_OK).send({
+        kind: receipt.kind,
+        file: UploadReferenceUtil.build(receipt.imageId),
         image: UploadReferenceUtil.build(receipt.imageId),
         mimeType: receipt.mime,
         sizeBytes: receipt.sizeBytes,

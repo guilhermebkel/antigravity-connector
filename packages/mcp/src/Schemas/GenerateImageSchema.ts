@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ModelIdSchema } from "@antigravity-connector/protocol";
 import type { GenerateImageInput } from "@antigravity-connector/mcp/Protocols/GenerateImageProtocol.ts";
 import {
   ImageInputUtil,
@@ -58,7 +59,7 @@ const validateReferenceImage = (url: string, context: z.RefinementCtx): void => 
 
 export const GenerateImageInputSchema: z.ZodType<GenerateImageInput> = z.strictObject({
   prompt: z.string().trim().min(1).max(GENERATE_IMAGE_PROMPT_MAX_LENGTH),
-  model: z.enum(["gemini-4-argon", "gemini-3.8-flash"]).optional(),
+  model: ModelIdSchema.optional(),
   images: z
     .array(z.string().max(ImageInputUtil.MAX_DATA_URL_LENGTH).superRefine(validateReferenceImage))
     .max(ImageInputUtil.MAX_IMAGES)

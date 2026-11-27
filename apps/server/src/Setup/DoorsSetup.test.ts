@@ -115,7 +115,7 @@ describe("the two doors on the server", () => {
     };
     const picture = Buffer.from("ffd8ffe000104a46", "hex");
     const first = await fetch(`${started.address}${uploadPath}`, { method: "POST", body: picture });
-    expect(await first.json()).toStrictEqual({ image, mimeType: "image/jpeg", sizeBytes: 8 });
+    expect(await first.json()).toStrictEqual({ image, file: image, kind: "image", mimeType: "image/jpeg", sizeBytes: 8 });
     const second = await fetch(`${started.address}${uploadPath}`, { method: "POST", body: picture });
     expect(second.status).toBe(404);
     await client.close();

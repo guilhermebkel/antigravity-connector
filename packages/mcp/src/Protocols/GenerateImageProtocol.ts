@@ -1,5 +1,7 @@
+import type { ModelId } from "@antigravity-connector/protocol";
+
 export type GenerateImageInput = {
   prompt: string;
-  model?: "gemini-4-argon" | "gemini-3.8-flash";
+  model?: ModelId;
   images?: string[];
 };

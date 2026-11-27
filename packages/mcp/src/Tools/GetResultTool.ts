@@ -12,7 +12,7 @@ export class GetResultTool implements McpToolPort<GetResultInput, ToolJobOutput>
   readonly title = "Get result";
 
   readonly description = [
-    "Returns the result of a generate_image, web_search, research or browse call that was still running.",
+    "Returns the result of a generate_image, web_search, research, browse, transcribe_audio or analyse_video call that was still running.",
     "Use it only with the job_id that the call returned, after retry_after_seconds.",
     "Returns the result when it is ready, or status running again when it is not yet; a call waits up to about 20 seconds.",
     "Returns an error when the job failed or has expired (jobs are kept for 10 minutes after they finish).",

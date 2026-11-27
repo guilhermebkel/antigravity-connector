@@ -19,7 +19,7 @@ const EXPECTED_COLUMNS = [
   "id", "started_at", "door", "route_or_tool", "kind", "model", "duration_ms",
   "input_tokens", "output_tokens", "total_tokens", "status",
 ];
-const LIMITS = { chat: 200, search: 50, research: 5, image: 3, browse: 20 };
+const LIMITS = { chat: 200, search: 50, research: 5, image: 3, browse: 20, media: 20 };
 
 let dataDirectory = "";
 

@@ -16,6 +16,7 @@ export type Env = {
   DAILY_LIMIT_IMAGE: number;
   DAILY_LIMIT_RESEARCH: number;
   DAILY_LIMIT_BROWSE: number;
+  DAILY_LIMIT_MEDIA: number;
   DATA_DIR: string;
   PUBLIC_URL?: string | undefined;
   HTTP_MAX_REQUESTS_PER_MINUTE: number;
