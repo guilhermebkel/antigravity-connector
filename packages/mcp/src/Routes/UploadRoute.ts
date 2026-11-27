@@ -62,7 +62,6 @@ export class UploadRoute {
       return reply.code(UploadRoute.STATUS_OK).send({
         kind: receipt.kind,
         file: UploadReferenceUtil.build(receipt.uploadId),
-        image: UploadReferenceUtil.build(receipt.uploadId),
         mimeType: receipt.mime,
         sizeBytes: receipt.sizeBytes,
       });

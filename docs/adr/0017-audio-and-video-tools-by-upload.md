@@ -8,7 +8,7 @@ agy 1.5.18 lists the Gemini 4 models (`gemini-4-neon`, `-hydrogen`, `-carbon`, `
 
 ## Decision
 
-- `create_upload_link` takes an optional `kind`: `image` (the default, 4 MiB), `audio` (20 MiB) or `video` (30 MiB). It returns `kind` and `file` (`upload:<id>`); `image` stays with the same value for clients that read it.
+- `create_upload_link` takes an optional `kind`: `image` (the default, 4 MiB), `audio` (20 MiB) or `video` (30 MiB). It returns `kind` and `file` (`upload:<id>`). The field `image`, which ADR 0015 named, is gone: `file` replaces it, in the tool answer and in the answer of `POST /upload/<token>`.
 - The type of the file comes from its first bytes and must match the kind of the link: MP3, WAV, M4A, AAC, OGG, FLAC or WebM for audio; MP4, MOV, WebM or AVI for video. A file of another type, or over the limit of its kind, is refused and the link stays valid.
 - The server holds at most 60 MiB of uploads in memory at once (two of the largest files), besides the limit of 8 entries. An upload that would pass it is refused as too many waiting.
 - A file is read only as the kind it was uploaded as. `transcribe_audio` takes an audio upload and `analyse_video` a video upload; a picture reference to `generate_image` must be an image upload. A wrong or expired reference is refused before the queue and the daily limit, so it spends no run.

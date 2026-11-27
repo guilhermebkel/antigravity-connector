@@ -72,7 +72,7 @@ describe("generate_image with reference images over MCP", () => {
     await expect(client.callTool({
       name: "generate_image",
       arguments: { prompt: PROMPT, images: ["/home/user/photo.png"] },
-    })).rejects.toThrow(/must be an https:\/\/ URL, a base64 data: URL of a PNG, JPEG or WebP image, or the image value from create_upload_link/);
+    })).rejects.toThrow(/must be an https:\/\/ URL, a base64 data: URL of a PNG, JPEG or WebP image, or the file value from create_upload_link/);
     expect(harness.requests).toHaveLength(0);
     await client.close();
     await harness.app.close();

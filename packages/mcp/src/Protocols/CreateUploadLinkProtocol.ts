@@ -5,7 +5,6 @@ export type CreateUploadLinkOutput = {
   uploadUrl?: string;
   kind: "image" | "audio" | "video";
   file: string;
-  image: string;
   expiresInSeconds: number;
   maxBytes: number;
 };

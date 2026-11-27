@@ -13,7 +13,7 @@ const GENERATE_IMAGE_PROMPT_MAX_LENGTH = 2000;
 const DATA_URL_PREFIX = "data:";
 
 const REASON_TO_MESSAGE: Readonly<Record<ImageInputReason, string>> = {
-  not_data_url: "must be an https:// URL, a base64 data: URL of a PNG, JPEG or WebP image, or the image value from create_upload_link.",
+  not_data_url: "must be an https:// URL, a base64 data: URL of a PNG, JPEG or WebP image, or the file value from create_upload_link.",
   too_large: "is larger than 4 MiB.",
   signature_mismatch: "does not match its declared image type.",
 };
@@ -36,7 +36,7 @@ const validateUploadReference = (reference: string, context: z.RefinementCtx): v
   if (UploadReferenceUtil.readUploadId(reference) === undefined) {
     context.addIssue({
       code: "custom",
-      message: "The upload reference is not valid. What to do: pass the image value exactly as create_upload_link returned it.",
+      message: "The upload reference is not valid. What to do: pass the file value exactly as create_upload_link returned it.",
     });
   }
 };
