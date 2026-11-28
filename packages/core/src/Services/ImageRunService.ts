@@ -5,7 +5,7 @@ import type { RunAttachment } from "@antigravity-connector/core/Protocols/RunPro
 import { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageNotProducedError.ts";
 import { ImageTimeoutError } from "@antigravity-connector/core/Errors/ImageTimeoutError.ts";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
-import { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
+import { ImageOutputUtil, type ImageOutputMime } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
 import { ImageQuotaService } from "@antigravity-connector/core/Services/ImageQuotaService.ts";
 import { AnswerKindUtil } from "@antigravity-connector/core/Utils/AnswerKindUtil.ts";
 import { ImageQuotaUtil } from "@antigravity-connector/core/Utils/ImageQuotaUtil.ts";
@@ -19,6 +19,7 @@ export type ImageRunInput = {
 
 export type ImageRunOutcome = {
   bytes: Uint8Array;
+  mimeType: ImageOutputMime;
   model: string;
   durationMs: number;
   totalTokens: number;
@@ -46,14 +47,15 @@ export class ImageRunService {
   async generate(input: ImageRunInput, signal?: AbortSignal, observer?: RunObserver): Promise<ImageRunOutcome> {
     this.quota.assertAvailable();
     const result = await this.runImage(input, signal, observer);
-    const bytes = result.outputFiles[ImageRunService.OUTPUT_FILE_NAME];
+    const bytes = ImageOutputUtil.findImage(result.outputFiles);
     if (bytes === undefined) {
       this.recordQuotaAnswer(result.envelope.response);
       throw new ImageNotProducedError(this.runService.buildAnswerExcerpt(result.envelope.response));
     }
-    ImageOutputUtil.assertPng(bytes);
+    const mimeType = ImageOutputUtil.assertImage(bytes);
     return {
       bytes,
+      mimeType,
       model: input.model,
       durationMs: Math.round((result.envelope.duration_seconds ?? 0) * ImageRunService.MS_PER_SECOND),
       totalTokens: result.envelope.usage.total_tokens,

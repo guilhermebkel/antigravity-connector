@@ -25,6 +25,8 @@ const LONG_REPORT = `Intro https://example.com/one\n\n${"x".repeat(LONG_REPORT_F
 const STRUCTURED_ANSWER = { answer: "ok" };
 const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
+const JPEG_HEX = "ffd8ffe000104a46ffd9";
+const OTHER_NAME_JPEG_FILE_NAME = "picture.jpg";
 const OVERSIZE_IMAGE_BYTES = 8388609;
 const STDIN_FORMAT_FLAG = "--input-format";
 const LATE_FILE_DELAY_MS = 300;
@@ -262,6 +264,13 @@ const writeLine = (line) => {
 const watchHandlers = {
   "watch-file": async () => {
     writeOutputImage(Buffer.from(PNG_BASE64, "base64"));
+    writeLine(buildResultLine());
+    stopWhenStdinEnds();
+  },
+  "watch-jpeg-other-name": async () => {
+    const jpegBytes = Buffer.from(JPEG_HEX, "hex");
+    const outputPath = join(process.cwd(), OTHER_NAME_JPEG_FILE_NAME);
+    writeFileSync(outputPath, jpegBytes);
     writeLine(buildResultLine());
     stopWhenStdinEnds();
   },

@@ -20,7 +20,7 @@ export type ToolJobOutput = {
   truncated?: boolean;
   text?: string;
   hasScreenshot?: boolean;
-  mimeType?: "image/png";
+  mimeType?: "image/png" | "image/jpeg";
   sizeBytes?: number;
   model?: string;
   durationMs?: number;

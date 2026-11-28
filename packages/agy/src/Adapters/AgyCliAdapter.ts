@@ -119,6 +119,7 @@ export class AgyCliAdapter implements AgyRunnerPort {
       workingDirectory,
       prompt: request.prompt,
       fileNames: request.profile.expectedOutputFileNames,
+      excludedFileNames: (request.attachments ?? []).map((attachment) => attachment.fileName),
       timeoutMs: request.profile.timeoutMs,
       secrets: this.buildSecrets(),
       timing: this.outputWatchTiming,

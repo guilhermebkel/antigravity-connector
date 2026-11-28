@@ -1,5 +1,5 @@
 import type { ChildProcess } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { RedactUtil } from "@antigravity-connector/protocol";
 import type { AgyEnvelope, AgyStatus, AgyUsage } from "@antigravity-connector/protocol";
@@ -23,6 +23,7 @@ export type AgyOutputWatchOptions = {
   prompt: string;
   workingDirectory: string;
   fileNames: readonly string[];
+  excludedFileNames?: readonly string[];
   timeoutMs: number;
   secrets: readonly string[];
   signal: AbortSignal | undefined;
@@ -197,14 +198,21 @@ export class AgyOutputWatchService {
     }
     this.isPolling = true;
     try {
-      const readiness = await Promise.all(this.options.fileNames.map((name) => this.checkFile(name)));
-      this.isFilesReady = readiness.every(Boolean);
+      const target = await this.findTarget();
+      this.isFilesReady = target === undefined ? false : await this.checkFile(target);
     } finally {
       this.isPolling = false;
     }
     if (this.isFilesReady && !this.hasSettled()) {
       await this.handleFilesReady();
     }
+  }
+
+  private async findTarget(): Promise<string | undefined> {
+    const [expectedName = ""] = this.options.fileNames;
+    const names = await readdir(this.options.workingDirectory).catch((): string[] => []);
+    // Why: the folder is listed on every poll, so a picture saved under another name is found the same way as output.png.
+    return AgyOutputFileUtil.pickTarget(names, expectedName, this.options.excludedFileNames ?? []);
   }
 
   private async checkFile(fileName: string): Promise<boolean> {
@@ -309,13 +317,12 @@ export class AgyOutputWatchService {
   }
 
   private async readExistingFiles(): Promise<AgyOutputFileNameToBytes> {
-    const entries = await Promise.all(
-      this.options.fileNames.map(async (name): Promise<[string, Uint8Array] | undefined> => {
-        const bytes = await this.readOutputFile(name);
-        return bytes === undefined ? undefined : [name, bytes];
-      }),
-    );
-    return Object.fromEntries(entries.filter((entry): entry is [string, Uint8Array] => entry !== undefined));
+    const target = await this.findTarget();
+    if (target === undefined) {
+      return {};
+    }
+    const bytes = await this.readOutputFile(target);
+    return bytes === undefined ? {} : { [target]: bytes };
   }
 
   private async readOutputFile(fileName: string): Promise<Uint8Array | undefined> {

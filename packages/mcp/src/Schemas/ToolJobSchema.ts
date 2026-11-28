@@ -13,7 +13,7 @@ export const ToolJobOutputSchema: z.ZodType<ToolJobOutput> = z.object({
   truncated: z.boolean().optional(),
   text: z.string().optional(),
   hasScreenshot: z.boolean().optional(),
-  mimeType: z.literal("image/png").optional(),
+  mimeType: z.enum(["image/png", "image/jpeg"]).optional(),
   sizeBytes: z.number().optional(),
   model: z.string().optional().describe("The model that answered, one of the values listed in the model field of the tool input."),
   durationMs: z.number().optional(),
