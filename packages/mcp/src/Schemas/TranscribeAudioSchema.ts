@@ -9,5 +9,5 @@ export const TranscribeAudioInputSchema: z.ZodType<TranscribeAudioInput> = z.str
   file: buildUploadFileSchema("audio"),
   language: z.string().trim().min(1).max(LANGUAGE_MAX_LENGTH).optional(),
   format: z.enum(["plain", "timestamped"]).optional(),
-  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that listens to the audio. All five transcribed our short speech correctly; Flash and Hydrogen were the quickest (4 to 5 s).")),
+  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that listens to the audio. Flash or Hydrogen for the best value; Neon or Argon when you want a more capable model.")),
 });
