@@ -1,5 +1,5 @@
 import { AsyncEventBufferService, ModelCatalogueUtil, RedactUtil, type AgyUsage, type RunKind } from "@antigravity-connector/protocol";
-import type { AgyRunRequest, AgyRunResult, AgyRunnerPort, AgyStreamOutputEvent } from "@antigravity-connector/agy";
+import type { AgyRunRequest, AgyRunResult, AgyRunTrace, AgyRunnerPort, AgyStreamOutputEvent } from "@antigravity-connector/agy";
 import { AgyAbortedError, AgyFailedError, AgySessionRequiredError, AgyTimeoutError } from "@antigravity-connector/agy";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { LogFieldToValue, LogSink } from "@antigravity-connector/core/Protocols/LogProtocol.ts";
@@ -343,7 +343,12 @@ export class AgyRunService {
 
   static buildFinishedOutcome(request: AgyRunRequest, result: AgyRunResult): CallOutcome {
     const outputFileCount = Object.keys(result.outputFiles).length;
-    const detail = AgyRunService.buildSuccessDetail(result.envelope.num_turns, outputFileCount);
+    const detail = {
+      ...AgyRunService.buildSuccessDetail(result.envelope.num_turns, outputFileCount),
+      ...AgyRunService.buildTraceDetail(result.trace),
+      answerKind: AnswerKindUtil.classify(result.envelope.response),
+      answerChars: result.envelope.response.length,
+    };
     const missingFileCount = AgyRunService.countMissingFiles(request, result);
     if (missingFileCount === 0) {
       return { result: "success", usage: result.envelope.usage, detail };
@@ -353,8 +358,29 @@ export class AgyRunService {
       result: "error",
       usage: result.envelope.usage,
       errorCode: AgyRunService.OUTPUT_MISSING_CODE,
-      detail: { ...detail, missingFileCount, answerKind: AnswerKindUtil.classify(result.envelope.response) },
+      detail: { ...detail, missingFileCount },
     };
+  }
+
+  static buildTraceDetail(trace: AgyRunTrace | undefined): LogFieldToValue {
+    // Why: the trace is the agy run's path (steps, subagents, timings, file size), never its content; a field left out means it was not recorded.
+    if (trace === undefined) {
+      return {};
+    }
+    return {
+      stepCount: trace.stepCount,
+      stepSummary: trace.stepSummary,
+      subagentCount: trace.subagentCount,
+      activeSubagentCount: trace.activeSubagentCount,
+      afterResultExtensions: trace.afterResultExtensions,
+      ...AgyRunService.buildResultTimeFields(trace.resultAfterMs),
+      settledAfterMs: trace.settledAfterMs,
+      candidateFileBytes: trace.candidateFileBytes,
+    };
+  }
+
+  static buildResultTimeFields(resultAfterMs: number | undefined): LogFieldToValue {
+    return resultAfterMs === undefined ? {} : { resultAfterMs };
   }
 
   static countMissingFiles(request: AgyRunRequest, result: AgyRunResult): number {

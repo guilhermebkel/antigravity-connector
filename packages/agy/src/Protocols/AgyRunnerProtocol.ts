@@ -26,9 +26,21 @@ export type AgyOutputFormat = "json" | "stream-json";
 
 export type AgyOutputFileNameToBytes = Readonly<Record<string, Uint8Array>>;
 
+export type AgyRunTrace = {
+  stepCount: number;
+  stepSummary: string;
+  subagentCount: number;
+  activeSubagentCount: number;
+  afterResultExtensions: number;
+  resultAfterMs?: number;
+  settledAfterMs: number;
+  candidateFileBytes: number;
+};
+
 export type AgyRunResult = {
   envelope: AgyEnvelope;
   outputFiles: AgyOutputFileNameToBytes;
+  trace?: AgyRunTrace;
 };
 
 export type AgyStartedEvent = {
