@@ -33,3 +33,5 @@ Every tool that takes `model` lists the models in that field's schema, each with
 The descriptions were sharpened on 2026-11-28 with one run of each task (two arithmetic questions, a prime count, a short transcription, and a short video with a counter and a tone) per model at low effort. Results: all models answered the text questions and the transcription except Carbon, which answered with a plan in plan mode; Flash returned nothing for the video because it tried a shell command that plan mode denies.
 
 Process standard (2026-11-28): text questions are answered in the reply, with no plan or file and no commands; a media file is opened once with `read_file`, with no commands, and the answer is in the reply. We ran 25 calls with these instructions: every model used `read_file` once on each file and answered every text question directly. The one miss was Flash on the sound of the video.
+
+Effort (2026-11-28): the MCP tools take no effort parameter. Each run kind has its default: `research` runs at `medium`, and every other kind at `low`. The `/v1` chat still uses the `reasoning_effort` the client sends, with `medium` as its default.

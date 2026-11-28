@@ -2,6 +2,7 @@ import type { ReasoningEffort, RunKind } from "@antigravity-connector/protocol";
 import type { AgyRunProfile } from "@antigravity-connector/agy";
 
 type RunKindSpec = {
+  effort: ReasoningEffort;
   isPlanMode: boolean;
   shouldSkipPermissions: boolean;
   timeoutMultiplier: number;
@@ -10,14 +11,13 @@ type RunKindSpec = {
 };
 
 export class RunProfileUtil {
-  static readonly DEFAULT_EFFORT: ReasoningEffort = "low";
-
   static readonly RESEARCH_TIMEOUT_MULTIPLIER = 2;
 
   static readonly IMAGE_TIMEOUT_MULTIPLIER = 0.6;
 
   static readonly RUN_KIND_TO_SPEC: Readonly<Record<RunKind, RunKindSpec>> = {
     chat: {
+      effort: "low",
       isPlanMode: true,
       shouldSkipPermissions: false,
       timeoutMultiplier: 1,
@@ -25,6 +25,7 @@ export class RunProfileUtil {
       shouldWaitForOutputFiles: false,
     },
     search: {
+      effort: "low",
       isPlanMode: true,
       shouldSkipPermissions: false,
       timeoutMultiplier: 1,
@@ -32,6 +33,7 @@ export class RunProfileUtil {
       shouldWaitForOutputFiles: false,
     },
     research: {
+      effort: "medium",
       isPlanMode: true,
       shouldSkipPermissions: false,
       timeoutMultiplier: RunProfileUtil.RESEARCH_TIMEOUT_MULTIPLIER,
@@ -39,6 +41,7 @@ export class RunProfileUtil {
       shouldWaitForOutputFiles: false,
     },
     image: {
+      effort: "low",
       isPlanMode: false,
       shouldSkipPermissions: false,
       timeoutMultiplier: RunProfileUtil.IMAGE_TIMEOUT_MULTIPLIER,
@@ -46,6 +49,7 @@ export class RunProfileUtil {
       shouldWaitForOutputFiles: true,
     },
     media: {
+      effort: "low",
       isPlanMode: true,
       shouldSkipPermissions: false,
       timeoutMultiplier: 1,
@@ -53,6 +57,7 @@ export class RunProfileUtil {
       shouldWaitForOutputFiles: false,
     },
     browse: {
+      effort: "low",
       isPlanMode: false,
       shouldSkipPermissions: false,
       timeoutMultiplier: 1,

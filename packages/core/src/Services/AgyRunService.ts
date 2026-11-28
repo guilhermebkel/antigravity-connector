@@ -191,7 +191,8 @@ export class AgyRunService {
   }
 
   private prepare(kind: RunKind, input: RunInput): AgyRunRequest {
-    const effort = input.effort ?? RunProfileUtil.DEFAULT_EFFORT;
+    // Why: each run kind has its own default effort; a caller passes one only where the API lets it (the /v1 chat).
+    const effort = input.effort ?? RunProfileUtil.RUN_KIND_TO_SPEC[kind].effort;
     const modelSlug = ModelCatalogueUtil.resolveSlug(input.model, effort);
     if (modelSlug === undefined) {
       throw new ModelNotFoundError(input.model);

@@ -200,6 +200,18 @@ describe("AgyRunService.run", () => {
   });
 });
 
+describe("AgyRunService default effort per tool", () => {
+  it("research runs at medium, the others at low, when the caller does not pass an effort", async () => {
+    const harness = buildHarness();
+    await harness.service.run("research", buildChatInput("write a report"));
+    await harness.service.run("search", buildChatInput("quick answer"));
+    const [research, search] = harness.runner.requests;
+
+    expect(research?.modelSlug).toBe("gemini-3.8-flash-medium");
+    expect(search?.modelSlug).toBe("gemini-3.8-flash-low");
+  });
+});
+
 describe("AgyRunService.stream", () => {
   it("passes the stream events of the runner through", async () => {
     const harness = buildHarness();
