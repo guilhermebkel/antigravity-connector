@@ -19,3 +19,10 @@ An edit with a reference image ended with no `output.png`: agy made the picture 
 - A client that assumed PNG for `mimeType` must accept `image/jpeg` too.
 - A picture saved under another name in a different folder still fails: the server does not look there.
 - No new dependency: no conversion to PNG.
+
+## Waiting, classification, messages and the log (2026-11-28)
+
+- After agy's result, the run keeps waiting while a subagent step is active, up to the overall image timeout; `AGY_OUTPUT_WAIT_MS` is the wait only when no subagent is active. Measured on a fake agy (a subagent that writes its file after the result), the picture was taken instead of failing.
+- The answer classifier knows "will wait", "will confirm", "will check" and "waiting for" as promises, so an answer that says the picture is coming is logged as `promise`.
+- A refused picture says why in the MCP and API messages: the file is larger than 8 MB, or it is not a PNG or JPEG.
+- A run's call is logged after its picture is checked, so a picture that is refused is logged as that failure (for example `image_invalid`), not as a success.

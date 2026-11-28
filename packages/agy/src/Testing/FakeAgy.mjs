@@ -318,6 +318,18 @@ const watchHandlers = {
     writeLine(buildResultLine());
     stopWhenStdinEnds();
   },
+  "watch-subagent-late-file": async () => {
+    const buildStepLine = (state) => JSON.stringify({
+      event: "step_update",
+      step_update: { conversation_id: "subagent", step_index: 1, step_type: "subagent", state },
+    });
+    writeLine(buildStepLine("ACTIVE"));
+    writeLine(buildResultLine({ response: "I started the image subagent and will wait for it." }));
+    await sleep(LATE_FILE_DELAY_MS);
+    writeOutputImage(Buffer.from(PNG_BASE64, "base64"));
+    writeLine(buildStepLine("DONE"));
+    stopWhenStdinEnds();
+  },
   "watch-hang": async () => {
     writeLine(JSON.stringify({
       event: "step_update",

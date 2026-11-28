@@ -1,4 +1,4 @@
-import { AgyOutputError, AgyTimeoutError } from "@antigravity-connector/agy";
+import { AgyOutputError, AgyTimeoutError, type AgyRunResult } from "@antigravity-connector/agy";
 import type { RunDoor } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import type { RunObserver } from "@antigravity-connector/core/Protocols/RunProgressProtocol.ts";
 import type { RunAttachment } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
@@ -25,6 +25,11 @@ export type ImageRunOutcome = {
   totalTokens: number;
 };
 
+type PictureOutput = {
+  bytes: Uint8Array;
+  mimeType: ImageOutputMime;
+};
+
 export type ImageRunServiceOptions = {
   runService: AgyRunService;
   quota: ImageQuotaService;
@@ -47,19 +52,24 @@ export class ImageRunService {
   async generate(input: ImageRunInput, signal?: AbortSignal, observer?: RunObserver): Promise<ImageRunOutcome> {
     this.quota.assertAvailable();
     const result = await this.runImage(input, signal, observer);
+    const picture = this.readPicture(result);
+    return {
+      bytes: picture.bytes,
+      mimeType: picture.mimeType,
+      model: input.model,
+      durationMs: Math.round((result.envelope.duration_seconds ?? 0) * ImageRunService.MS_PER_SECOND),
+      totalTokens: result.envelope.usage.total_tokens,
+    };
+  }
+
+  private readPicture(result: AgyRunResult): PictureOutput {
+    // Why: the same check runs inside the call (so the call is logged as refused when it fails) and again to read the picture.
     const bytes = ImageOutputUtil.findImage(result.outputFiles);
     if (bytes === undefined) {
       this.recordQuotaAnswer(result.envelope.response);
       throw new ImageNotProducedError(this.runService.buildAnswerExcerpt(result.envelope.response));
     }
-    const mimeType = ImageOutputUtil.assertImage(bytes);
-    return {
-      bytes,
-      mimeType,
-      model: input.model,
-      durationMs: Math.round((result.envelope.duration_seconds ?? 0) * ImageRunService.MS_PER_SECOND),
-      totalTokens: result.envelope.usage.total_tokens,
-    };
+    return { bytes, mimeType: ImageOutputUtil.assertImage(bytes) };
   }
 
   private recordQuotaAnswer(answer: string): void {
@@ -75,7 +85,20 @@ export class ImageRunService {
     try {
       const messages = [{ role: "user" as const, content: input.prompt }];
       const attachments = input.attachments ?? [];
-      return await this.runService.run("image", { door: input.door, model: input.model, messages, attachments }, signal, observer);
+      return await this.runService.run(
+        "image",
+        {
+          door: input.door,
+          model: input.model,
+          messages,
+          attachments,
+        },
+        signal,
+        observer,
+        (result) => {
+          this.readPicture(result);
+        },
+      );
     } catch (error: unknown) {
       if (error instanceof AgyOutputError) {
         throw new ImageNotProducedError();

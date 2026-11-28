@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImageNotProducedError, ImageQuotaError, ImageTimeoutError } from "@antigravity-connector/core";
+import { ImageInvalidError, ImageNotProducedError, ImageQuotaError, ImageTimeoutError } from "@antigravity-connector/core";
 import { McpErrorUtil } from "@antigravity-connector/mcp/Utils/McpErrorUtil.ts";
 
 describe("McpErrorUtil.describe for image calls", () => {
@@ -30,5 +30,14 @@ describe("McpErrorUtil.describe for image calls", () => {
     expect(text).toContain("The image quota of the subscription is used up, so no image was made.");
     expect(text).toContain("2026-11-28T11:09:00.000Z");
     expect(text).not.toContain("did not produce an image");
+  });
+
+  it("says why the picture was refused, so a file too large is not reported as a wrong type", () => {
+    const tooLarge = McpErrorUtil.describe(new ImageInvalidError("the file is larger than 8 MB"));
+    const wrongType = McpErrorUtil.describe(new ImageInvalidError("the file is not a PNG or JPEG image"));
+
+    expect(tooLarge).toContain("the file is larger than 8 MB");
+    expect(wrongType).toContain("the file is not a PNG or JPEG image");
+    expect(tooLarge).not.toContain("not a PNG");
   });
 });

@@ -8,6 +8,8 @@ describe("AnswerKindUtil.classify", () => {
     ["I cannot generate that picture because of the safety policy.", "refusal"],
     ["The image is still generating. I will notify you when it is ready.", "promise"],
     ["The subagent is working in the background.", "promise"],
+    ["I have started the image editing task and will wait for it to complete.", "promise"],
+    ["Waiting for the image generator subagent to finish generating output.png.", "promise"],
     ["Quota exceeded, so I will notify you later.", "quota"],
     ["Here is your cat.", "other"],
     ["   ", "empty"],

@@ -29,6 +29,8 @@ export type AgyRunServiceOptions = {
 
 export type CallResult = "success" | "error" | "stopped";
 
+export type RunResultCheck = (result: AgyRunResult) => void;
+
 export type DetailFields = {
   exitCode?: number;
   envelopeStatus?: string;
@@ -89,15 +91,20 @@ export class AgyRunService {
     return RedactUtil.buildExcerpt(text, this.secrets);
   }
 
-  async run(kind: RunKind, input: RunInput, signal?: AbortSignal, observer?: RunObserver): Promise<AgyRunResult> {
+  async run(
+    kind: RunKind,
+    input: RunInput,
+    signal?: AbortSignal,
+    observer?: RunObserver,
+    checkResult?: RunResultCheck,
+  ): Promise<AgyRunResult> {
     const request = this.prepare(kind, input);
     this.limits.consume(kind);
     const startedAtMs = this.clock();
+    let result: AgyRunResult;
     try {
       const hooks = AgyRunService.buildHooks(observer);
-      const result = await this.queue.run(() => this.runChecked(request, signal), signal, hooks);
-      this.logCall(kind, input, startedAtMs, AgyRunService.buildFinishedOutcome(request, result));
-      return result;
+      result = await this.queue.run(() => this.runChecked(request, signal), signal, hooks);
     } catch (error: unknown) {
       this.handleFailure(error);
       this.logCall(kind, input, startedAtMs, {
@@ -107,6 +114,25 @@ export class AgyRunService {
       });
       throw error;
     }
+    const outcome = AgyRunService.buildFinishedOutcome(request, result);
+    try {
+      // Why: checkResult runs before the call is logged, so a run whose output is refused is logged as that failure, not as a success.
+      checkResult?.(result);
+    } catch (error: unknown) {
+      this.logCall(kind, input, startedAtMs, AgyRunService.buildRefusedOutcome(outcome, error));
+      throw error;
+    }
+    this.logCall(kind, input, startedAtMs, outcome);
+    return result;
+  }
+
+  static buildRefusedOutcome(outcome: CallOutcome, error: unknown): CallOutcome {
+    return {
+      result: "error",
+      usage: outcome.usage,
+      errorCode: AgyRunService.readCode(error),
+      detail: { ...outcome.detail, errorName: error instanceof Error ? error.constructor.name : "unknown" },
+    };
   }
 
   openStream(
