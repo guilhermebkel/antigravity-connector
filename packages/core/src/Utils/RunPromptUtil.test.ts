@@ -64,3 +64,12 @@ describe("RunPromptUtil for media", () => {
     expect(prompt).toContain("Use the read_file tool once on it and nothing else");
   });
 });
+
+describe("RunPromptUtil for the image format", () => {
+  it("an image run asks for a PNG named output.png in the current directory, never a JPG or another folder", () => {
+    const prompt = RunPromptUtil.build("image", [{ role: "user", content: IMAGE_REQUEST }]);
+    expect(prompt).toContain("The file must be PNG, not JPG or another format");
+    expect(prompt).toContain("not in any other folder");
+    expect(prompt).toContain("do not convert or copy a file from elsewhere");
+  });
+});
