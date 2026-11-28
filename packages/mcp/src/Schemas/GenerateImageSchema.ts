@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ModelIdSchema } from "@antigravity-connector/protocol";
+import { ModelIdSchema, ModelInfoUtil } from "@antigravity-connector/protocol";
 import type { GenerateImageInput } from "@antigravity-connector/mcp/Protocols/GenerateImageProtocol.ts";
 import {
   ImageInputUtil,
@@ -59,7 +59,7 @@ const validateReferenceImage = (url: string, context: z.RefinementCtx): void => 
 
 export const GenerateImageInputSchema: z.ZodType<GenerateImageInput> = z.strictObject({
   prompt: z.string().trim().min(1).max(GENERATE_IMAGE_PROMPT_MAX_LENGTH),
-  model: ModelIdSchema.optional(),
+  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that runs the image-generator subagent. Every model made pictures in our tests; the image quota is shared, so the choice changes speed and style, not how many images you get.")),
   images: z
     .array(z.string().max(ImageInputUtil.MAX_DATA_URL_LENGTH).superRefine(validateReferenceImage))
     .max(ImageInputUtil.MAX_IMAGES)

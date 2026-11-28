@@ -57,4 +57,11 @@ describe("RunProfileUtil.build", () => {
       shouldWaitForOutputFiles: false,
     });
   });
+
+  it("each run kind has its own default effort: research is medium, the others low", () => {
+    const efforts = Object.fromEntries(
+      (["chat", "search", "research", "image", "browse", "media"] as const).map((kind) => [kind, RunProfileUtil.RUN_KIND_TO_SPEC[kind].effort]),
+    );
+    expect(efforts).toStrictEqual({ chat: "low", search: "low", research: "medium", image: "low", browse: "low", media: "low" });
+  });
 });

@@ -25,3 +25,13 @@ agy 1.5.18 lists the Gemini 4 models (`gemini-4-neon`, `-hydrogen`, `-carbon`, `
 - Memory holds up to 60 MiB of uploads. A restart forgets them.
 - Whether the Gemini 4 models give better answers or cost more quota is not measured here.
 - Video generation is not offered: agy has an image generator subagent and no video one.
+
+## Model descriptions
+
+Every tool that takes `model` lists the models in that field's schema, each with a short description of what it is for (`ModelInfoUtil`). The descriptions come from agy's own roles (the pro subagent, the planner and executor of its orchestrator) and from our runs (time to a picture, time to a short answer, video and audio tested). They say what we measured in one or two calls per model; they are not benchmarks, and they change when agy changes.
+
+The descriptions were sharpened on 2026-11-28 with one run of each task (two arithmetic questions, a prime count, a short transcription, and a short video with a counter and a tone) per model at low effort. Results: all models answered the text questions and the transcription except Carbon, which answered with a plan in plan mode; Flash returned nothing for the video because it tried a shell command that plan mode denies.
+
+Process standard (2026-11-28): text questions are answered in the reply, with no plan or file and no commands; a media file is opened once with `read_file`, with no commands, and the answer is in the reply. We ran 25 calls with these instructions: every model used `read_file` once on each file and answered every text question directly. The one miss was Flash on the sound of the video.
+
+Effort (2026-11-28): the MCP tools take no effort parameter. Each run kind has its default: `research` runs at `medium`, and every other kind at `low`. The `/v1` chat still uses the `reasoning_effort` the client sends, with `medium` as its default.

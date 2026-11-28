@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ModelIdSchema } from "@antigravity-connector/protocol";
+import { ModelIdSchema, ModelInfoUtil } from "@antigravity-connector/protocol";
 import type { BrowseInput } from "@antigravity-connector/mcp/Protocols/BrowseProtocol.ts";
 import { BrowseUrlUtil } from "@antigravity-connector/mcp/Utils/BrowseUrlUtil.ts";
 
@@ -15,5 +15,5 @@ export const BrowseInputSchema: z.ZodType<BrowseInput> = z.strictObject({
     .refine((url) => BrowseUrlUtil.isAllowed(url), { message: "url must be a public http or https address." })
     .optional(),
   screenshot: z.boolean().optional(),
-  model: ModelIdSchema.optional(),
+  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that drives the page. Flash is the default for simple reads.")),
 });

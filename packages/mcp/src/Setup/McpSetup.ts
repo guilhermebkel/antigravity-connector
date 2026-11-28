@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import {
   HttpsImageDownloadAdapter,
+  ImageQuotaService,
   ImageRunService,
   ImageSourceService,
   MediaUploadService,
@@ -22,6 +23,7 @@ export type McpSetupOptions = {
   maxSessions: number;
   researchDailyLimit: number;
   loginService: AgyLoginService;
+  imageService?: ImageRunService;
   usageService: AgyUsageService;
   jobWaitMs?: number;
   imageDownloader?: RemoteImageDownloadPort;
@@ -41,7 +43,10 @@ export class McpSetup {
       mediaService: new MediaRunService({ runService: options.runService, uploads: mediaUploadService }),
       publicUrl: options.publicUrl,
       runService: options.runService,
-      imageService: new ImageRunService({ runService: options.runService }),
+      imageService: options.imageService ?? new ImageRunService({
+        runService: options.runService,
+        quota: new ImageQuotaService({ clock: options.clock }),
+      }),
       imageSourceService: new ImageSourceService({
         downloader: options.imageDownloader ?? new HttpsImageDownloadAdapter(),
         uploads: mediaUploadService,

@@ -68,7 +68,12 @@ export class ServerSetup {
   static buildDoors(runtime: CoreRuntime, env: Env, clock: () => number): readonly RoutePlugin[] {
     return [
       (app) => {
-        ApiSetup.register(app, { runService: runtime.runService, loginService: runtime.loginService, clock });
+        ApiSetup.register(app, {
+          runService: runtime.runService,
+          loginService: runtime.loginService,
+          imageService: runtime.imageService,
+          clock,
+        });
       },
       (app) => {
         McpSetup.register(app, {
@@ -78,6 +83,7 @@ export class ServerSetup {
           maxSessions: env.MCP_MAX_SESSIONS,
           researchDailyLimit: env.DAILY_LIMIT_RESEARCH,
           loginService: runtime.loginService,
+          imageService: runtime.imageService,
           usageService: runtime.usageService,
           publicUrl: env.PUBLIC_URL,
         });

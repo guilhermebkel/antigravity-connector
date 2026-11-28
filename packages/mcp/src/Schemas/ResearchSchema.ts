@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { ModelIdSchema } from "@antigravity-connector/protocol";
+import { ModelIdSchema, ModelInfoUtil } from "@antigravity-connector/protocol";
 import type { ResearchInput } from "@antigravity-connector/mcp/Protocols/ResearchProtocol.ts";
 
 const RESEARCH_TOPIC_MAX_LENGTH = 2000;
 
 export const ResearchInputSchema: z.ZodType<ResearchInput> = z.strictObject({
   topic: z.string().trim().min(1).max(RESEARCH_TOPIC_MAX_LENGTH),
-  model: ModelIdSchema.optional(),
+  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that writes the report. Argon for broad, demanding topics; Hydrogen when speed matters more. Avoid Carbon, which tends to plan instead of writing.")),
 });
