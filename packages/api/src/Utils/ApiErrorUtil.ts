@@ -23,6 +23,7 @@ export class ApiErrorUtil {
     agy_failed: { statusCode: 502, type: "server_error", message: "agy failed to answer. Check the container logs and retry." },
     image_not_produced: { statusCode: 502, type: "server_error", message: undefined },
     image_invalid: { statusCode: 502, type: "server_error", message: undefined },
+    image_quota_exhausted: { statusCode: 429, type: "rate_limit_error", message: undefined },
     agy_timeout: {
       statusCode: 504,
       type: "server_error",
@@ -37,6 +38,7 @@ export class ApiErrorUtil {
     "daily_limit_reached",
     "image_not_produced",
     "image_invalid",
+    "image_quota_exhausted",
   ]);
 
   static build(error: unknown): ApiErrorResponse {

@@ -10,6 +10,8 @@ import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLim
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
 import { AgyUsageService } from "@antigravity-connector/core/Services/AgyUsageService.ts";
 import { AgyLoginService } from "@antigravity-connector/core/Services/AgyLoginService.ts";
+import { ImageQuotaService } from "@antigravity-connector/core/Services/ImageQuotaService.ts";
+import { ImageRunService } from "@antigravity-connector/core/Services/ImageRunService.ts";
 import { CallLogService } from "@antigravity-connector/core/Services/CallLogService.ts";
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 import { ModelCatalogueUtil } from "@antigravity-connector/protocol";
@@ -81,10 +83,13 @@ export class RuntimeSetup {
         timeoutMs: env.AGY_TIMEOUT_MS,
       }),
     });
+    // Why: one quota gate for both doors, so a quota answer on /v1 also refuses the MCP tools.
+    const imageService = new ImageRunService({ runService, quota: new ImageQuotaService({ clock: options.clock }) });
     return {
       runService,
       sessionService,
       loginService,
+      imageService,
       usageService,
       stopRunningCalls: () => {
         adapter.stopAll();

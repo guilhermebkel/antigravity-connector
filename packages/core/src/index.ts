@@ -29,6 +29,8 @@ export type {
   StubRuntime,
   StubSessionKind,
 } from "@antigravity-connector/core/Testing/StubRuntimeUtil.ts";
+export { ImageQuotaService } from "@antigravity-connector/core/Services/ImageQuotaService.ts";
+export { ImageQuotaError } from "@antigravity-connector/core/Errors/ImageQuotaError.ts";
 export { ImageRunService } from "@antigravity-connector/core/Services/ImageRunService.ts";
 export type { ImageRunInput, ImageRunOutcome } from "@antigravity-connector/core/Services/ImageRunService.ts";
 export { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";

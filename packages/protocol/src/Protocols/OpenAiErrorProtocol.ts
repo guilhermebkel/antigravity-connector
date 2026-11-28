@@ -9,7 +9,8 @@ export type OpenAiErrorCode
     | "agy_failed"
     | "agy_timeout"
     | "image_not_produced"
-    | "image_invalid";
+    | "image_invalid"
+    | "image_quota_exhausted";
 
 export type OpenAiErrorType = "invalid_request_error" | "authentication_error" | "rate_limit_error" | "server_error";
 

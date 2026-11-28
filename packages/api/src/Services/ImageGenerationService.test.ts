@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImageRunService, StubRuntimeUtil, type StubRunResult } from "@antigravity-connector/core";
+import { ImageQuotaService, ImageRunService, StubRuntimeUtil, type StubRunResult } from "@antigravity-connector/core";
 import { ApiRequestError } from "@antigravity-connector/api/Errors/ApiRequestError.ts";
 import { ImageGenerationService } from "@antigravity-connector/api/Services/ImageGenerationService.ts";
 
@@ -14,7 +14,10 @@ const buildPngResult = (): Promise<StubRunResult> => Promise.resolve({
 const buildService = (respond: () => Promise<StubRunResult> = buildPngResult) => {
   const stub = StubRuntimeUtil.build({ respond });
   const service = new ImageGenerationService({
-    imageService: new ImageRunService({ runService: stub.runService }),
+    imageService: new ImageRunService({
+      runService: stub.runService,
+      quota: new ImageQuotaService({ clock: () => 0 }),
+    }),
     clock: () => CLOCK_MS,
   });
   return { stub, service };

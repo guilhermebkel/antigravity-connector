@@ -6,6 +6,9 @@ import { ImageNotProducedError } from "@antigravity-connector/core/Errors/ImageN
 import { ImageTimeoutError } from "@antigravity-connector/core/Errors/ImageTimeoutError.ts";
 import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunService.ts";
 import { ImageOutputUtil } from "@antigravity-connector/core/Utils/ImageOutputUtil.ts";
+import { ImageQuotaService } from "@antigravity-connector/core/Services/ImageQuotaService.ts";
+import { AnswerKindUtil } from "@antigravity-connector/core/Utils/AnswerKindUtil.ts";
+import { ImageQuotaUtil } from "@antigravity-connector/core/Utils/ImageQuotaUtil.ts";
 
 export type ImageRunInput = {
   door: RunDoor;
@@ -21,7 +24,10 @@ export type ImageRunOutcome = {
   totalTokens: number;
 };
 
-export type ImageRunServiceOptions = { runService: AgyRunService };
+export type ImageRunServiceOptions = {
+  runService: AgyRunService;
+  quota: ImageQuotaService;
+};
 
 export class ImageRunService {
   static readonly OUTPUT_FILE_NAME = "output.png";
@@ -30,14 +36,19 @@ export class ImageRunService {
 
   private readonly runService: AgyRunService;
 
+  private readonly quota: ImageQuotaService;
+
   constructor(options: ImageRunServiceOptions) {
     this.runService = options.runService;
+    this.quota = options.quota;
   }
 
   async generate(input: ImageRunInput, signal?: AbortSignal, observer?: RunObserver): Promise<ImageRunOutcome> {
+    this.quota.assertAvailable();
     const result = await this.runImage(input, signal, observer);
     const bytes = result.outputFiles[ImageRunService.OUTPUT_FILE_NAME];
     if (bytes === undefined) {
+      this.recordQuotaAnswer(result.envelope.response);
       throw new ImageNotProducedError(this.runService.buildAnswerExcerpt(result.envelope.response));
     }
     ImageOutputUtil.assertPng(bytes);
@@ -47,6 +58,15 @@ export class ImageRunService {
       durationMs: Math.round((result.envelope.duration_seconds ?? 0) * ImageRunService.MS_PER_SECOND),
       totalTokens: result.envelope.usage.total_tokens,
     };
+  }
+
+  private recordQuotaAnswer(answer: string): void {
+    if (AnswerKindUtil.classify(answer) !== "quota") {
+      return;
+    }
+    // Why: a quota answer starts the cooldown, so the next calls are refused here instead of running agy again.
+    this.quota.recordExhausted(ImageQuotaUtil.readResetMs(answer));
+    this.quota.assertAvailable();
   }
 
   private async runImage(input: ImageRunInput, signal: AbortSignal | undefined, observer: RunObserver | undefined) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImageNotProducedError, ImageTimeoutError } from "@antigravity-connector/core";
+import { ImageNotProducedError, ImageQuotaError, ImageTimeoutError } from "@antigravity-connector/core";
 import { McpErrorUtil } from "@antigravity-connector/mcp/Utils/McpErrorUtil.ts";
 
 describe("McpErrorUtil.describe for image calls", () => {
@@ -22,5 +22,13 @@ describe("McpErrorUtil.describe for image calls", () => {
     const text = McpErrorUtil.describe(new ImageNotProducedError("429 RESOURCE_EXHAUSTED"));
 
     expect(text).toContain("429 RESOURCE_EXHAUSTED");
+  });
+
+  it("says the image quota is used up, with the reset time, and that no image was made", () => {
+    const text = McpErrorUtil.describe(new ImageQuotaError("2026-11-28T11:09:00.000Z", 42));
+
+    expect(text).toContain("The image quota of the subscription is used up, so no image was made.");
+    expect(text).toContain("2026-11-28T11:09:00.000Z");
+    expect(text).not.toContain("did not produce an image");
   });
 });
