@@ -6,5 +6,5 @@ const RESEARCH_TOPIC_MAX_LENGTH = 2000;
 
 export const ResearchInputSchema: z.ZodType<ResearchInput> = z.strictObject({
   topic: z.string().trim().min(1).max(RESEARCH_TOPIC_MAX_LENGTH),
-  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that writes the report. Use a planner or pro model for broad topics; they take longer.")),
+  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that writes the report. Argon is the pro choice for broad topics. Avoid Carbon here: in plan mode it returns a plan instead of a report.")),
 });

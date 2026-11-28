@@ -8,5 +8,5 @@ const QUESTION_MAX_LENGTH = 2000;
 export const AnalyseVideoInputSchema: z.ZodType<AnalyseVideoInput> = z.strictObject({
   file: buildUploadFileSchema("video"),
   question: z.string().trim().min(1).max(QUESTION_MAX_LENGTH),
-  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that watches the video, with its sound. Neon is the one we tested on video.")),
+  model: ModelIdSchema.optional().describe(ModelInfoUtil.buildFieldDescription("The model that watches the video, with its sound. Hydrogen, Neon and Argon answered our video test correctly; Flash tried a shell command and returned nothing.")),
 });
