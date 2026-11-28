@@ -61,7 +61,7 @@ pnpm workspaces and Turborepo. Each package imports its own files through its pa
 - The pull request body starts with `Closes #<n>`; one pull request closes one issue.
 - Code, tools, docs and ADRs are in English.
 - Only `packages/agy` may import `child_process` (lint `local/no-child-process-outside-agy`). `packages/api` and `packages/mcp` never import `agy` or each other (lint `local/package-boundaries`, and `scripts/architecture.test.mjs` for `package.json`).
-- No source file mentions the credentials folder of the CLI, and the app never reads, copies, logs or forwards the CLI's login token (lint `local/no-gemini-path`).
+- No source file mentions the credentials folder of the CLI, except its pictures folder (`antigravity-cli/brain`), and the app never reads, copies, logs or forwards the CLI's login token (lint `local/no-gemini-path`).
 - Rules that cannot fail (auth, the loopback bind, the queue, the daily limits, redaction) live in code with a test, never only in a prompt or a comment.
 - Private content (prompts, messages, search queries, image bytes, the `API_KEY`) is never logged. Every new output path is redacted and tested with a fake secret.
 - `process.env` is read only in `EnvUtil` (lint `local/no-process-env`). Logs go only through `LogUtil`.

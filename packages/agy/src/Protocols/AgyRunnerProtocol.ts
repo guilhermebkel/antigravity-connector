@@ -35,6 +35,7 @@ export type AgyRunTrace = {
   resultAfterMs?: number;
   settledAfterMs: number;
   candidateFileBytes: number;
+  candidateFolder: string;
 };
 
 export type AgyRunResult = {

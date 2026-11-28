@@ -32,6 +32,8 @@ type AgyStreamRun = {
 export class AgyCliAdapter implements AgyRunnerPort {
   static readonly RUN_DIRECTORY_PREFIX = "agy-run-";
 
+  static readonly BRAIN_RELATIVE_PATH = ".gemini/antigravity-cli/brain";
+
   static readonly DEFAULT_OUTPUT_WATCH_TIMING: AgyOutputWatchTiming = {
     pollMs: 500,
     resultGraceMs: 5000,
@@ -120,6 +122,7 @@ export class AgyCliAdapter implements AgyRunnerPort {
       prompt: request.prompt,
       fileNames: request.profile.expectedOutputFileNames,
       excludedFileNames: (request.attachments ?? []).map((attachment) => attachment.fileName),
+      brainRoot: this.buildBrainRoot(),
       timeoutMs: request.profile.timeoutMs,
       secrets: this.buildSecrets(),
       timing: this.outputWatchTiming,
@@ -238,6 +241,11 @@ export class AgyCliAdapter implements AgyRunnerPort {
     child.once("close", removeChild);
     child.once("error", removeChild);
     return child;
+  }
+
+  private buildBrainRoot(): string | undefined {
+    const home = this.parentEnv.HOME;
+    return home === undefined ? undefined : join(home, AgyCliAdapter.BRAIN_RELATIVE_PATH);
   }
 
   private buildSecrets(): string[] {

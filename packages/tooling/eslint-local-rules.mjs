@@ -946,20 +946,25 @@ const noChildProcessOutsideAgy = {
   },
 };
 
+// Why: the only exception is the folder where agy keeps the pictures it made; the app reads those and never the login.
+const GEMINI_ALLOWED_NEEDLE = "antigravity-cli/brain";
+
+const isGeminiPath = (text) => text.includes(GEMINI_NEEDLE) && !text.includes(GEMINI_ALLOWED_NEEDLE);
+
 const noGeminiPath = {
   meta: {
     type: "problem",
-    messages: { path: "Never write the agy credentials folder in code: the app does not read, copy or forward the CLI's login. Let the CLI find its own state." },
+    messages: { path: "Never write the agy credentials folder in code, except the pictures folder (antigravity-cli/brain): the app does not read, copy or forward the CLI's login. Let the CLI find its own state." },
   },
   create(context) {
     return {
       "Literal"(node) {
-        if (typeof node.value === "string" && node.value.includes(GEMINI_NEEDLE)) {
+        if (typeof node.value === "string" && isGeminiPath(node.value)) {
           context.report({ node, messageId: "path" });
         }
       },
       "TemplateElement"(node) {
-        if (node.value.raw.includes(GEMINI_NEEDLE)) {
+        if (isGeminiPath(node.value.raw)) {
           context.report({ node, messageId: "path" });
         }
       },

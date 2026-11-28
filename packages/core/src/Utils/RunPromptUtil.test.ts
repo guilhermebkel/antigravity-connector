@@ -66,10 +66,9 @@ describe("RunPromptUtil for media", () => {
 });
 
 describe("RunPromptUtil for the image format", () => {
-  it("an image run asks for a PNG named output.png in the current directory, never a JPG or another folder", () => {
+  it("an image run asks for a PNG named output.png in the current directory, and copies a picture saved elsewhere", () => {
     const prompt = RunPromptUtil.build("image", [{ role: "user", content: IMAGE_REQUEST }]);
     expect(prompt).toContain("if the picture is a JPEG, save it as output.jpg");
-    expect(prompt).toContain("not in any other folder");
-    expect(prompt).toContain("do not convert or copy a file from elsewhere");
+    expect(prompt).toContain("copy it into the current directory as output.png");
   });
 });

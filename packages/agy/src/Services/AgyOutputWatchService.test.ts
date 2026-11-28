@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
@@ -18,11 +18,12 @@ const TIMING = { pollMs: 20, resultGraceMs: 200, afterResultWaitMs: 500, stopDel
 const TIMEOUT_MS = 5000;
 const QUIET_PERIOD_MS = 120;
 const SETTLE_MS = 60;
-const INIT_LINE = JSON.stringify({ event: "init", conversation_id: "conversation-1", init: { cwd: "/tmp", tools: [] } });
+const CONVERSATION_ID = "conversation-1";
+const INIT_LINE = JSON.stringify({ event: "init", conversation_id: CONVERSATION_ID, init: { cwd: "/tmp", tools: [] } });
 const RESULT_LINE = JSON.stringify({
   event: "result",
   result: {
-    conversation_id: "conversation-1",
+    conversation_id: CONVERSATION_ID,
     status: "SUCCESS",
     response: "done",
     usage: { input_tokens: 1, output_tokens: 1, thinking_tokens: 0, cache_read_tokens: 0, total_tokens: 2 },
@@ -70,6 +71,22 @@ const buildSubagentLine = (state: string): string =>
     event: "step_update",
     step_update: { conversation_id: "subagent", step_index: 1, step_type: "subagent", state },
   });
+
+const startWatchingWithBrain = (child: StubChild, brainRoot: string): Promise<AgyRunResult> => {
+  const watcher = new AgyOutputWatchService({
+    child,
+    brainRoot,
+    workingDirectory,
+    prompt: PROMPT,
+    fileNames: [FILE_NAME],
+    timeoutMs: TIMEOUT_MS,
+    secrets: [],
+    signal: undefined,
+    timing: TIMING,
+    stopProcess: () => undefined,
+  });
+  return watcher.watch();
+};
 
 const writePng = (): void => {
   writeFileSync(join(workingDirectory, FILE_NAME), PNG_BYTES);
@@ -141,5 +158,27 @@ describe("AgyOutputWatchService", () => {
       candidateFileBytes: PNG_BYTES.length,
     });
     expect(JSON.stringify(result.trace)).not.toContain(PROMPT);
+  });
+
+  it("reads the picture from agy's conversation folder when agy left it there, and says so in the trace", async () => {
+    const prefix = join(tmpdir(), "agy-brain-test-");
+    const brainRoot = mkdtempSync(prefix);
+    const conversationDirectory = join(brainRoot, CONVERSATION_ID);
+    mkdirSync(conversationDirectory);
+    writeFileSync(join(conversationDirectory, "output_1.png"), PNG_BYTES);
+    try {
+      const child = buildStubChild();
+      const run = startWatchingWithBrain(child, brainRoot);
+
+      child.stdout.write(`${INIT_LINE}\n`);
+      await sleep(SETTLE_MS);
+      child.stdout.write(`${RESULT_LINE}\n`);
+      const result = await run;
+
+      expect(Object.keys(result.outputFiles)).toStrictEqual(["output_1.png"]);
+      expect(result.trace).toMatchObject({ candidateFolder: "brain", candidateFileBytes: PNG_BYTES.length });
+    } finally {
+      rmSync(brainRoot, { recursive: true, force: true });
+    }
   });
 });
