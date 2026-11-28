@@ -5,7 +5,7 @@ type DoneSummary = (output: ToolJobOutput) => string;
 
 export class ToolJobUtil {
   static readonly KIND_TO_DONE_SUMMARY: Readonly<Record<ToolJobKind, DoneSummary>> = {
-    image: (output) => `Generated a PNG image of ${output.sizeBytes ?? 0} bytes in ${output.durationMs ?? 0} ms.`,
+    image: (output) => `Generated an image of ${output.sizeBytes ?? 0} bytes in ${output.durationMs ?? 0} ms.`,
     web_search: (output) => {
       const sourceCount = output.sources?.length ?? 0;
       if (sourceCount === 0) {

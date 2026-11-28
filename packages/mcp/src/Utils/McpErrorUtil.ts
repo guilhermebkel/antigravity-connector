@@ -1,5 +1,5 @@
 import type { OpenAiErrorCode } from "@antigravity-connector/protocol";
-import { ImageNotProducedError, ImageQuotaError, ImageTimeoutError, MediaUploadError, RemoteImageError } from "@antigravity-connector/core";
+import { ImageInvalidError, ImageNotProducedError, ImageQuotaError, ImageTimeoutError, MediaUploadError, RemoteImageError } from "@antigravity-connector/core";
 import { JobNotFoundError } from "@antigravity-connector/mcp/Errors/JobNotFoundError.ts";
 
 export class McpErrorUtil {
@@ -12,7 +12,7 @@ export class McpErrorUtil {
     agy_timeout: "The call was stopped: agy did not finish in time. What to do: retry with a narrower query.",
     agy_failed: "The call failed: agy could not answer. What to do: check the container logs, then retry.",
     image_not_produced: "The call did not produce an image: agy finished without a PNG file. What to do: retry, or describe the picture in more detail.",
-    image_invalid: "The call did not return an image: agy wrote a file that is not a PNG of the allowed size. What to do: retry with a simpler prompt.",
+    image_invalid: "The call did not return an image: agy wrote a file that could not be used. What to do: retry.",
   };
 
   static readonly CODES_WITH_OWN_MESSAGE: ReadonlySet<OpenAiErrorCode> = new Set<OpenAiErrorCode>([
@@ -32,6 +32,9 @@ export class McpErrorUtil {
     }
     if (error instanceof ImageNotProducedError && error.reason !== undefined) {
       return `The call did not produce an image: agy answered instead of writing a PNG: ${error.reason}. What to do: follow the reason, or retry later.`;
+    }
+    if (error instanceof ImageInvalidError) {
+      return `The call did not return an image: ${error.reason}. What to do: retry, or send a smaller picture if the file is too large.`;
     }
     if (error instanceof ImageTimeoutError) {
       const activity = error.describeActivity();

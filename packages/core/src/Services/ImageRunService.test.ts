@@ -146,4 +146,16 @@ describe("ImageRunService", () => {
       }).not.toThrow();
     });
   });
+
+  it("returns a JPEG that agy saved under another name, with its mime type", async () => {
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0xff, 0xd9]);
+    const stub = StubRuntimeUtil.build({
+      respond: () => Promise.resolve(buildImage({ "picture.jpg": jpeg })),
+    });
+    const service = new ImageRunService({ runService: stub.runService, quota: buildQuota() });
+    const outcome = await service.generate({ door: "mcp", model: MODEL, prompt: "x" });
+
+    expect(outcome.mimeType).toBe("image/jpeg");
+    expect([...outcome.bytes]).toStrictEqual([...jpeg]);
+  });
 });

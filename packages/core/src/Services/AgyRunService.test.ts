@@ -7,12 +7,14 @@ import { AgyRunService } from "@antigravity-connector/core/Services/AgyRunServic
 import { AgySessionService } from "@antigravity-connector/core/Services/AgySessionService.ts";
 import { DailyLimitService } from "@antigravity-connector/core/Services/DailyLimitService.ts";
 import { QueueService } from "@antigravity-connector/core/Services/QueueService.ts";
+import { ImageInvalidError } from "@antigravity-connector/core/Errors/ImageInvalidError.ts";
 import { ModelNotFoundError } from "@antigravity-connector/core/Errors/ModelNotFoundError.ts";
 import { DailyLimitError } from "@antigravity-connector/core/Errors/DailyLimitError.ts";
 import type { RunInput } from "@antigravity-connector/core/Protocols/RunProtocol.ts";
 import { RecordingCallLog } from "@antigravity-connector/core/Testing/RecordingCallLog.ts";
 
 const PRIVATE_MARKER = "private-marker-7731";
+const CALL_EVENT = "agy.call.finished";
 const LOGIN_URL = "https://accounts.google.com/o/oauth2/EXAMPLE";
 const BASE_TIMEOUT_MS = 300000;
 const USAGE = { input_tokens: 10, output_tokens: 5, thinking_tokens: 3, cache_read_tokens: 2, total_tokens: 18 };
@@ -147,7 +149,7 @@ describe("AgyRunService.run", () => {
 
     harness.clock.now = 0;
     await harness.service.run("chat", buildChatInput(`question ${PRIVATE_MARKER}`));
-    const callLines = harness.lines.filter((line) => line.includes("agy.call.finished"));
+    const callLines = harness.lines.filter((line) => line.includes(CALL_EVENT));
 
     expect(callLines).toHaveLength(1);
     expect(callLines[0]).toContain("\"kind\":\"chat\"");
@@ -232,7 +234,7 @@ describe("AgyRunService logs a run that had to write a file", () => {
   const QUOTA_ANSWER = `The image model returned 429 RESOURCE_EXHAUSTED ${PRIVATE_MARKER}`;
 
   const readCallLine = (harness: Harness): string => {
-    const callLines = harness.lines.filter((line) => line.includes("agy.call.finished"));
+    const callLines = harness.lines.filter((line) => line.includes(CALL_EVENT));
     expect(callLines).toHaveLength(1);
     return callLines[0] ?? "";
   };
@@ -262,6 +264,25 @@ describe("AgyRunService logs a run that had to write a file", () => {
     expect(line).toContain("\"result\":\"success\"");
     expect(line).toContain("\"outputFileCount\":1");
     expect(line).not.toContain("output_missing");
+  });
+
+  it("logs one line for a run whose picture is refused afterwards, with the refusal as its error code", async () => {
+    const harness = buildHarness(() => Promise.resolve({
+      ...buildSuccessResult("done"),
+      outputFiles: { "output.png": PNG_BYTES },
+    }));
+    const rejectTooLarge = (): void => {
+      throw new ImageInvalidError("the file is larger than 8 MB");
+    };
+    const attempt = harness.service.run("image", { ...buildChatInput("draw"), door: "mcp" }, undefined, undefined, rejectTooLarge);
+    await expect(attempt).rejects.toBeInstanceOf(ImageInvalidError);
+
+    const callLines = harness.lines.filter((line) => line.includes(CALL_EVENT));
+    const [callLine] = callLines;
+    expect(callLines).toHaveLength(1);
+    expect(callLine).toContain("\"result\":\"error\"");
+    expect(callLine).toContain("\"errorCode\":\"image_invalid\"");
+    expect(callLine).toContain("\"errorName\":\"ImageInvalidError\"");
   });
 
   it("keeps a browse call without its optional screenshot a success", async () => {

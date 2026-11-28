@@ -46,14 +46,14 @@ export class GenerateImageTool implements McpToolPort<GenerateImageInput, ToolJo
     return {
       output: {
         model,
-        mimeType: "image/png",
+        mimeType: outcome.mimeType,
         sizeBytes: outcome.bytes.byteLength,
         durationMs: outcome.durationMs,
         totalTokens: outcome.totalTokens,
       },
       extraContent: [{
         type: "image",
-        mimeType: "image/png",
+        mimeType: outcome.mimeType,
         data: Buffer.from(outcome.bytes).toString("base64"),
       }],
     };

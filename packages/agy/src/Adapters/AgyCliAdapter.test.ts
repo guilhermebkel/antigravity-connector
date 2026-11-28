@@ -421,6 +421,22 @@ describe("AgyCliAdapter output watching", () => {
     expect(result.envelope.status).toBe("SUCCESS");
   });
 
+  it("takes a JPEG that agy saved under another name as the picture", async () => {
+    const result = await runWatched("[[fake-agy:watch-jpeg-other-name]] draw");
+
+    expect(Object.keys(result.outputFiles)).toStrictEqual(["picture.jpg"]);
+    const picture = Buffer.from(result.outputFiles["picture.jpg"] ?? []);
+    const expected = Buffer.from("ffd8ffe000104a46ffd9", "hex");
+    expect(picture.equals(expected)).toBe(true);
+  });
+
+  it("keeps waiting after the result while a subagent is still active, and takes its picture", async () => {
+    const result = await runWatched("[[fake-agy:watch-subagent-late-file]] draw", SHORT_WAIT_TIMING);
+
+    expect(readBytes(result)?.equals(Buffer.from(PNG_BASE64, "base64"))).toBe(true);
+    expect(result.envelope.status).toBe("SUCCESS");
+  });
+
   it("waits for a file that appears after the result while the process stays alive", async () => {
     const result = await runWatched("[[fake-agy:watch-late-file]] draw");
 

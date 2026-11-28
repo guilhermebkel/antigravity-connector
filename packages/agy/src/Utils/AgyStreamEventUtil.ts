@@ -8,6 +8,11 @@ import {
 } from "@antigravity-connector/protocol";
 import type { AgyStreamOutputEvent } from "@antigravity-connector/agy/Protocols/AgyRunnerProtocol.ts";
 
+export type SubagentStep = {
+  index: number;
+  isActive: boolean;
+};
+
 export class AgyStreamEventUtil {
   static parseLine(line: string): AgyStreamEvent | undefined {
     const json = AgyStreamEventUtil.decodeJson(line);
@@ -71,6 +76,23 @@ export class AgyStreamEventUtil {
 
   static isResult(event: AgyStreamEvent): event is AgyResultEvent {
     return event.event === "result";
+  }
+
+  static readSubagentStep(line: string): SubagentStep | undefined {
+    // Why: agy reports a subagent as a step with its own index; while it is ACTIVE, the picture may still be on its way.
+    const json = AgyStreamEventUtil.decodeJson(line);
+    if (typeof json !== "object" || json === null || !("step_update" in json)) {
+      return undefined;
+    }
+    const step = json.step_update;
+    if (typeof step !== "object" || step === null || !("step_type" in step) || step.step_type !== "subagent") {
+      return undefined;
+    }
+    const index = "step_index" in step && typeof step.step_index === "number" ? step.step_index : undefined;
+    if (index === undefined) {
+      return undefined;
+    }
+    return { index, isActive: "state" in step && step.state === "ACTIVE" };
   }
 
   static readStepLabel(line: string): string | undefined {

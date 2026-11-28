@@ -11,6 +11,7 @@ export class AnswerKindUtil {
     { kind: "quota", pattern: /\b429\b|RESOURCE_EXHAUSTED|quota|rate[ -]?limit|exhausted|too many requests/i },
     { kind: "refusal", pattern: /safety|polic(?:y|ies)|can(?:'|no)t (?:generate|create|help)|unable to (?:generate|create)|not able to|refus/i },
     { kind: "promise", pattern: /will (?:notify|let you know|report|update)|notify you|when (?:it is|it's) (?:ready|done)|in progress|still (?:generating|running|working)|background/i },
+    { kind: "promise", pattern: /will (?:wait|confirm|check)|wait(?:ing)? (?:for|until)/i },
   ];
 
   static classify(answer: string): AnswerKind {

@@ -6,6 +6,7 @@ const PNG_BYTES = Buffer.from(
   "base64",
 );
 const FILE_NAME = "output.png";
+const PICTURE_NAME = "picture.jpg";
 const HALF_LENGTH = 20;
 
 describe("AgyOutputFileUtil.isComplete", () => {
@@ -27,5 +28,30 @@ describe("AgyOutputFileUtil.isComplete", () => {
     const isComplete = AgyOutputFileUtil.isComplete("report.txt", Buffer.from("text"));
 
     expect(isComplete).toBe(true);
+  });
+
+  it("a JPEG is complete only with its start and end markers", () => {
+    const whole = AgyOutputFileUtil.isComplete(PICTURE_NAME, Buffer.from("ffd8ffe0ffd9", "hex"));
+    const cut = AgyOutputFileUtil.isComplete(PICTURE_NAME, Buffer.from("ffd8ffe0", "hex"));
+    expect(whole).toBe(true);
+    expect(cut).toBe(false);
+  });
+
+  it("picks the expected name when it is there, else the one picture that is not an attachment", () => {
+    const withExpected = AgyOutputFileUtil.pickTarget(["output.png", "a.jpg"], FILE_NAME, []);
+    const otherName = AgyOutputFileUtil.pickTarget([PICTURE_NAME, "notes.txt"], FILE_NAME, []);
+    const withAttachment = AgyOutputFileUtil.pickTarget(["attachment-1.png", PICTURE_NAME], FILE_NAME, ["attachment-1.png"]);
+
+    expect(withExpected).toBe(FILE_NAME);
+    expect(otherName).toBe(PICTURE_NAME);
+    expect(withAttachment).toBe(PICTURE_NAME);
+  });
+
+  it("gives no picture when two candidates are there without the expected name, or none at all", () => {
+    const twoCandidates = AgyOutputFileUtil.pickTarget(["a.jpg", "b.png"], FILE_NAME, []);
+    const none = AgyOutputFileUtil.pickTarget(["notes.txt"], FILE_NAME, []);
+
+    expect(twoCandidates).toBeUndefined();
+    expect(none).toBeUndefined();
   });
 });
