@@ -344,6 +344,7 @@ describe("AgyRunService call detail for the logs", () => {
       resultAfterMs: 90,
       settledAfterMs: 120,
       candidateFileBytes: 512,
+      candidateFolder: "brain",
     };
     const result = { ...buildSuccessResult("I will wait for the picture."), trace };
     const request = NO_WAIT_REQUEST;
@@ -358,6 +359,7 @@ describe("AgyRunService call detail for the logs", () => {
       resultAfterMs: 90,
       settledAfterMs: 120,
       candidateFileBytes: 512,
+      candidateFolder: "brain",
       answerKind: "promise",
       answerChars: "I will wait for the picture.".length,
     });

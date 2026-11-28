@@ -376,6 +376,7 @@ export class AgyRunService {
       ...AgyRunService.buildResultTimeFields(trace.resultAfterMs),
       settledAfterMs: trace.settledAfterMs,
       candidateFileBytes: trace.candidateFileBytes,
+      candidateFolder: trace.candidateFolder,
     };
   }
 

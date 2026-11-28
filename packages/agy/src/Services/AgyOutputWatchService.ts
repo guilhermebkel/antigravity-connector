@@ -19,12 +19,21 @@ import { AgyStdinMessageUtil } from "@antigravity-connector/agy/Utils/AgyStdinMe
 import { AgyStreamEventUtil } from "@antigravity-connector/agy/Utils/AgyStreamEventUtil.ts";
 import { AgyTraceRecorderService } from "@antigravity-connector/agy/Services/AgyTraceRecorderService.ts";
 
+type AgyCandidateFolder = "run" | "brain" | "none";
+
+type OutputTarget = {
+  name: string;
+  path: string;
+  folder: AgyCandidateFolder;
+};
+
 export type AgyOutputWatchOptions = {
   child: ChildProcess;
   prompt: string;
   workingDirectory: string;
   fileNames: readonly string[];
   excludedFileNames?: readonly string[];
+  brainRoot?: string;
   timeoutMs: number;
   secrets: readonly string[];
   signal: AbortSignal | undefined;
@@ -56,6 +65,8 @@ export class AgyOutputWatchService {
   private pendingLine = "";
 
   private conversationId = "";
+
+  private candidateFolder: AgyCandidateFolder = "none";
 
   private result: AgyEnvelope | undefined = undefined;
 
@@ -240,6 +251,7 @@ export class AgyOutputWatchService {
     this.isPolling = true;
     try {
       const target = await this.findTarget();
+      this.candidateFolder = target?.folder ?? "none";
       this.isFilesReady = target === undefined ? false : await this.checkFile(target);
     } finally {
       this.isPolling = false;
@@ -249,21 +261,40 @@ export class AgyOutputWatchService {
     }
   }
 
-  private async findTarget(): Promise<string | undefined> {
-    const [expectedName = ""] = this.options.fileNames;
-    // Why: the folder is listed on every poll, so a picture saved under another name is found the same way as output.png.
-    const names = await readdir(this.options.workingDirectory).catch((): string[] => []);
-    return AgyOutputFileUtil.pickTarget(names, expectedName, this.options.excludedFileNames ?? []);
+  private async findTarget(): Promise<OutputTarget | undefined> {
+    const local = await this.findTargetIn(this.options.workingDirectory, "run");
+    if (local !== undefined) {
+      return local;
+    }
+    const brainDirectory = this.buildBrainDirectory();
+    return brainDirectory === undefined ? undefined : this.findTargetIn(brainDirectory, "brain");
   }
 
-  private async checkFile(fileName: string): Promise<boolean> {
-    const bytes = await this.readOutputFile(fileName);
+  private async findTargetIn(directory: string, folder: AgyCandidateFolder): Promise<OutputTarget | undefined> {
+    const [expectedName = ""] = this.options.fileNames;
+    // Why: the folder is listed on every poll, so a picture saved under another name is found the same way as output.png.
+    const names = await readdir(directory).catch((): string[] => []);
+    const name = AgyOutputFileUtil.pickTarget(names, expectedName, this.options.excludedFileNames ?? []);
+    return name === undefined ? undefined : { folder, name, path: join(directory, name) };
+  }
+
+  private buildBrainDirectory(): string | undefined {
+    // Why: agy keeps a picture its subagent made in the folder of its conversation; the picture is read from there when agy did not copy it into the run folder.
+    const { brainRoot } = this.options;
+    if (brainRoot === undefined || this.conversationId === "") {
+      return undefined;
+    }
+    return join(brainRoot, this.conversationId);
+  }
+
+  private async checkFile(target: OutputTarget): Promise<boolean> {
+    const bytes = await this.readOutputFile(target.path);
     if (bytes === undefined) {
       return false;
     }
-    const previousSize = this.fileNameToLastSize.get(fileName);
-    this.fileNameToLastSize.set(fileName, bytes.length);
-    return previousSize === bytes.length && AgyOutputFileUtil.isComplete(fileName, bytes);
+    const previousSize = this.fileNameToLastSize.get(target.path);
+    this.fileNameToLastSize.set(target.path, bytes.length);
+    return previousSize === bytes.length && AgyOutputFileUtil.isComplete(target.name, bytes);
   }
 
   private hasSettled(): boolean {
@@ -310,7 +341,11 @@ export class AgyOutputWatchService {
     const outputFiles = await this.readExistingFiles();
     const envelope = this.result ?? this.buildSyntheticEnvelope();
     const candidateFileBytes = Object.values(outputFiles).reduce((total, bytes) => total + bytes.length, 0);
-    const trace = this.trace.build({ activeSubagentCount: this.activeSubagentIndexes.size, candidateFileBytes });
+    const trace = this.trace.build({
+      candidateFileBytes,
+      activeSubagentCount: this.activeSubagentIndexes.size,
+      candidateFolder: this.candidateFolder,
+    });
     await this.stopChild();
     this.resolveRun({ envelope, outputFiles, trace });
   }
@@ -364,13 +399,13 @@ export class AgyOutputWatchService {
     if (target === undefined) {
       return {};
     }
-    const bytes = await this.readOutputFile(target);
-    return bytes === undefined ? {} : { [target]: bytes };
+    const bytes = await this.readOutputFile(target.path);
+    return bytes === undefined ? {} : { [target.name]: bytes };
   }
 
-  private async readOutputFile(fileName: string): Promise<Uint8Array | undefined> {
+  private async readOutputFile(path: string): Promise<Uint8Array | undefined> {
     try {
-      return await readFile(join(this.options.workingDirectory, fileName));
+      return await readFile(path);
     } catch {
       return undefined;
     }

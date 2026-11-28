@@ -13,7 +13,7 @@ describe("AgyTraceRecorderService", () => {
     recorder.recordStep("subagent ACTIVE");
     recorder.recordStep("tool:read_file DONE");
 
-    const trace = recorder.build({ activeSubagentCount: 1, candidateFileBytes: 0 });
+    const trace = recorder.build({ activeSubagentCount: 1, candidateFileBytes: 0, candidateFolder: "run" });
 
     expect(trace).toStrictEqual({
       stepCount: 3,
@@ -23,6 +23,7 @@ describe("AgyTraceRecorderService", () => {
       afterResultExtensions: 0,
       settledAfterMs: 10,
       candidateFileBytes: 0,
+      candidateFolder: "run",
     });
   });
 
@@ -32,7 +33,7 @@ describe("AgyTraceRecorderService", () => {
       recorder.recordStep(`tool:step_${index}`);
     }
 
-    const trace = recorder.build({ activeSubagentCount: 0, candidateFileBytes: 0 });
+    const trace = recorder.build({ activeSubagentCount: 0, candidateFileBytes: 0, candidateFolder: "run" });
 
     expect(trace.stepCount).toBe(60);
     expect(trace.stepSummary).toHaveLength(AgyTraceRecorderService.MAX_SUMMARY_LENGTH);
@@ -48,7 +49,7 @@ describe("AgyTraceRecorderService", () => {
     recorder.recordResult();
     recorder.recordAfterResultExtension();
 
-    const trace = recorder.build({ activeSubagentCount: 0, candidateFileBytes: 512 });
+    const trace = recorder.build({ activeSubagentCount: 0, candidateFileBytes: 512, candidateFolder: "run" });
 
     expect(trace).toMatchObject({
       subagentCount: 2,
@@ -61,7 +62,7 @@ describe("AgyTraceRecorderService", () => {
   it("leaves the result time out when no result came", () => {
     const recorder = buildRecorder([0, 5]);
 
-    const trace = recorder.build({ activeSubagentCount: 0, candidateFileBytes: 0 });
+    const trace = recorder.build({ activeSubagentCount: 0, candidateFileBytes: 0, candidateFolder: "run" });
 
     expect(trace).not.toHaveProperty("resultAfterMs");
   });

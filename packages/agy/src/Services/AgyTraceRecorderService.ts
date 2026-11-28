@@ -3,6 +3,7 @@ import type { AgyRunTrace } from "@antigravity-connector/agy/Protocols/AgyRunner
 export type AgyTraceSettleInput = {
   activeSubagentCount: number;
   candidateFileBytes: number;
+  candidateFolder: string;
 };
 
 export class AgyTraceRecorderService {
@@ -67,6 +68,7 @@ export class AgyTraceRecorderService {
       ...(this.resultAfterMs === undefined ? {} : { resultAfterMs: this.resultAfterMs }),
       settledAfterMs: this.readElapsedMs(),
       candidateFileBytes: input.candidateFileBytes,
+      candidateFolder: input.candidateFolder,
     };
   }
 
