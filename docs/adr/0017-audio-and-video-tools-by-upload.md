@@ -25,3 +25,7 @@ agy 1.5.18 lists the Gemini 4 models (`gemini-4-neon`, `-hydrogen`, `-carbon`, `
 - Memory holds up to 60 MiB of uploads. A restart forgets them.
 - Whether the Gemini 4 models give better answers or cost more quota is not measured here.
 - Video generation is not offered: agy has an image generator subagent and no video one.
+
+## Model descriptions
+
+Every tool that takes `model` lists the models in that field's schema, each with a short description of what it is for (`ModelInfoUtil`). The descriptions come from agy's own roles (the pro subagent, the planner and executor of its orchestrator) and from our runs (time to a picture, time to a short answer, video and audio tested). They say what we measured in one or two calls per model; they are not benchmarks, and they change when agy changes.

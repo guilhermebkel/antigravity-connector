@@ -17,6 +17,7 @@ export type {
   AgyStreamEvent,
 } from "@antigravity-connector/protocol/Protocols/AgyStreamEventProtocol.ts";
 export { ModelIdSchema } from "@antigravity-connector/protocol/Schemas/ModelIdSchema.ts";
+export { ModelInfoUtil } from "@antigravity-connector/protocol/Utils/ModelInfoUtil.ts";
 export { ModelCatalogueUtil } from "@antigravity-connector/protocol/Utils/ModelCatalogueUtil.ts";
 export type { ImageGenerationRequest, ImageGenerationResponse } from "@antigravity-connector/protocol/Protocols/OpenAiImageProtocol.ts";
 export { ImageGenerationRequestSchema } from "@antigravity-connector/protocol/Schemas/ImageGenerationRequestSchema.ts";
