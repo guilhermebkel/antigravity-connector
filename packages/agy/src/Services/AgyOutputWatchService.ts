@@ -17,6 +17,7 @@ import { AgyOutcomeUtil } from "@antigravity-connector/agy/Utils/AgyOutcomeUtil.
 import { AgyOutputFileUtil } from "@antigravity-connector/agy/Utils/AgyOutputFileUtil.ts";
 import { AgyStdinMessageUtil } from "@antigravity-connector/agy/Utils/AgyStdinMessageUtil.ts";
 import { AgyStreamEventUtil } from "@antigravity-connector/agy/Utils/AgyStreamEventUtil.ts";
+import { AgyTraceRecorderService } from "@antigravity-connector/agy/Services/AgyTraceRecorderService.ts";
 
 export type AgyOutputWatchOptions = {
   child: ChildProcess;
@@ -82,12 +83,15 @@ export class AgyOutputWatchService {
 
   private readonly activeSubagentIndexes = new Set<number>();
 
+  private readonly trace: AgyTraceRecorderService;
+
   private resolveRun: (result: AgyRunResult) => void = () => undefined;
 
   private rejectRun: (error: Error) => void = () => undefined;
 
   constructor(options: AgyOutputWatchOptions) {
     this.options = options;
+    this.trace = new AgyTraceRecorderService(() => Date.now());
   }
 
   watch(): Promise<AgyRunResult> {
@@ -157,7 +161,9 @@ export class AgyOutputWatchService {
 
   private recordActivity(line: string): void {
     this.lastEventAtMs = Date.now();
-    this.lastStep = AgyStreamEventUtil.readStepLabel(line) ?? this.lastStep;
+    const label = AgyStreamEventUtil.readStepLabel(line);
+    this.lastStep = label ?? this.lastStep;
+    this.trace.recordStep(label);
     this.trackSubagent(line);
   }
 
@@ -166,6 +172,7 @@ export class AgyOutputWatchService {
     if (subagent === undefined) {
       return;
     }
+    this.trace.recordSubagent(subagent.index);
     if (subagent.isActive) {
       this.activeSubagentIndexes.add(subagent.index);
     } else {
@@ -190,6 +197,7 @@ export class AgyOutputWatchService {
 
   private async handleResult(envelope: AgyEnvelope): Promise<void> {
     this.result = envelope;
+    this.trace.recordResult();
     if (envelope.status !== AgyOutputWatchService.SUCCESS_STATUS) {
       const excerpt = RedactUtil.buildExcerpt(this.stderrText, this.options.secrets);
       const { secrets } = this.options;
@@ -218,6 +226,7 @@ export class AgyOutputWatchService {
     }
     // Why: the wait after the result is for a subagent that is still working; while one is active the run keeps waiting, and the overall timeout still stops it.
     if (this.activeSubagentIndexes.size > 0) {
+      this.trace.recordAfterResultExtension();
       this.scheduleAfterResultCheck();
       return;
     }
@@ -300,8 +309,10 @@ export class AgyOutputWatchService {
     this.clearTimers();
     const outputFiles = await this.readExistingFiles();
     const envelope = this.result ?? this.buildSyntheticEnvelope();
+    const candidateFileBytes = Object.values(outputFiles).reduce((total, bytes) => total + bytes.length, 0);
+    const trace = this.trace.build({ activeSubagentCount: this.activeSubagentIndexes.size, candidateFileBytes });
     await this.stopChild();
-    this.resolveRun({ envelope, outputFiles });
+    this.resolveRun({ envelope, outputFiles, trace });
   }
 
   private fail(error: Error): void {

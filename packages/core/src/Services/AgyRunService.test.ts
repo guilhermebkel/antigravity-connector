@@ -294,6 +294,10 @@ describe("AgyRunService logs a run that had to write a file", () => {
 });
 
 describe("AgyRunService call detail for the logs", () => {
+  const NO_WAIT_REQUEST = {
+    profile: { shouldWaitForOutputFiles: false, expectedOutputFileNames: [] },
+  } as unknown as AgyRunRequest;
+
   it("failure detail carries the exit code and the envelope status and error, never the prompt", () => {
     const error = new AgyFailedError(1, "stderr excerpt", { status: "ERROR", error: "boom" });
 
@@ -328,5 +332,44 @@ describe("AgyRunService call detail for the logs", () => {
   it("success detail counts the turns and the output files without their content", () => {
     expect(AgyRunService.buildSuccessDetail(1, 0)).toStrictEqual({ numTurns: 1, outputFileCount: 0 });
     expect(AgyRunService.buildSuccessDetail(undefined, 2)).toStrictEqual({ numTurns: 0, outputFileCount: 2 });
+  });
+
+  it("a finished run logs its path and the kind and size of its answer, never the answer", () => {
+    const trace = {
+      stepCount: 2,
+      stepSummary: "subagent ACTIVE>subagent DONE",
+      subagentCount: 1,
+      activeSubagentCount: 0,
+      afterResultExtensions: 1,
+      resultAfterMs: 90,
+      settledAfterMs: 120,
+      candidateFileBytes: 512,
+    };
+    const result = { ...buildSuccessResult("I will wait for the picture."), trace };
+    const request = NO_WAIT_REQUEST;
+
+    const outcome = AgyRunService.buildFinishedOutcome(request, result);
+
+    expect(outcome.detail).toMatchObject({
+      stepCount: 2,
+      stepSummary: "subagent ACTIVE>subagent DONE",
+      subagentCount: 1,
+      afterResultExtensions: 1,
+      resultAfterMs: 90,
+      settledAfterMs: 120,
+      candidateFileBytes: 512,
+      answerKind: "promise",
+      answerChars: "I will wait for the picture.".length,
+    });
+    expect(JSON.stringify(outcome.detail)).not.toContain("I will wait");
+  });
+
+  it("a run without a trace logs no trace fields", () => {
+    const request = NO_WAIT_REQUEST;
+
+    const outcome = AgyRunService.buildFinishedOutcome(request, buildSuccessResult("done"));
+
+    expect(outcome.detail).not.toHaveProperty("stepSummary");
+    expect(outcome.detail).toMatchObject({ answerKind: "other", answerChars: 4 });
   });
 });

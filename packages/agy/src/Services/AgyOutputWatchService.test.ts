@@ -65,6 +65,12 @@ const startWatching = (child: StubChild): Promise<AgyRunResult> => {
   return watcher.watch();
 };
 
+const buildSubagentLine = (state: string): string =>
+  JSON.stringify({
+    event: "step_update",
+    step_update: { conversation_id: "subagent", step_index: 1, step_type: "subagent", state },
+  });
+
 const writePng = (): void => {
   writeFileSync(join(workingDirectory, FILE_NAME), PNG_BYTES);
 };
@@ -112,5 +118,28 @@ describe("AgyOutputWatchService", () => {
     await run;
 
     expect(written.split("\n").filter((line) => line !== "")).toHaveLength(1);
+  });
+
+  it("reports the steps, the subagent and the file size in the trace, never the text", async () => {
+    const child = buildStubChild();
+    const run = startWatching(child);
+
+    child.stdout.write(`${INIT_LINE}\n`);
+    await sleep(SETTLE_MS);
+    child.stdout.write(`${buildSubagentLine("ACTIVE")}\n`);
+    child.stdout.write(`${buildSubagentLine("DONE")}\n`);
+    writePng();
+    child.stdout.write(`${RESULT_LINE}\n`);
+    const result = await run;
+
+    expect(result.trace).toMatchObject({
+      stepCount: 2,
+      stepSummary: "subagent ACTIVE>subagent DONE",
+      subagentCount: 1,
+      activeSubagentCount: 0,
+      afterResultExtensions: 0,
+      candidateFileBytes: PNG_BYTES.length,
+    });
+    expect(JSON.stringify(result.trace)).not.toContain(PROMPT);
   });
 });

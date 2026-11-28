@@ -20,6 +20,7 @@ export type {
   AgyRunProfile,
   AgyRunRequest,
   AgyRunResult,
+  AgyRunTrace,
   AgyStreamOutputEvent,
   AgyStartedEvent,
   AgyTextEvent,
